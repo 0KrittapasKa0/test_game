@@ -1,8 +1,12 @@
 import { calculateScore } from './deck';
+import { shouldNerfAiDraw } from './luckAssist';
 import type { Card, RoomConfig } from '../types/game';
 
 export function aiShouldDraw(cards: Card[]): boolean {
     const score = calculateScore(cards);
+
+    // Nerf: AI ที่แต้มดี (6-7) อาจจั่วเข้าตัว — ดูเป็นธรรมชาติเหมือน AI ตัดสินใจผิด
+    if (score >= 6 && shouldNerfAiDraw()) return true;
 
     if (score <= 3) return true;
 
@@ -20,10 +24,10 @@ export function aiShouldDraw(cards: Card[]): boolean {
 export function aiSelectBet(chips: number, room: RoomConfig): number {
     // If AI can't afford minimum bet, bet all chips
     if (chips < room.minBet) return chips;
-    
+
     const maxBet = Math.min(chips, room.maxBet);
     const options = room.chipPresets.filter(b => b >= room.minBet && b <= maxBet);
-    
+
     // If no valid options, use minimum bet or all chips
     if (options.length === 0) return Math.min(chips, room.minBet);
 
@@ -39,7 +43,7 @@ export function aiSelectBet(chips: number, room: RoomConfig): number {
         // High chips: more aggressive
         weights = [20, 30, 35, 15];
     }
-    
+
     const validWeights = weights.slice(0, options.length);
     const totalWeight = validWeights.reduce((a, b) => a + b, 0);
     let random = Math.random() * totalWeight;

@@ -135,7 +135,7 @@ export default function MainMenuScreen() {
                     </div>
                 </div>
 
-                <p className="text-gray-700 text-[11px] mt-6 tracking-wide">v1.0 · เล่นฟรี · ออฟไลน์</p>
+                <p className="text-gray-700 text-[11px] mt-6 tracking-wide">Alpha Version 0.0.1</p>
             </motion.div>
         </div>
     );

@@ -11,6 +11,8 @@ import {
     shouldAssistOpening, pickAssistedOpeningCards,
     shouldAssistThirdCard, pickAssistedThirdCard,
     recordRoundResult,
+    shouldNerfAiOpening, pickNerfedAiCards,
+    shouldProtectNearMiss,
 } from '../utils/luckAssist';
 
 interface GameState {
@@ -441,6 +443,23 @@ export const useGameStore = create<GameState>((set, get) => ({
             card = pendingAssistedCards[0];
             set({ pendingAssistedCards: null });
             // Card was already removed from deck in round 0
+        } else if (!targetPlayer.isHuman && dealingRound === 0 && targetPlayer.cards.length === 0) {
+            // ── AI Opening Nerf: ให้ AI ได้ไพ่แย่ (Strategy 2) ──
+            if (shouldNerfAiOpening()) {
+                const nerfed = pickNerfedAiCards(deckCopy);
+                if (nerfed) {
+                    card = nerfed.cards[0];
+                    deckCopy = nerfed.remainingDeck;
+                    // ใส่ไพ่ใบที่ 2 กลับในตำแหน่งสุ่ม (ไม่ใช่ท้าย deck)
+                    // เพื่อไม่ให้ไปโดน AI คนถัดไปโดยไม่ตั้งใจ
+                    const insertAt = Math.floor(Math.random() * deckCopy.length);
+                    deckCopy.splice(insertAt, 0, nerfed.cards[1]);
+                } else {
+                    card = deckCopy.pop()!;
+                }
+            } else {
+                card = deckCopy.pop()!;
+            }
         } else {
             // Normal random deal (AI players or non-assisted human)
             card = deckCopy.pop()!;
@@ -710,22 +729,22 @@ export const useGameStore = create<GameState>((set, get) => ({
                 // Return bet + (bet * playerDeng)
                 result = 'win';
                 const winnings = p.bet * playerResult.deng;
-                finalChips = p.chips + p.bet + winnings; // p.chips includes the deducted bet? No, usually chips reduced on bet.
-                // Wait, in placeBet: chips = p.chips - validBet. 
-                // So p.chips is remainder.
-                // If draw: returns p.bet.
-                // If win: returns p.bet + winnings.
+                finalChips = p.chips + p.bet + winnings;
             } else if (outcome === 'dealer') {
-                result = 'lose';
-                // Bet is already gone.
-                // Extra Loss?
-                // If Dealer has > 1 Deng, Player pays more.
-                // p.chips -= p.bet * (dealerResult.deng - 1);
-                // Example: Bet 100. Dealer 2 Deng. Player loses 200.
-                // Already paid 100. Need to pay 100 more.
-                // extra = bet * (deng - 1)
-                const extraLoss = p.bet * (dealerResult.deng - 1);
-                finalChips = Math.max(0, p.chips - extraLoss);
+                // ── Near-Miss Protection (Strategy 5) ──
+                // ถ้าผู้เล่นแพ้ห่างแค่ 1 แต้ม มีโอกาสเปลี่ยนเป็นเสมอ
+                if (p.isHuman
+                    && playerResult.type === HandType.NORMAL
+                    && dealerResult.type === HandType.NORMAL
+                    && shouldProtectNearMiss(playerResult.score, dealerResult.score)
+                ) {
+                    result = 'draw';
+                    finalChips = p.chips + p.bet;
+                } else {
+                    result = 'lose';
+                    const extraLoss = p.bet * (dealerResult.deng - 1);
+                    finalChips = Math.max(0, p.chips - extraLoss);
+                }
             } else {
                 result = 'draw';
                 finalChips = p.chips + p.bet;

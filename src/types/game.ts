@@ -263,7 +263,7 @@ export const VALID_REWARD_CODES: RewardCode[] = [
     { code: 'โชคดี777', chips: 777 },
     { code: 'ป๊อกเด้ง', chips: 1000 },
     { code: 'เฮงเฮง', chips: 300 },
-    { code: 'test', chips: 100000000000 },
+    { code: 'test12', chips: 100000000 },
 ];
 
 export const AI_NAMES = ['สมชาย', 'สมหญิง', 'สมศรี', 'สมศักดิ์', 'สมปอง', 'สมใจ'];
