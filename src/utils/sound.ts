@@ -64,6 +64,11 @@ function playNoise(duration: number, volume = 0.08) {
     }
 }
 
+/** Play multiple tones simultaneously as a chord */
+function playChord(frequencies: number[], duration: number, type: OscillatorType = 'sine', volume = 0.08) {
+    frequencies.forEach(freq => playTone(freq, duration, type, volume / frequencies.length));
+}
+
 export const SFX = {
     /** UI button click */
     click: () => {
@@ -153,6 +158,122 @@ export const SFX = {
     roundStart: () => {
         playTone(523, 0.1, 'sine', 0.08);
         setTimeout(() => playTone(784, 0.15, 'sine', 0.1), 100);
+    },
+
+    // ══════════════════════════════════════════════════════════════
+    // NEW SOUND EFFECTS
+    // ══════════════════════════════════════════════════════════════
+
+    /** 🔥 All-in — dramatic rising tension */
+    allIn: () => {
+        // Low rumble → rising sweep → impact chord
+        playTone(110, 0.4, 'sawtooth', 0.06);
+        setTimeout(() => playTone(165, 0.3, 'sawtooth', 0.07), 80);
+        setTimeout(() => playTone(220, 0.25, 'sine', 0.08), 160);
+        setTimeout(() => playTone(330, 0.2, 'sine', 0.09), 240);
+        setTimeout(() => playTone(440, 0.15, 'sine', 0.1), 320);
+        // Impact chord
+        setTimeout(() => {
+            playChord([523, 659, 784], 0.4, 'sine', 0.18);
+            playNoise(0.15, 0.1);
+        }, 400);
+        // Shimmering tail
+        setTimeout(() => playTone(1047, 0.5, 'sine', 0.06), 500);
+        setTimeout(() => playTone(1319, 0.4, 'sine', 0.04), 580);
+    },
+
+    /** 🃏 Pok reveal — exciting sting when Pok detected */
+    pokReveal: () => {
+        // Sharp attack + sparkle
+        playTone(1047, 0.08, 'square', 0.08);
+        setTimeout(() => playTone(1319, 0.08, 'square', 0.07), 50);
+        setTimeout(() => playTone(1568, 0.12, 'sine', 0.1), 100);
+        setTimeout(() => playChord([1047, 1319, 1568], 0.3, 'sine', 0.12), 160);
+        // Sparkle tail
+        setTimeout(() => playTone(2093, 0.15, 'sine', 0.04), 300);
+        setTimeout(() => playTone(2637, 0.12, 'sine', 0.03), 380);
+    },
+
+    /** 🔎 Showdown reveal — card flip burst */
+    showdownReveal: () => {
+        // Dramatic sweep up
+        playNoise(0.12, 0.1);
+        playTone(330, 0.1, 'triangle', 0.06);
+        setTimeout(() => {
+            playNoise(0.08, 0.08);
+            playTone(440, 0.1, 'triangle', 0.07);
+        }, 80);
+        setTimeout(() => {
+            playNoise(0.06, 0.06);
+            playTone(660, 0.15, 'sine', 0.08);
+        }, 160);
+        // Sustain chord
+        setTimeout(() => playChord([523, 659, 784], 0.3, 'sine', 0.08), 240);
+    },
+
+    /** 🤖 AI draw — subtle card sound for AI */
+    aiDraw: () => {
+        playNoise(0.08, 0.08);
+        playTone(600, 0.05, 'sine', 0.04);
+    },
+
+    /** 💰 Chip collect — cascading metallic coins */
+    chipCollect: () => {
+        const tones = [2000, 2400, 1800, 2600, 2200, 3000, 2800];
+        tones.forEach((freq, i) => {
+            setTimeout(() => {
+                playTone(freq, 0.06, 'triangle', 0.05 - i * 0.005);
+                playTone(freq * 0.75, 0.04, 'sine', 0.03);
+            }, i * 60);
+        });
+    },
+
+    /** 🎰 Slider tick — subtle roulette tick */
+    sliderTick: () => {
+        playTone(3000, 0.02, 'sine', 0.04);
+    },
+
+    /** 🏆 Big win — extended fanfare for Deng ×2+ */
+    bigWin: () => {
+        // Ascending major chord arpeggio
+        const notes = [523, 659, 784, 1047, 1319, 1568];
+        notes.forEach((freq, i) => {
+            setTimeout(() => playTone(freq, 0.35 - i * 0.03, 'sine', 0.12 - i * 0.01), i * 80);
+        });
+        // Triumph chord
+        setTimeout(() => playChord([1047, 1319, 1568, 2093], 0.6, 'sine', 0.14), 520);
+        // Sparkle finish
+        setTimeout(() => playTone(2093, 0.2, 'sine', 0.05), 800);
+        setTimeout(() => playTone(2637, 0.15, 'sine', 0.04), 880);
+        setTimeout(() => playTone(3136, 0.12, 'sine', 0.03), 960);
+    },
+
+    /** 💀 Game over — dramatic low heartbeat */
+    gameOver: () => {
+        // Deep bass throb
+        playTone(80, 0.5, 'sine', 0.12);
+        playTone(82, 0.5, 'sine', 0.1); // Slight detune for thickness
+        setTimeout(() => {
+            playTone(75, 0.6, 'sine', 0.1);
+            playTone(77, 0.6, 'sine', 0.08);
+        }, 500);
+        // Descending sadness
+        setTimeout(() => playTone(330, 0.4, 'sine', 0.06), 200);
+        setTimeout(() => playTone(262, 0.5, 'sine', 0.05), 500);
+        setTimeout(() => playTone(196, 0.7, 'sine', 0.04), 800);
+    },
+
+    /** 🔄 Repeat bet — quick chip slide */
+    repeatBet: () => {
+        playTone(1000, 0.04, 'sine', 0.06);
+        setTimeout(() => playTone(1400, 0.04, 'sine', 0.05), 25);
+        setTimeout(() => playTone(1100, 0.03, 'triangle', 0.04), 50);
+    },
+
+    /** ⏰ Countdown tick — clock-like tick */
+    countdownTick: () => {
+        playTone(1800, 0.03, 'sine', 0.08);
+        setTimeout(() => playTone(1200, 0.02, 'sine', 0.04), 15);
     },
 };
 

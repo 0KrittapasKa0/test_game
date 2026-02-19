@@ -13,10 +13,6 @@ interface PlayerAvatarProps {
     hideInfo?: boolean;
 }
 
-// Pre-define outside component to avoid recreating every render
-const activePulse = { scale: [1, 1.06, 1] };
-const pulseTransition = { repeat: Infinity, duration: 1.5, ease: 'easeInOut' as const };
-
 export default function PlayerAvatar({
     name,
     color,
@@ -55,10 +51,8 @@ export default function PlayerAvatar({
     return (
         <motion.div
             className="flex flex-col items-center gap-0.5"
-            // willChange hint tells browser to promote to GPU layer before animation starts
-            style={{ willChange: isActive ? 'transform' : 'auto' }}
-            animate={isActive ? activePulse : {}}
-            transition={isActive ? pulseTransition : {}}
+            animate={isActive ? { scale: [1, 1.06, 1] } : {}}
+            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
         >
             <div className="relative">
                 {avatarUrl ? (

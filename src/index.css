@@ -178,27 +178,25 @@ button {
   animation: glow-pulse 1.5s ease-in-out infinite;
 }
 
-/* ===== GPU-accelerated active player pulse (replaces framer-motion infinite loop) ===== */
-@keyframes active-player-pulse {
-
-  0%,
-  100% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.06);
-  }
+/* ===== Range Slider Thumb ===== */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fcd34d, #f59e0b);
+  border: 2px solid #d97706;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
 }
 
-.animate-active-pulse {
-  animation: active-player-pulse 1.5s ease-in-out infinite;
-  will-change: transform;
-}
-
-/* ===== GPU layer promotions for frequently animated elements ===== */
-.gpu-layer {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+input[type="range"]::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fcd34d, #f59e0b);
+  border: 2px solid #d97706;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
 }

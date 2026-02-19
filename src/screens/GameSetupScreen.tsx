@@ -200,7 +200,7 @@ export default function GameSetupScreen() {
                                 <div className="flex-1 min-w-0">
                                     <p className="text-white font-semibold text-sm leading-tight">{selectedRoom.name}</p>
                                     <p className="text-gray-500 text-[11px]">
-                                        เดิมพัน {selectedRoom.minBet} - {selectedRoom.maxBet} ชิป
+                                        เดิมพัน {formatChips(selectedRoom.minBet)} - {formatChips(selectedRoom.maxBet)} ชิป
                                     </p>
                                 </div>
                                 <button

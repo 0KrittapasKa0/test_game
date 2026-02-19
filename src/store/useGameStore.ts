@@ -14,6 +14,7 @@ import {
     shouldNerfAiOpening, pickNerfedAiCards,
     shouldProtectNearMiss,
 } from '../utils/luckAssist';
+import { getAiLeavers } from '../utils/aiLeave';
 
 interface GameState {
     screen: Screen;
@@ -122,29 +123,36 @@ function createAiPlayers(
     const shuffledNames = [...AI_NAMES].sort(() => Math.random() - 0.5);
     const shuffledColors = [...AVATAR_COLORS].sort(() => Math.random() - 0.5);
 
-    return Array.from({ length: count }, (_, i) => ({
-        id: `ai-${aiIdCounter++}`,
-        name: randomUsers[i]?.name || shuffledNames[i % shuffledNames.length],
-        avatarColor: shuffledColors[(startIndex + i + 1) % shuffledColors.length],
-        avatarUrl: randomUsers[i]?.avatarUrl || undefined,
-        isHuman: false,
-        isDealer: false,
-        cards: [],
-        bet: 0,
-        chips: randomizeAiChips(aiChips, minBet),
-        score: 0,
-        hasPok: false,
-        dengMultiplier: 1,
-        hasActed: false,
-        result: 'pending' as const,
-        seatIndex: seatStartIndex + i,
-    }));
+    return Array.from({ length: count }, (_, i) => {
+        const chips = randomizeAiChips(aiChips, minBet);
+        return {
+            id: `ai-${aiIdCounter++}`,
+            name: randomUsers[i]?.name || shuffledNames[i % shuffledNames.length],
+            avatarColor: shuffledColors[(startIndex + i + 1) % shuffledColors.length],
+            avatarUrl: randomUsers[i]?.avatarUrl || undefined,
+            isHuman: false,
+            isDealer: false,
+            cards: [],
+            bet: 0,
+            chips,
+            score: 0,
+            hasPok: false,
+            dengMultiplier: 1,
+            hasActed: false,
+            result: 'pending' as const,
+            seatIndex: seatStartIndex + i,
+            roundsPlayed: 0,
+            consecutiveLosses: 0,
+            peakChips: chips,
+        };
+    });
 }
 
 async function createSingleAi(aiChips: number, seatIndex: number, minBet: number = 10): Promise<Player> {
     const randomUsers = await fetchRandomUsers(1);
     const shuffledNames = [...AI_NAMES].sort(() => Math.random() - 0.5);
     const shuffledColors = [...AVATAR_COLORS].sort(() => Math.random() - 0.5);
+    const chips = randomizeAiChips(aiChips, minBet);
     return {
         id: `ai-${aiIdCounter++}`,
         name: randomUsers[0]?.name || shuffledNames[0],
@@ -154,13 +162,16 @@ async function createSingleAi(aiChips: number, seatIndex: number, minBet: number
         isDealer: false,
         cards: [],
         bet: 0,
-        chips: randomizeAiChips(aiChips, minBet),
+        chips,
         score: 0,
         hasPok: false,
         dengMultiplier: 1,
         hasActed: false,
         result: 'pending' as const,
         seatIndex,
+        roundsPlayed: 0,
+        consecutiveLosses: 0,
+        peakChips: chips,
     };
 }
 
@@ -330,11 +341,16 @@ export const useGameStore = create<GameState>((set, get) => ({
                 const ai = currentPlayers[i];
                 if (!ai || ai.bet > 0) return; // Already bet or removed
 
-                const maxBet = Math.min(ai.chips, currentConfig.room.maxBet);
-                const bet = aiSelectBet(maxBet, currentConfig.room);
-                const validBet = Math.max(currentConfig.room.minBet, Math.min(bet, maxBet));
+                // Pass full chip count — aiSelectBet decides if it raise beyond room maxBet
+                const bet = aiSelectBet(ai.chips, currentConfig.room);
+                const validBet = Math.max(currentConfig.room.minBet, Math.min(bet, ai.chips));
 
-                SFX.chipPlace();
+                // Play dramatic allIn sound if AI bets everything
+                if (validBet >= ai.chips) {
+                    SFX.allIn();
+                } else {
+                    SFX.chipPlace();
+                }
                 const updated = currentPlayers.map((pp, idx) => {
                     if (idx !== i) return pp;
                     return { ...pp, bet: validBet, chips: pp.chips - validBet };
@@ -366,8 +382,8 @@ export const useGameStore = create<GameState>((set, get) => ({
             if (!p.isHuman) return p;
             if (p.isDealer) return p;
 
-            // Validate bet amount
-            const maxBet = Math.min(p.chips, config.room.maxBet);
+            // Validate bet amount — allow up to total chips (raise/all-in)
+            const maxBet = p.chips + p.bet; // total available = current chips + already-bet chips
             const validBet = Math.max(0, Math.min(amount, maxBet));
 
             const prevBet = p.bet;
@@ -506,6 +522,10 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (dealer.hasPok) {
             // กรณี 1: เจ้ามือป๊อก → จบทันที ไม่มีใครจั่วใบที่ 3
             // mark ทุกคน hasActed เพราะไม่มีสิทธิ์จั่ว
+            SFX.pokReveal();
+            // Countdown ticks before showdown
+            setTimeout(() => SFX.countdownTick(), 600);
+            setTimeout(() => SFX.countdownTick(), 1200);
             const updatedPlayers = players.map(p => ({ ...p, hasActed: true }));
             set({
                 players: updatedPlayers,
@@ -519,6 +539,9 @@ export const useGameStore = create<GameState>((set, get) => ({
             // กรณี 2: เจ้ามือไม่ป๊อก
             // ผู้เล่นที่ป๊อก → ชนะทันที, mark hasActed
             // ผู้เล่นที่ไม่ป๊อก → ยังเล่นต่อตามปกติ
+            // Play pok sound for any player who got Pok
+            const anyPok = players.some((p, i) => i !== dealerIndex && p.hasPok);
+            if (anyPok) SFX.pok();
             const updatedPlayers = players.map((p, i) => {
                 if (i === dealerIndex) return p; // เจ้ามือยังไม่ act
                 if (p.hasPok) return { ...p, hasActed: true }; // ป๊อก → จบ
@@ -578,6 +601,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         const nextOrderIdx = currentOrderIdx + 1;
 
         if (nextOrderIdx >= turnOrder.length) {
+            SFX.showdownReveal();
             set({ gamePhase: 'SHOWDOWN', showCards: true, activePlayerIndex: -1 });
             setTimeout(() => get().showdown(), 1800);
             return;
@@ -662,7 +686,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     },
 
     playerStay: () => {
-        SFX.click();
+        SFX.cardSlide();
         const { players, activePlayerIndex } = get();
         const updated = players.map((p, i) => {
             if (i !== activePlayerIndex) return p;
@@ -680,6 +704,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         const deckCopy = [...deck];
 
         if (aiShouldDraw(ai.cards)) {
+            SFX.aiDraw();
             const card = deckCopy.pop()!;
             const newCards = [...ai.cards, card];
             const updated = players.map((p, i) => {
@@ -840,13 +865,28 @@ export const useGameStore = create<GameState>((set, get) => ({
             const newChips = humanPlayer.chips;
             const net = newChips - oldChips;
 
-            if (humanPlayer.result === 'win') { msg = `🎉 คุณชนะ +${net.toLocaleString()}`; SFX.win(); }
+            if (humanPlayer.result === 'win') {
+                msg = `🎉 คุณชนะ +${net.toLocaleString()}`;
+                if (humanPlayer.dengMultiplier >= 2) { SFX.bigWin(); } else { SFX.win(); }
+                setTimeout(() => SFX.chipCollect(), 400);
+            }
             else if (humanPlayer.result === 'lose') { msg = `😔 คุณแพ้ ${net.toLocaleString()}`; SFX.lose(); }
             else { msg = '🤝 เสมอ (ไม่เสียเงิน)'; SFX.draw(); }
         }
 
+        // ── Update AI behavioral tracking ──
+        const trackedResults = results.map(p => {
+            if (p.isHuman) return p;
+            const roundsPlayed = (p.roundsPlayed ?? 0) + 1;
+            const consecutiveLosses = p.result === 'lose'
+                ? (p.consecutiveLosses ?? 0) + 1
+                : 0; // Reset on win or draw
+            const peakChips = Math.max(p.peakChips ?? p.chips, p.chips);
+            return { ...p, roundsPlayed, consecutiveLosses, peakChips };
+        });
+
         set({
-            players: results,
+            players: trackedResults,
             gamePhase: 'ROUND_END',
             resultMessage: msg,
             activePlayerIndex: -1,
@@ -864,6 +904,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (humanPlayer && !isSpectating && humanPlayer.chips < config.room.minBet && !humanPlayer.isDealer) {
             enterSpectating = true;
             set({ isSpectating: true });
+            SFX.gameOver();
         }
 
         // ── Step 1: Rotate dealer FIRST if current dealer is broke ──
@@ -890,11 +931,13 @@ export const useGameStore = create<GameState>((set, get) => ({
             }
         }
 
-        // ── Step 2: Remove broke players (can't afford minBet) ──
+        // ── Step 2: Remove AI using realistic leave system ──
+        const leavers = getAiLeavers(updatedPlayers, config.room.minBet);
+        const leaverIds = new Set(leavers.map(l => l.player.id));
         updatedPlayers = updatedPlayers.filter(p => {
             if (p.isHuman) return true; // Always keep human (for spectating)
             if (p.isDealer) return true; // Always keep the (new) dealer
-            return p.chips >= config.room.minBet; // Remove AI that can't afford minBet
+            return !leaverIds.has(p.id);
         });
 
         // ── Spawn new AI into empty seats (~30% chance per empty seat) ──

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './Card';
 import PlayerAvatar from './PlayerAvatar';
@@ -187,19 +187,10 @@ export default function GameTable() {
         players, gamePhase,
         isDealing, showCards, config,
         activePlayerIndex, aiBettingInProgress, isSpectating, humanBetConfirmed,
-        placeBet, confirmBet, playerDraw, playerStay, resetGame,
+        placeBet, confirmBet, playerDraw, playerStay, resetGame, addChips,
     } = useGameStore();
 
     const [showExitConfirm, setShowExitConfirm] = useState(false);
-    const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }));
-
-    // Update time every minute (HH:MM only — no need for 1-second interval)
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentTime(new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }));
-        }, 60000);
-        return () => clearInterval(interval);
-    }, []);
 
     const humanPlayer = players.find(p => p.isHuman);
     const humanIndex = players.findIndex(p => p.isHuman);
@@ -207,21 +198,22 @@ export default function GameTable() {
 
     // Use maxSeats for stable positioning — players at fixed seatIndex positions
     const activePlayers = isSpectating ? players.filter(p => !p.isHuman) : players;
-    // Memoize seat positions to avoid recalculating on every render
-    const seatPositions = useMemo(() =>
-        activePlayers.length > 0
-            ? computeSeatPositions(activePlayers.length, activePlayers.findIndex(p => p.isDealer), activePlayers.findIndex(p => p.isHuman))
-            : [],
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [activePlayers.length, activePlayers.findIndex(p => p.isDealer), activePlayers.findIndex(p => p.isHuman)]
-    );
+    const seatPositions = activePlayers.length > 0
+        ? computeSeatPositions(activePlayers.length, activePlayers.findIndex(p => p.isDealer), activePlayers.findIndex(p => p.isHuman))
+        : [];
 
     const isHumanTurn = !isSpectating && gamePhase === 'PLAYER_ACTION' && activePlayerIndex === humanIndex && humanPlayer && !humanPlayer.hasActed;
     const totalPot = activePlayers.reduce((sum, p) => sum + p.bet, 0);
 
     // Check if game is in progress (bet placed or past betting phase)
     const humanBet = humanPlayer?.bet ?? 0;
-    const isGameInProgress = humanBet > 0 || (gamePhase !== 'BETTING' && !isSpectating);
+    const isHumanDealer = humanPlayer?.isDealer ?? false;
+    // Dealer penalty: total pot (all bets already placed before dealing)
+    const dealerPenalty = isHumanDealer && gamePhase !== 'BETTING' && config
+        ? Math.min(totalPot, humanPlayer?.chips ?? 0)
+        : 0;
+    const exitCost = isHumanDealer ? dealerPenalty : humanBet;
+    const isGameInProgress = exitCost > 0 || (gamePhase !== 'BETTING' && !isSpectating);
 
     const handleExit = () => {
         if (isGameInProgress) {
@@ -234,7 +226,7 @@ export default function GameTable() {
     };
 
     const handleBetSelect = (amount: number) => {
-        if (humanPlayer && config && amount <= Math.min(humanPlayer.chips, config.room.maxBet)) {
+        if (humanPlayer && config && amount <= (humanPlayer.chips + (humanPlayer.bet ?? 0))) {
             placeBet(amount);
         }
     };
@@ -304,11 +296,7 @@ export default function GameTable() {
                     ← ออก
                 </motion.button>
 
-                <div className="absolute left-1/2 -translate-x-1/2 bg-black/30 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/10 flex items-center gap-2">
-                    <span className="text-white/80 font-medium text-xs sm:text-sm tracking-widest font-mono">
-                        {currentTime}
-                    </span>
-                </div>
+
 
                 {/* Human chip display */}
                 {humanPlayer && (
@@ -464,8 +452,9 @@ export default function GameTable() {
                                                 <div
                                                     className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-full flex items-center gap-2"
                                                     style={{
-                                                        background: 'rgba(0,0,0,0.55)',
+                                                        background: 'linear-gradient(135deg, rgba(0,0,0,0.5), rgba(0,0,0,0.35))',
                                                         border: '1px solid rgba(255,215,100,0.12)',
+                                                        backdropFilter: 'blur(8px)',
                                                         boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
                                                     }}
                                                 >
@@ -535,8 +524,7 @@ export default function GameTable() {
                                         transform: 'translate(-50%, -50%)',
                                         minWidth: '100px',
                                         zIndex: isActive ? 100 : zIndex,
-                                        // Use box-shadow on avatar ring instead of drop-shadow filter (much cheaper on GPU)
-                                        boxShadow: isActive && isPanel ? '0 0 20px rgba(250,204,21,0.4)' : undefined,
+                                        filter: isActive && isPanel ? 'drop-shadow(0 0 16px rgba(250,204,21,0.5))' : undefined,
                                     }}
                                 >
                                     <div className="relative flex flex-col items-center z-0 pointer-events-auto group">
@@ -744,7 +732,8 @@ export default function GameTable() {
                             <div className="absolute inset-0 -inset-x-4 bg-gradient-to-t from-black/90 to-transparent rounded-t-3xl -z-10" />
 
                             <ChipSelector
-                                maxBet={Math.min(humanPlayer.chips, config.room.maxBet)}
+                                maxBet={Math.min(humanPlayer.chips + humanPlayer.bet, config.room.maxBet)}
+                                totalChips={humanPlayer.chips + humanPlayer.bet}
                                 currentBet={humanPlayer.bet}
                                 lastBet={humanPlayer.lastBet}
                                 chipPresets={config.room.chipPresets}
@@ -811,11 +800,13 @@ export default function GameTable() {
                                 <div className="text-4xl mb-3">⚠️</div>
                                 <h3 className="text-white font-bold text-lg mb-2">ออกกลางเกม?</h3>
                                 <p className="text-white/60 text-sm mb-1">
-                                    คุณจะเสียชิปที่วางเดิมพันไว้
+                                    {isHumanDealer
+                                        ? 'เจ้ามือออกกลางเกม ต้องเสียค่ายึดโต๊ะ'
+                                        : 'คุณจะเสียชิปที่วางเดิมพันไว้'}
                                 </p>
-                                {humanBet > 0 && (
+                                {exitCost > 0 && (
                                     <p className="text-red-400 font-bold text-lg">
-                                        -{formatChips(humanBet)} ชิป
+                                        -{formatChips(exitCost)} ชิป
                                     </p>
                                 )}
                             </div>
@@ -830,7 +821,13 @@ export default function GameTable() {
                                 <div className="w-px bg-white/10" />
                                 <motion.button
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => { setShowExitConfirm(false); resetGame(); }}
+                                    onClick={() => {
+                                        setShowExitConfirm(false);
+                                        if (exitCost > 0) {
+                                            addChips(-exitCost);
+                                        }
+                                        resetGame();
+                                    }}
                                     className="flex-1 py-4 text-red-400 font-bold text-sm hover:bg-red-500/10 transition-colors cursor-pointer"
                                 >
                                     ออกเลย

@@ -37,6 +37,10 @@ export interface Player {
     result: 'win' | 'lose' | 'draw' | 'pending';
     roundProfit?: number;
     seatIndex: number; // Fixed seat position at the table
+    // AI behavioral tracking (for realistic leave decisions)
+    roundsPlayed?: number;
+    consecutiveLosses?: number;
+    peakChips?: number;
 }
 
 export interface PlayerStats {
@@ -263,8 +267,7 @@ export const VALID_REWARD_CODES: RewardCode[] = [
     { code: 'โชคดี777', chips: 777 },
     { code: 'ป๊อกเด้ง', chips: 1000 },
     { code: 'เฮงเฮง', chips: 300 },
-    { code: 'test12', chips: 100000000 },
-    { code: '41M', chips: 41000000 },
+    { code: 'test13', chips: 100000000 },
 ];
 
 export const AI_NAMES = ['สมชาย', 'สมหญิง', 'สมศรี', 'สมศักดิ์', 'สมปอง', 'สมใจ'];
