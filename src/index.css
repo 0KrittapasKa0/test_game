@@ -177,3 +177,28 @@ button {
 .animate-glow {
   animation: glow-pulse 1.5s ease-in-out infinite;
 }
+
+/* ===== GPU-accelerated active player pulse (replaces framer-motion infinite loop) ===== */
+@keyframes active-player-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.animate-active-pulse {
+  animation: active-player-pulse 1.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ===== GPU layer promotions for frequently animated elements ===== */
+.gpu-layer {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}

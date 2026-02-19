@@ -12,6 +12,18 @@ function isRed(suit: string): boolean {
     return suit === '♥' || suit === '♦';
 }
 
+// Pre-define animation variants outside the component to avoid creating new objects on every render
+const cardVariants = {
+    hidden: { scale: 0.6, opacity: 0, y: -8 },
+    visible: { scale: 1, opacity: 1, y: 0 },
+};
+
+const cardTransition = {
+    type: 'spring' as const,
+    stiffness: 260,
+    damping: 22,
+};
+
 export default function Card({ card, faceDown = false, delay = 0, small = false }: CardProps) {
     const color = isRed(card.suit) ? '#dc2626' : '#1e293b';
     const w = small ? 'w-[46px] h-[66px]' : 'w-[70px] h-[98px] sm:w-[82px] sm:h-[115px]';
@@ -19,24 +31,24 @@ export default function Card({ card, faceDown = false, delay = 0, small = false 
     const textCenter = small ? 'text-lg' : 'text-2xl sm:text-3xl';
 
     return (
+        // Use only scale+opacity (2D) instead of rotateY/preserve-3d (3D) — much lighter on GPU
         <motion.div
-            className={`${w} relative select-none`}
-            initial={{ rotateY: 180, scale: 0.6, opacity: 0 }}
-            animate={{ rotateY: faceDown ? 180 : 0, scale: 1, opacity: 1 }}
-            transition={{ duration: 0.45, delay, type: 'spring', stiffness: 220, damping: 20 }}
-            style={{ perspective: 600, transformStyle: 'preserve-3d' }}
+            className={`${w} relative select-none gpu-layer`}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            transition={{ ...cardTransition, delay }}
         >
-            {/* Front */}
-            <motion.div
-                className="absolute inset-0 rounded-lg flex flex-col justify-between overflow-hidden"
+            {/* Front Face */}
+            <div
+                className="absolute inset-0 rounded-lg flex flex-col justify-between overflow-hidden transition-opacity duration-200"
                 style={{
-                    backfaceVisibility: 'hidden',
+                    opacity: faceDown ? 0 : 1,
                     background: 'linear-gradient(160deg, #ffffff 0%, #f8f8f8 50%, #f0f0f0 100%)',
                     border: '1px solid #d4d4d4',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1)',
+                    pointerEvents: faceDown ? 'none' : 'auto',
                 }}
-                animate={{ opacity: faceDown ? 0 : 1 }}
-                transition={{ duration: 0.2 }}
             >
                 {/* Subtle shine overlay */}
                 <div className="absolute inset-0 pointer-events-none rounded-lg"
@@ -59,20 +71,18 @@ export default function Card({ card, faceDown = false, delay = 0, small = false 
                     <span className={`${textBase} font-extrabold`} style={{ color }}>{card.rank}</span>
                     <span className={`${small ? 'text-[10px]' : 'text-xs sm:text-sm'} -mt-0.5`} style={{ color }}>{card.suit}</span>
                 </div>
-            </motion.div>
+            </div>
 
-            {/* Back */}
-            <motion.div
-                className="absolute inset-0 rounded-lg"
+            {/* Back Face */}
+            <div
+                className="absolute inset-0 rounded-lg transition-opacity duration-200"
                 style={{
-                    backfaceVisibility: 'hidden',
-                    transform: 'rotateY(180deg)',
+                    opacity: faceDown ? 1 : 0,
                     background: 'linear-gradient(145deg, #1e3f6e 0%, #2a5490 40%, #1e3f6e 100%)',
                     border: '1px solid rgba(80,130,200,0.3)',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15)',
+                    pointerEvents: faceDown ? 'auto' : 'none',
                 }}
-                animate={{ opacity: faceDown ? 1 : 0 }}
-                transition={{ duration: 0.2 }}
             >
                 <div className="w-full h-full flex items-center justify-center p-1.5">
                     <div
@@ -89,7 +99,7 @@ export default function Card({ card, faceDown = false, delay = 0, small = false 
                         </div>
                     </div>
                 </div>
-            </motion.div>
+            </div>
         </motion.div>
     );
 }
