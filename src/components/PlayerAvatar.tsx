@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { formatChips } from '../utils/formatChips';
 
 interface PlayerAvatarProps {
@@ -11,6 +12,10 @@ interface PlayerAvatarProps {
     size?: 'sm' | 'md' | 'lg' | number;
     hideInfo?: boolean;
 }
+
+// Pre-define outside component to avoid recreating every render
+const activePulse = { scale: [1, 1.06, 1] };
+const pulseTransition = { repeat: Infinity, duration: 1.5, ease: 'easeInOut' as const };
 
 export default function PlayerAvatar({
     name,
@@ -48,9 +53,12 @@ export default function PlayerAvatar({
     const pixelSize = isCustomSize ? size as number : undefined;
 
     return (
-        // Use CSS animation class instead of framer-motion infinite loop — offloads to GPU directly
-        <div
-            className={`flex flex-col items-center gap-0.5 gpu-layer ${isActive ? 'animate-active-pulse' : ''}`}
+        <motion.div
+            className="flex flex-col items-center gap-0.5"
+            // willChange hint tells browser to promote to GPU layer before animation starts
+            style={{ willChange: isActive ? 'transform' : 'auto' }}
+            animate={isActive ? activePulse : {}}
+            transition={isActive ? pulseTransition : {}}
         >
             <div className="relative">
                 {avatarUrl ? (
@@ -104,6 +112,6 @@ export default function PlayerAvatar({
                     </div>
                 </>
             )}
-        </div>
+        </motion.div>
     );
 }
