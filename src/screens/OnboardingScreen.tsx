@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
 import { AVATAR_COLORS } from '../types/game';
 import type { AvatarColor } from '../types/game';
 import { createDefaultProfile, saveProfile } from '../utils/storage';
 import { SFX } from '../utils/sound';
-import { Camera, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 /**
  * Compress an image file to a small base64 JPEG string.
@@ -74,143 +74,150 @@ export default function OnboardingScreen() {
     const canStart = name.trim().length > 0;
 
     return (
-        <div className="w-full h-full page-bg flex items-center justify-center p-4 sm:p-6 overflow-hidden relative">
-            {/* Animated floating suits background */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {['♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣'].map((suit, i) => (
-                    <motion.span
-                        key={i}
-                        className="absolute text-white/[0.03] select-none font-serif"
-                        style={{
-                            fontSize: `${24 + (i * 7) % 30}px`,
-                            left: `${10 + (i * 12) % 90}%`,
-                            top: `${5 + (i * 15) % 85}%`,
-                        }}
-                        animate={{
-                            y: [0, -20, 0],
-                            rotate: [0, i % 2 === 0 ? 10 : -10, 0],
-                            opacity: [0.03, 0.06, 0.03],
-                        }}
-                        transition={{ repeat: Infinity, duration: 4 + i * 0.5, ease: 'easeInOut', delay: i * 0.3 }}
-                    >
-                        {suit}
-                    </motion.span>
-                ))}
-            </div>
+        <div className="w-full h-full bg-casino-table flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden relative">
+
+            {/* Dark vignette matching SettingsScreen */}
+            <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)] z-0" />
 
             <motion.div
-                className="relative z-10 w-full max-w-sm"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
+                className="w-full max-w-md relative z-10 flex flex-col items-center"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
             >
-                {/* Main Card */}
-                <div className="glass p-8 rounded-[2rem] shadow-2xl border border-yellow-500/20 relative overflow-hidden bg-black/40 backdrop-blur-xl">
-                    {/* Decorative glow */}
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-yellow-500/10 blur-[60px] rounded-full pointer-events-none" />
-                    <div className="absolute bottom-0 left-0 w-40 h-40 bg-amber-500/10 blur-[60px] rounded-full pointer-events-none" />
-
-                    {/* Gold Line Decoration */}
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent" />
-                    <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-900/50 to-transparent" />
-
-                    {/* Header */}
-                    <div className="text-center mb-10 relative">
-                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-yellow-500/20 blur-[40px] rounded-full pointer-events-none" />
-                        <motion.h1
-                            className="text-5xl font-extrabold text-white mb-2 tracking-tighter drop-shadow-2xl font-serif"
-                            initial={{ y: -20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.1 }}
-                        >
-                            <span className="text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 via-yellow-400 to-amber-600 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                                ป๊อกเด้ง
-                            </span>
-                        </motion.h1>
-                        <motion.p
-                            className="text-yellow-100/60 text-sm font-light tracking-widest uppercase"
-                            initial={{ y: -10, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.2 }}
-                        >
-                            พร้อมแล้วหรือยัง สำหรับการเป็นตำนานเซียนไพ่
-                        </motion.p>
-                    </div>
-
-                    {/* Avatar Upload Section */}
-                    <div className="flex flex-col items-center mb-8 relative">
-                        <motion.div
-                            whileHover={{ scale: 1.05, borderColor: 'rgba(234, 179, 8, 0.8)' }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-32 h-32 rounded-full shadow-[0_0_40px_rgba(234,179,8,0.15)] cursor-pointer relative group transition-all duration-300 border-[3px] border-yellow-500/30 hover:border-yellow-400 overflow-hidden bg-black/50"
-                            style={!avatarUrl ? { backgroundColor: randomColor, boxShadow: `0 0 30px ${randomColor}30` } : {}}
-                        >
-                            {avatarUrl ? (
-                                <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/10 to-transparent">
-                                    <span className="text-5xl font-bold text-white drop-shadow-lg">
-                                        {name.trim() ? name.trim().charAt(0).toUpperCase() : '?'}
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* Overlay with Camera Icon */}
-                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-[2px]">
-                                <Camera className="text-yellow-400 mb-1" size={28} />
-                                <span className="text-white text-[10px] font-medium tracking-wide uppercase">Upload</span>
-                            </div>
-                        </motion.div>
-
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            className="hidden"
-                        />
-                    </div>
-
-                    {/* Name Input */}
-                    <div className="mb-8 relative px-4">
-                        <div className="relative group">
-                            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-500" />
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && canStart && handleStart()}
-                                placeholder="ชื่อของคุณ"
-                                maxLength={20}
-                                className="relative w-full text-center text-xl font-bold p-5 rounded-xl bg-black/50 border border-white/10 text-white placeholder-white/10 focus:border-yellow-500/50 focus:bg-black/70 focus:outline-none transition-all shadow-inner tracking-wider uppercase"
-                            />
-                            {name.length > 0 && (
-                                <motion.div
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-green-400 bg-green-900/20 p-1 rounded-full border border-green-500/20"
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                >
-                                    <Sparkles size={16} />
-                                </motion.div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Action Button */}
-                    <motion.button
-                        whileHover={canStart ? { scale: 1.02, textShadow: "0 0 12px rgba(253, 224, 71, 0.6)" } : {}}
-                        whileTap={canStart ? { scale: 0.98 } : {}}
-                        onClick={handleStart}
-                        disabled={!canStart}
-                        className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-all tracking-widest uppercase border border-transparent
-                            ${canStart
-                                ? 'bg-gradient-to-r from-yellow-600 via-amber-500 to-yellow-600 text-white border-t-yellow-400/30'
-                                : 'bg-white/5 text-gray-600 cursor-not-allowed border-white/5'
-                            }`}
+                {/* Header Section */}
+                <div className="text-center mb-8 relative">
+                    <motion.div
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-yellow-500/20 blur-[50px] rounded-full pointer-events-none"
+                        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <motion.h1
+                        className="text-6xl sm:text-7xl font-black text-gold-gradient tracking-tight drop-shadow-2xl relative z-10"
+                        initial={{ y: -20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.1, type: "spring" }}
                     >
-                        เข้าวง
-                    </motion.button>
+                        ป๊อกเด้ง
+                    </motion.h1>
+                    <motion.div
+                        className="flex items-center justify-center gap-3 mt-3 relative z-10"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                    >
+                        <div className="h-[1px] w-12 bg-gradient-to-r from-transparent to-yellow-500/50" />
+                        <p className="text-yellow-400 text-xs sm:text-sm tracking-[0.3em] font-bold uppercase drop-shadow-md">สร้างโปรไฟล์ผู้เล่น</p>
+                        <div className="h-[1px] w-12 bg-gradient-to-l from-transparent to-yellow-500/50" />
+                    </motion.div>
+                </div>
+
+                {/* Main Card */}
+                <div className="w-full relative p-[1px] rounded-[32px] group">
+                    {/* Glowing border effect */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/50 via-amber-500/10 to-transparent rounded-[32px] opacity-60 blur-sm" />
+
+                    <div className="relative glass p-8 sm:p-10 flex flex-col items-center gap-8 border border-white/10 shadow-2xl overflow-hidden rounded-[32px] bg-black/60 backdrop-blur-xl">
+                        {/* Inner corner glows */}
+                        <div className="absolute -top-20 -right-20 w-40 h-40 bg-yellow-500/10 blur-[50px] rounded-full pointer-events-none" />
+                        <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-amber-500/10 blur-[50px] rounded-full pointer-events-none" />
+
+                        {/* Avatar Upload Section */}
+                        <div className="flex flex-col items-center relative z-10">
+                            <motion.div
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-36 h-36 rounded-full cursor-pointer relative transition-all duration-300 border-[3px] border-yellow-500/40 hover:border-yellow-400 overflow-hidden shadow-[0_0_40px_rgba(250,204,21,0.2)] bg-black/50 flex items-center justify-center p-1"
+                            >
+                                <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-black/40 relative">
+                                    {avatarUrl ? (
+                                        <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div
+                                            className="w-full h-full flex items-center justify-center"
+                                            style={{ background: `linear-gradient(135deg, ${randomColor}80, ${randomColor}30)` }}
+                                        >
+                                            <span className="text-6xl font-black text-white drop-shadow-lg">
+                                                {name.trim() ? name.trim().charAt(0).toUpperCase() : '?'}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                                className="hidden"
+                            />
+
+                            <p className="mt-4 text-white/50 text-xs font-medium tracking-widest uppercase">แตะเพื่อเปลี่ยนรูป (ทางเลือก)</p>
+                        </div>
+
+                        {/* Name Input */}
+                        <div className="w-full relative z-10">
+                            <div className="relative group/input">
+                                <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 via-amber-500/10 to-yellow-500/20 rounded-2xl blur opacity-0 group-focus-within/input:opacity-100 transition duration-500" />
+                                <div className="relative bg-black/40 border border-white/10 focus-within:border-yellow-500/50 rounded-2xl flex items-center px-4 transition-colors shadow-inner">
+                                    <input
+                                        type="text"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && canStart && handleStart()}
+                                        placeholder="ตั้งชื่อในเกมของคุณ"
+                                        maxLength={20}
+                                        className="w-full text-center text-xl sm:text-2xl font-black py-5 bg-transparent text-white placeholder-white/20 focus:outline-none tracking-wider"
+                                    />
+                                    <AnimatePresence>
+                                        {name.length > 0 && (
+                                            <motion.div
+                                                initial={{ scale: 0, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                exit={{ scale: 0, opacity: 0 }}
+                                                className="absolute right-4 text-yellow-400"
+                                            >
+                                                <Sparkles size={20} className="animate-pulse" />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Lines */}
+                        <div className="w-full flex items-center gap-4 relative z-10 opacity-30 mt-2 mb-2">
+                            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/50" />
+                            <div className="w-2 h-2 rotate-45 border border-white/50" />
+                            <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/50" />
+                        </div>
+
+                        {/* Action Button */}
+                        <motion.button
+                            whileHover={canStart ? { scale: 1.02, y: -2 } : {}}
+                            whileTap={canStart ? { scale: 0.98 } : {}}
+                            onClick={handleStart}
+                            disabled={!canStart}
+                            className={`w-full py-5 rounded-2xl font-black text-xl tracking-widest transition-all relative overflow-hidden group/btn shadow-xl
+                                ${canStart
+                                    ? 'btn-gold text-black border-b-4 border-yellow-700 hover:shadow-[0_10px_30px_rgba(245,158,11,0.4)]'
+                                    : 'bg-white/5 text-white/30 cursor-not-allowed border border-white/5 shadow-none'
+                                }`}
+                        >
+                            {canStart && (
+                                <>
+                                    <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent h-1/2 pointer-events-none" />
+                                    <div className="absolute top-0 left-0 w-full h-full bg-white/20 opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none" />
+                                </>
+                            )}
+                            <span className="relative z-10 drop-shadow-sm flex items-center justify-center gap-2">
+                                เริ่มเกม <span>🚀</span>
+                            </span>
+                        </motion.button>
+
+                    </div>
                 </div>
             </motion.div>
         </div>
