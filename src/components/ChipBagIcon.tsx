@@ -1,5 +1,3 @@
-import React from 'react';
-
 // Premium, highly detailed Chip Bag Icon for the casino theme
 export const ChipBagIcon = ({ className = "w-12 h-12", isBig = false }: { className?: string; isBig?: boolean }) => {
     // 🔴 Standard Bag (Days 1-6): Deep Red Velvet
