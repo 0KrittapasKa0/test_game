@@ -9,6 +9,7 @@ import { useGameStore } from '../store/useGameStore';
 import { SFX } from '../utils/sound';
 import { evaluateHand } from '../utils/deck';
 import { formatChips } from '../utils/formatChips';
+import { RoomEnvironment } from './RoomEnvironment';
 
 interface SeatPosition {
     x: number;
@@ -348,10 +349,16 @@ export default function GameTable() {
                                 <div
                                     className="w-full h-full rounded-xl relative overflow-hidden"
                                     style={{
-                                        background: 'radial-gradient(ellipse at 45% 35%, #2d8a4e 0%, #246e3d 20%, #1a5c2e 45%, #135026 65%, #0e3d1d 85%, #0a2e15 100%)',
+                                        background: config?.room?.category === 'HIGH_STAKES' ? 'radial-gradient(ellipse at 45% 35%, #1e3a8a 0%, #172554 40%, #0a0f24 80%, #040814 100%)' :
+                                            config?.room?.category === 'EXPERT' ? 'radial-gradient(ellipse at 45% 35%, #6b21a8 0%, #4c1d95 40%, #2e1065 80%, #18053a 100%)' :
+                                                config?.room?.category === 'LEGENDARY' ? 'radial-gradient(ellipse at 45% 35%, #7f1d1d 0%, #450a0a 40%, #1c0505 80%, #0a0101 100%)' :
+                                                    config?.room?.category === 'ULTIMATE' ? 'radial-gradient(ellipse at 45% 35%, #111827 0%, #030712 40%, #000000 80%, #000000 100%)' :
+                                                    /* STANDARD */ 'radial-gradient(ellipse at 45% 35%, #2d8a4e 0%, #246e3d 20%, #1a5c2e 45%, #135026 65%, #0e3d1d 85%, #0a2e15 100%)',
                                         boxShadow: 'inset 0 0 60px rgba(0,0,0,0.5), inset 0 0 120px rgba(0,0,0,0.15)',
                                     }}
                                 >
+                                    {config?.room && <RoomEnvironment category={config.room.category} />}
+
                                     {/* Felt Texture */}
                                     <div
                                         className="absolute inset-0 opacity-[0.04] pointer-events-none"
@@ -579,6 +586,7 @@ export default function GameTable() {
                                                         faceDown={!showCards && !player.hasPok}
                                                         delay={ci * 0.1}
                                                         small={true}
+                                                        category={config?.room?.category}
                                                     />
                                                 </div>
                                             ))}
@@ -628,6 +636,7 @@ export default function GameTable() {
                                                             faceDown={false}
                                                             delay={ci * 0.1}
                                                             small={false}
+                                                            category={config?.room?.category}
                                                         />
                                                     </div>
                                                 ))}

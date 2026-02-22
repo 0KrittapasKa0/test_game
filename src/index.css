@@ -139,6 +139,27 @@ button {
   background: radial-gradient(circle at 50% 30%, #2d7a46 0%, #1a5c2e 40%, #0f3d1d 80%, #081a0d 100%);
 }
 
+/* ===== Room Themes ===== */
+.bg-theme-standard {
+  background: radial-gradient(circle at 50% 30%, #2d7a46 0%, #1a5c2e 40%, #0f3d1d 80%, #081a0d 100%);
+}
+
+.bg-theme-high-stakes {
+  background: radial-gradient(circle at 50% 30%, #1e3a8a 0%, #172554 40%, #0a0f24 80%, #040814 100%);
+}
+
+.bg-theme-expert {
+  background: radial-gradient(circle at 50% 30%, #6b21a8 0%, #4c1d95 40%, #2e1065 80%, #18053a 100%);
+}
+
+.bg-theme-legendary {
+  background: radial-gradient(circle at 50% 30%, #7f1d1d 0%, #450a0a 40%, #1c0505 80%, #0a0101 100%);
+}
+
+.bg-theme-ultimate {
+  background: radial-gradient(circle at 50% 30%, #111827 0%, #030712 40%, #000000 80%, #000000 100%);
+}
+
 .text-gold-gradient {
   background: linear-gradient(to right, #fde047, #fbbf24, #f59e0b, #d97706);
   -webkit-background-clip: text;

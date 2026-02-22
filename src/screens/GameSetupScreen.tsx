@@ -22,7 +22,7 @@ export default function GameSetupScreen() {
 
     const canBeDealer = profile.chips >= selectedRoom.dealerMinCapital;
 
-    const [selectedCategory, setSelectedCategory] = useState<'STANDARD' | 'VIP' | 'LEGENDARY' | 'MYTHICAL'>('STANDARD');
+    const [selectedCategory, setSelectedCategory] = useState<'STANDARD' | 'HIGH_STAKES' | 'EXPERT' | 'LEGENDARY' | 'ULTIMATE'>('STANDARD');
 
     const handleSelectRoom = (room: RoomConfig) => {
         SFX.click();
@@ -43,19 +43,29 @@ export default function GameSetupScreen() {
 
     const handleQuickStart = () => {
         SFX.betConfirm();
-        // Pick a random affordable room
+        // Pick the best-fit room: highest room where player has ≥ 5× minBet (comfortable play)
+        const comfortableRooms = ROOMS.filter(r => profile.chips >= r.minBet * 5);
         const affordableRooms = ROOMS.filter(r => profile.chips >= r.minBet);
-        if (affordableRooms.length === 0) return;
-        const randomRoom = affordableRooms[Math.floor(Math.random() * affordableRooms.length)];
-        // Random player count 3-10
-        const randomPlayers = 3 + Math.floor(Math.random() * 8);
+        // Prefer comfortable rooms, fallback to any affordable room
+        const candidates = comfortableRooms.length > 0 ? comfortableRooms : affordableRooms;
+        if (candidates.length === 0) return;
+
+        // Pick the highest tier room (last in sorted list), with 30% chance to go one tier lower for variety
+        let roomIndex = candidates.length - 1;
+        if (candidates.length >= 2 && Math.random() < 0.3) {
+            roomIndex = candidates.length - 2;
+        }
+        const bestRoom = candidates[roomIndex];
+
+        // Random player count 4-7 (sweet spot for card games)
+        const randomPlayers = 4 + Math.floor(Math.random() * 4);
         // Random dealer (only if affordable)
-        const canDeal = profile.chips >= randomRoom.dealerMinCapital;
-        const randomDealer = canDeal && Math.random() < 0.3; // 30% chance to be dealer
+        const canDeal = profile.chips >= bestRoom.dealerMinCapital;
+        const randomDealer = canDeal && Math.random() < 0.3;
         initGame({
             playerCount: randomPlayers,
             humanIsDealer: randomDealer,
-            room: randomRoom,
+            room: bestRoom,
         });
     };
 
@@ -65,7 +75,7 @@ export default function GameSetupScreen() {
             <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
 
             <motion.div
-                className="w-full max-w-sm relative z-10"
+                className="w-full max-w-lg relative z-10"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35 }}
@@ -112,17 +122,18 @@ export default function GameSetupScreen() {
                                 </div>
 
                                 {/* Category Tabs */}
-                                <div className="flex p-1 bg-black/40 border border-white/5 rounded-2xl mb-5 gap-1 overflow-x-auto shadow-inner">
+                                <div className="flex p-1 bg-black/40 border border-white/5 rounded-2xl mb-4 gap-0.5 overflow-x-auto shadow-inner">
                                     {([
-                                        { key: 'STANDARD', label: 'ทั่วไป', style: 'text-white/70 hover:text-white hover:bg-white/10', activeStyle: 'bg-white/15 text-white font-bold shadow-md' },
-                                        { key: 'VIP', label: 'VIP 👑', style: 'text-yellow-500/60 hover:text-yellow-400 hover:bg-yellow-500/10', activeStyle: 'bg-gradient-to-b from-yellow-500/30 to-amber-600/10 text-yellow-400 border border-yellow-500/20 shadow-[0_0_10px_rgba(250,204,21,0.15)] font-bold' },
-                                        { key: 'LEGENDARY', label: 'ตำนาน 🐉', style: 'text-red-400/60 hover:text-red-400 hover:bg-red-500/10', activeStyle: 'bg-gradient-to-b from-red-600/30 to-orange-600/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.15)] font-bold' },
-                                        { key: 'MYTHICAL', label: 'เทพ 🌌', style: 'text-purple-400/60 hover:text-purple-300 hover:bg-purple-500/10', activeStyle: 'bg-gradient-to-b from-purple-600/30 to-cyan-500/10 text-purple-300 border border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.15)] font-bold' },
+                                        { key: 'STANDARD', label: '🟢 ทั่วไป', style: 'text-white/70 hover:text-white hover:bg-white/10', activeStyle: 'bg-gradient-to-b from-emerald-600/30 to-green-900/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(34,197,94,0.15)] font-bold' },
+                                        { key: 'HIGH_STAKES', label: '🔵 เดิมพันสูง', style: 'text-blue-400/60 hover:text-blue-400 hover:bg-blue-500/10', activeStyle: 'bg-gradient-to-b from-blue-500/30 to-blue-900/10 text-blue-400 border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.15)] font-bold' },
+                                        { key: 'EXPERT', label: '🟣 เซียน', style: 'text-purple-400/60 hover:text-purple-300 hover:bg-purple-500/10', activeStyle: 'bg-gradient-to-b from-purple-600/30 to-purple-900/10 text-purple-300 border border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.15)] font-bold' },
+                                        { key: 'LEGENDARY', label: '🔴 ตำนาน', style: 'text-red-400/60 hover:text-red-400 hover:bg-red-500/10', activeStyle: 'bg-gradient-to-b from-red-600/30 to-orange-600/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.15)] font-bold' },
+                                        { key: 'ULTIMATE', label: '⚫ สูงสุด', style: 'text-gray-400/60 hover:text-gray-300 hover:bg-gray-500/10', activeStyle: 'bg-gradient-to-b from-gray-600/30 to-gray-900/10 text-gray-200 border border-gray-500/20 shadow-[0_0_10px_rgba(107,114,128,0.15)] font-bold' },
                                     ] as const).map(tab => (
                                         <button
                                             key={tab.key}
                                             onClick={() => setSelectedCategory(tab.key)}
-                                            className={`flex-1 py-2.5 text-xs sm:text-sm rounded-xl transition-all whitespace-nowrap px-2
+                                            className={`flex-1 py-2 text-[10px] sm:text-xs rounded-xl transition-all whitespace-nowrap px-1.5
                                                 ${selectedCategory === tab.key ? tab.activeStyle : tab.style}
                                             `}
                                         >
@@ -132,7 +143,7 @@ export default function GameSetupScreen() {
                                 </div>
 
                                 {/* Room Selection List */}
-                                <div className="space-y-3 mb-6 max-h-[360px] overflow-y-auto no-scrollbar pr-1">
+                                <div className="space-y-2 mb-4">
                                     {ROOMS.filter(r => r.category === selectedCategory).map((room) => {
                                         const affordable = profile.chips >= room.minBet;
                                         return (
@@ -141,7 +152,7 @@ export default function GameSetupScreen() {
                                                 whileTap={affordable ? { scale: 0.96 } : {}}
                                                 onClick={() => affordable && handleSelectRoom(room)}
                                                 disabled={!affordable}
-                                                className={`w-full p-4 rounded-2xl flex items-center gap-4 text-left transition-all cursor-pointer relative overflow-hidden border group
+                                                className={`w-full p-3 rounded-xl flex items-center gap-3 text-left transition-all cursor-pointer relative overflow-hidden border group
                                                     ${affordable
                                                         ? 'bg-black/50 border-white/10 hover:border-yellow-500/30 hover:bg-black/70 shadow-lg hover:shadow-[0_0_15px_rgba(250,204,21,0.1)]'
                                                         : 'bg-black/30 border-white/5 opacity-50 cursor-not-allowed grayscale'}`}
@@ -152,19 +163,19 @@ export default function GameSetupScreen() {
 
                                                 {/* Left Icon Panel */}
                                                 <div
-                                                    className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shrink-0 border relative shadow-inner"
+                                                    className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0 border relative shadow-inner"
                                                     style={{
                                                         backgroundColor: room.color + (affordable ? '20' : '10'),
                                                         borderColor: room.color + (affordable ? '40' : '20')
                                                     }}
                                                 >
-                                                    <div className="absolute inset-0 bg-white/5 rounded-2xl shine-effect" />
+                                                    <div className="absolute inset-0 bg-white/5 rounded-xl shine-effect" />
                                                     <span className="drop-shadow-lg relative z-10">{room.emoji}</span>
                                                 </div>
 
                                                 {/* Room Info */}
                                                 <div className="flex-1 min-w-0 pr-2">
-                                                    <p className={`font-bold text-lg leading-tight mb-1 ${affordable ? 'text-white' : 'text-white/50'}`}>
+                                                    <p className={`font-bold text-sm sm:text-base leading-tight mb-0.5 ${affordable ? 'text-white' : 'text-white/50'}`}>
                                                         {room.name}
                                                     </p>
                                                     <div className="flex flex-col gap-0.5">
@@ -194,7 +205,7 @@ export default function GameSetupScreen() {
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.96 }}
                                     onClick={handleQuickStart}
-                                    className="w-full py-4 rounded-2xl text-black font-bold text-lg tracking-widest cursor-pointer transition-all relative overflow-hidden bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-600 border border-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:shadow-[0_0_30px_rgba(250,204,21,0.5)] uppercase"
+                                    className="w-full py-3 rounded-2xl text-black font-bold text-base sm:text-lg tracking-widest cursor-pointer transition-all relative overflow-hidden bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-600 border border-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:shadow-[0_0_30px_rgba(250,204,21,0.5)] uppercase"
                                 >
                                     <div className="absolute inset-0 bg-white/20 hover:opacity-0 transition-opacity" />
                                     <span className="relative z-10 flex items-center justify-center gap-2 drop-shadow-md">

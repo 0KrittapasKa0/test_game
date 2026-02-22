@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Gift, Calendar, Calculator, Timer, AlertCircle, Zap } from 'lucide-react';
 import { ChipIcon } from '../components/ChipIcon';
-import { ChipBagIcon } from '../components/ChipBagIcon';
+import { DailyRewardIcon } from '../components/DailyRewardIcon';
 import { useGameStore } from '../store/useGameStore';
 import { VALID_REWARD_CODES } from '../types/game';
 import { formatChips } from '../utils/formatChips';
@@ -185,16 +185,7 @@ function DailyLoginView({ addChips }: { addChips: (amount: number) => void }) {
                                 </span>
 
                                 <div className={`mb-4 flex items-center justify-center ${iconOpacity} transition-opacity`}>
-                                    {isDay7 ? (
-                                        <div className="relative">
-                                            <Gift className="drop-shadow-md" size={56} color="#4c0519" fill="#be123c" strokeWidth={1.5} />
-                                            {/* decorative ribbon lines to match gift */}
-                                            <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] h-[6px] bg-yellow-500 rounded-sm shadow-sm" />
-                                            <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[6px] h-[80%] bg-yellow-500 rounded-sm shadow-sm" />
-                                        </div>
-                                    ) : (
-                                        <ChipBagIcon isBig={false} className="w-10 h-10 md:w-12 md:h-12 drop-shadow-lg" />
-                                    )}
+                                    <DailyRewardIcon dayIndex={idx} size={isDay7 ? 56 : 44} isActive={status === 'active'} />
                                 </div>
 
                                 <span className={`text-lg md:text-xl font-black tracking-wider ${textRewardClass}`}>

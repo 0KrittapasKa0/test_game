@@ -34,10 +34,11 @@ const CHIP_TIERS: ChipColorStyle[] = [
 ];
 
 const CATEGORY_OFFSET: Record<string, number> = {
-    'STANDARD': 0,   // White, Red, Green, Black
-    'VIP': 1,         // Red, Green, Black, Purple
-    'LEGENDARY': 2,   // Green, Black, Purple, Gold
-    'MYTHICAL': 3,    // Black, Purple, Gold, Diamond
+    'STANDARD': 0,     // White, Red, Green, Black
+    'HIGH_STAKES': 1,  // Red, Green, Black, Purple
+    'EXPERT': 2,       // Green, Black, Purple, Gold
+    'LEGENDARY': 3,    // Black, Purple, Gold, Diamond
+    'ULTIMATE': 3,     // Black, Purple, Gold, Diamond (same top tier)
 };
 
 /**
