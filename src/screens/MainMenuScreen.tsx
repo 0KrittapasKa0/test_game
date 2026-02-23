@@ -4,9 +4,9 @@ import { ChipIcon } from '../components/ChipIcon';
 import { PokDengLogo } from '../components/PokDengLogo';
 import { useGameStore } from '../store/useGameStore';
 import { loadProfile } from '../utils/storage';
-import { SFX } from '../utils/sound';
+import { SFX, speakWelcome, speakPhrase } from '../utils/sound';
 import { formatChips } from '../utils/formatChips';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 
 // Generates random configurations for floating background cards
 const generateCards = (count: number) => {
@@ -21,12 +21,39 @@ const generateCards = (count: number) => {
     }));
 };
 
+let hasGreeted = false; // Module-level flag to track if we've already greeted the player
+
 export default function MainMenuScreen() {
     const setScreen = useGameStore(s => s.setScreen);
     const profile = loadProfile()!;
 
     // Memoize the background cards so they don't re-render and jump around
     const bgCards = useMemo(() => generateCards(15), []);
+
+    useEffect(() => {
+        // อ้างอิง Browser Autoplay Policy: เสียงจะดังได้ก็ต่อเมื่อผู้เล่นมี Reaction กับหน้าเว็บก่อน (เช่น แตะจอ, ขยับเมาส์คลิก)
+        const playWelcome = () => {
+            if (!hasGreeted) {
+                hasGreeted = true;
+                // หน่วงเวลาเล็กน้อยให้ดูเป็นธรรมชาติ
+                setTimeout(() => speakWelcome(profile?.name), 300);
+            }
+            // ลบ Event ออกเพื่อไม่ให้ทำงานซ้ำ
+            window.removeEventListener('pointerdown', playWelcome);
+            window.removeEventListener('keydown', playWelcome);
+        };
+
+        if (!hasGreeted) {
+            // ดักการกระทำครั้งแรกของผู้เล่นบนหน้าจอเพื่อปลดล็อกเสียง
+            window.addEventListener('pointerdown', playWelcome);
+            window.addEventListener('keydown', playWelcome);
+        }
+
+        return () => {
+            window.removeEventListener('pointerdown', playWelcome);
+            window.removeEventListener('keydown', playWelcome);
+        };
+    }, [profile?.name]);
 
     const nav = (screen: Parameters<typeof setScreen>[0]) => {
         SFX.navigate();
@@ -107,13 +134,13 @@ export default function MainMenuScreen() {
                     </motion.div>
                 </div>
 
-                {/* Player VIP Card */}
                 <motion.div
                     className="w-full relative p-[1px] rounded-2xl mb-8 group cursor-pointer"
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.4 }}
                     onClick={() => nav('PROFILE')}
+                    onPointerEnter={() => speakPhrase('ดูโปรไฟล์ของฉัน')}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                 >
@@ -160,6 +187,7 @@ export default function MainMenuScreen() {
                         transition={{ delay: 0.5 }}
                         whileHover={{ scale: 1.05, y: -2 }}
                         whileTap={{ scale: 0.95 }}
+                        onPointerEnter={() => speakPhrase('โปรไฟล์ผู้เล่น')}
                         onClick={() => nav('PROFILE')}
                         className="btn-dark flex-1 flex flex-col items-center justify-center gap-2 py-4 backdrop-blur-sm border-white/10 hover:border-yellow-500/30 group relative overflow-hidden"
                         style={{ background: 'rgba(0,0,0,0.4)' }}
@@ -177,13 +205,14 @@ export default function MainMenuScreen() {
                         <motion.button
                             whileHover={{ scale: 1.05, y: -2 }}
                             whileTap={{ scale: 0.95 }}
+                            onPointerEnter={() => speakPhrase('เลือกโต๊ะเที่จะร่วมวง')}
                             onClick={() => nav('GAME_SETUP')}
                             className="btn-gold w-full h-full flex flex-col items-center justify-center gap-2 py-6 rounded-2xl relative overflow-hidden shadow-[0_10px_30px_rgba(245,158,11,0.4)] border-b-4 border-yellow-700"
                         >
                             <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent h-1/2 rounded-t-2xl pointer-events-none" />
                             <div className="absolute top-0 left-0 w-full h-full bg-white/20 opacity-0 hover:opacity-100 transition-opacity pointer-events-none" />
                             <Play size={32} fill="currentColor" className="drop-shadow-md text-black" />
-                            <span className="text-xl font-bold tracking-widest drop-shadow-sm text-black">เล่นเกม</span>
+                            <span className="text-xl font-semibold tracking-widest drop-shadow-sm text-black">เล่นเกม</span>
                         </motion.button>
                     </motion.div>
 
@@ -193,6 +222,7 @@ export default function MainMenuScreen() {
                         transition={{ delay: 0.6 }}
                         whileHover={{ scale: 1.05, y: -2 }}
                         whileTap={{ scale: 0.95 }}
+                        onPointerEnter={() => speakPhrase('การตั้งค่า')}
                         onClick={() => nav('SETTINGS')}
                         className="btn-dark flex-1 flex flex-col items-center justify-center gap-2 py-4 backdrop-blur-sm border-white/10 hover:border-yellow-500/30 group"
                         style={{ background: 'rgba(0,0,0,0.4)' }}
@@ -202,11 +232,11 @@ export default function MainMenuScreen() {
                     </motion.button>
                 </div>
 
-                {/* Secondary Action */}
                 <motion.button
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.7 }}
+                    onPointerEnter={() => speakPhrase('กิจกรรมรับชิป')}
                     onClick={() => nav('REWARD_CODE')}
                     className="mt-6 flex items-center justify-center gap-2 text-yellow-500/80 hover:text-yellow-400 text-sm font-normal transition-colors px-6 py-2.5 rounded-full border border-yellow-500/10 hover:bg-yellow-500/10"
                     style={{ background: 'rgba(0,0,0,0.2)' }}
@@ -215,7 +245,7 @@ export default function MainMenuScreen() {
                     <span>กิจกรรมรับชิป</span>
                 </motion.button>
 
-                <p className="text-white/20 text-[10px] mt-8 tracking-widest uppercase mb-4">Alpha Version 0.0.1</p>
+                <p className="text-white/20 text-[10px] mt-8 tracking-widest uppercase mb-4">Beta Version 1.0</p>
             </motion.div>
         </div>
     );

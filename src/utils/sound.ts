@@ -17,6 +17,10 @@ function isSoundEnabled(): boolean {
     return loadSettings().soundEnabled;
 }
 
+function isVoiceEnabled(): boolean {
+    return loadSettings().voiceEnabled ?? true;
+}
+
 function playTone(frequency: number, duration: number, type: OscillatorType = 'sine', volume = 0.15) {
     if (!isSoundEnabled()) return;
     try {
@@ -286,4 +290,121 @@ export function initAudio() {
     };
     document.addEventListener('click', handler);
     document.addEventListener('touchstart', handler);
+}
+
+// ══════════════════════════════════════════════════════════════
+// WEB SPEECH API (Voice TTS)
+// ══════════════════════════════════════════════════════════════
+export function speakWelcome(playerName: string = "ผู้เล่น") {
+    if (!isSoundEnabled() || !isVoiceEnabled() || !('speechSynthesis' in window)) return;
+
+    // Stop any currently playing speech to avoid overlapping
+    window.speechSynthesis.cancel();
+
+    const greetings = [
+        `ยินดีต้อนรับค่ะ คุณ${playerName} วันนี้รับป๊อกเก้ากี่เด้งดีคะ?`,
+        `สวัสดีค่ะ คุณ${playerName} พร้อมลุยโต๊ะไหนดีคะวันนี้?`,
+        `คุณ${playerName} มาแล้ว! ขอให้วันนี้ไพ่เข้ามือปังๆ นะคะ`,
+        `กลับมาทวงบัลลังก์แล้วหรอคะ คุณ${playerName}? โต๊ะวีไอพีรออยู่ค่ะ`,
+        `รับชิปเพิ่มไหมคะ คุณ${playerName}? วันนี้แจกไพ่สวยแน่นอนค่ะ`,
+        `เชิญเลยค่ะ คุณ${playerName} วันนี้เจ้ามือเตรียมตัวโดนเหมาโต๊ะแล้วแน่ๆ`,
+        `แวะมาแจกโชคหลอกินเงียบๆ อีกแล้วใช่ไหมคะ คุณ${playerName}`,
+        `สวัสดีค่ะเซียน${playerName} วันนี้จัดหนักหรือเล่นขำๆ ดีคะ?`,
+        `คุณ${playerName} มาแล้ว วงแตกแน่นอนค่ะเจ้ามือหนาวแล้วนะ`,
+        `ยินดีต้อนรับกลับมาค่ะ คุณ${playerName} ขอให้วันนี้ได้ถอนกำไรจุกๆ นะคะ`,
+        `รวยๆ เฮงๆ นะคะ คุณ${playerName} ขอให้ป๊อกแปดป๊อกเก้าเข้ามือรัวๆ ค่ะ`,
+        `ที่นั่งว่างพอดีเลยค่ะ คุณ${playerName} พร้อมไปลุยกันหรือยังคะ?`,
+        `กราบสวัสดีค่ะ คุณ${playerName} ขาประจำของหนู วันนี้ขอให้มือขึ้นนะคะ`,
+        `คุณ${playerName} คะ วันนี้อยากรวยกี่ล้านดีคะ เดี๋ยวหนูจัดให้`,
+        `เชิญนั่งก่อนค่ะ คุณ${playerName} เสิร์ฟน้ำชาก่อนไหมคะ หรือจะเข้าโต๊ะเลย?`,
+        `เล่นให้สนุกนะคะ คุณ${playerName} แต่อย่าลืมลุกไปพักเหยียดเส้นสายบ้างนะคะ`,
+        `ขอให้ค่ำคืนนี้เป็นของคุณนะคะ คุณ${playerName} ลุยเลยค่ะ!`,
+        `ยินดีต้อนรับค่ะ คุณ${playerName} โต๊ะเดิมพันสูงกำลังรอคนใจถึงแบบคุณอยู่นะคะ`,
+        `มาแล้วเหรอคะ ตัวตึงประจำเซิร์ฟ คุณ${playerName} วันนี้เบาๆ หน่อยนะคะเจ้ามือกลัวหมดแล้ว`,
+        `คุณ${playerName} พร้อมมาปะทะกับยอดฝีมือในห้องเซียนแล้วใช่ไหมคะ?`,
+        `อย่าเพิ่งรีบร้อนนะคะ คุณ${playerName} ค่อยๆ เล่น ค่อยๆ ดูไพ่ค่ะ`,
+        `ไพ่สวยๆ รอคุณอยู่นะคะ คุณ${playerName} เลือกโต๊ะที่ชอบได้เลยค่ะ`,
+        `สวัสดีค่ะ คุณ${playerName} ใครทำคุณเสียเปรียบ บอกหนูได้เลยนะคะ`,
+        `มาลุ้นจั่วไพ่ใบที่สามกันไหมคะ คุณ${playerName} วันนี้ดวงน่าจะแรงอยู่นะ`,
+        `ชิปเต็มกระเป๋าขนาดนี้ คุณ${playerName} ไม่ลองเข้าห้องตำนานหน่อยเหรอคะ?`,
+        `ยินดีต้อนรับยอดมนุษย์ คุณ${playerName} วันนี้จะมากวาดชิปไปกี่ลอมดีคะ?`,
+        `หนูรอแจกไพ่ให้คุณ${playerName} อยู่ตั้งนาน มาช้าจังเลยนะคะวันนี้`,
+        `ไพ่ป๊อกเด้งเล่นง่าย จ่ายไว คุณ${playerName} ขอให้ได้กำไรกลับไปเยอะๆ นะคะ`,
+        `ทิ้งเรื่องเครียดๆ แล้วมาสนุกกับหนูดีกว่านะคะ คุณ${playerName}`,
+        `ขอให้ไพ่ตอง ไพ่เรียง เข้ามือคุณ${playerName} รัวๆ เลยนะคะ สาธุ!`,
+        `เข้าโต๊ะปุ๊บ ขอให้ได้กินรอบวงปั๊บเลยนะคะ คุณ${playerName}`,
+        `ถ้าพร้อมที่จะรวยแล้ว กดเข้าโต๊ะได้เลยค่ะ คุณ${playerName}`
+    ];
+
+    const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+    const utterance = new SpeechSynthesisUtterance(randomGreeting);
+
+    utterance.lang = 'th-TH'; // บังคับภาษาไทย
+    // Make the voice sound mature, smooth, and elegant
+    utterance.rate = 1.0;
+    utterance.pitch = 1.15;
+    utterance.volume = 0.8;
+
+    // ฟังก์ชันค้นหาเสียงภาษาไทยที่ใช้งานได้
+    const setVoiceAndSpeak = () => {
+        const voices = window.speechSynthesis.getVoices();
+
+        // ค้นหาเสียงที่เป็นภาษาไทย (th-TH, th, หรือชื่อมีคำว่า Thai/Premwadee/Kanya)
+        const thaiVoice = voices.find(v =>
+            v.lang.toLowerCase().startsWith('th') ||
+            v.name.toLowerCase().includes('thai') ||
+            v.name.toLowerCase().includes('premwadee') // Windows default Thai voice
+        );
+
+        if (thaiVoice) {
+            utterance.voice = thaiVoice;
+        }
+
+        window.speechSynthesis.speak(utterance);
+    };
+
+    // Chrome/Safari บางตัวโหลดเสียงไม่มาทันทีตอนหน้าเว็บเรนเดอร์ครั้งแรก
+    if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.addEventListener('voiceschanged', () => {
+            setVoiceAndSpeak();
+        }, { once: true }); // ให้เกิด event แค่ครั้งเดียว
+    } else {
+        setVoiceAndSpeak();
+    }
+}
+
+let lastSpokenText = "";
+let lastSpokenTime = 0;
+
+export function speakPhrase(text: string) {
+    if (!isSoundEnabled() || !isVoiceEnabled() || !('speechSynthesis' in window)) return;
+
+    // Prevent spamming the same phrase instantly
+    const now = Date.now();
+    if (text === lastSpokenText && now - lastSpokenTime < 500) return;
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'th-TH';
+    // Match the Glamorous Dealer tone
+    utterance.rate = 1.0;
+    utterance.pitch = 1.15;
+    utterance.volume = 0.8;
+
+    const voices = window.speechSynthesis.getVoices();
+    const thaiVoice = voices.find(v =>
+        v.lang.toLowerCase().startsWith('th') ||
+        v.name.toLowerCase().includes('thai') ||
+        v.name.toLowerCase().includes('premwadee')
+    );
+
+    if (thaiVoice) {
+        utterance.voice = thaiVoice;
+    }
+
+    lastSpokenText = text;
+    lastSpokenTime = now;
+
+    window.speechSynthesis.speak(utterance);
 }

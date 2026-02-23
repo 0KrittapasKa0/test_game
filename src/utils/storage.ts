@@ -52,6 +52,7 @@ export function saveUsedCode(code: string): void {
 
 export interface GameSettings {
     soundEnabled: boolean;
+    voiceEnabled: boolean;
     lastPlayerCount: number;
     lastHumanIsDealer: boolean;
     lastRoomId: string;
@@ -59,6 +60,7 @@ export interface GameSettings {
 
 const DEFAULT_SETTINGS: GameSettings = {
     soundEnabled: true,
+    voiceEnabled: true,
     lastPlayerCount: 3,
     lastHumanIsDealer: false,
     lastRoomId: 'standard',
@@ -78,7 +80,7 @@ export function createDefaultProfile(name: string, avatarColor: AvatarColor, ava
         name,
         avatarColor,
         ...(avatarUrl ? { avatarUrl } : {}),
-        chips: 10000,
+        chips: 1000000,
         createdAt: Date.now(),
     };
 }

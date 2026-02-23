@@ -6,7 +6,7 @@ import ChipSelector from './ChipSelector';
 import ChipStack from './ChipStack';
 import RoundResultSummary from './RoundResultSummary';
 import { useGameStore } from '../store/useGameStore';
-import { SFX } from '../utils/sound';
+import { SFX, speakPhrase } from '../utils/sound';
 import { evaluateHand } from '../utils/deck';
 import { formatChips } from '../utils/formatChips';
 import { RoomEnvironment } from './RoomEnvironment';
@@ -666,7 +666,7 @@ export default function GameTable() {
                             <motion.button
                                 whileHover={{ scale: 1.05, y: -2 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={playerDraw}
+                                onClick={() => { speakPhrase('จั่ว'); playerDraw(); }}
                                 className="text-white font-bold text-lg sm:text-xl px-8 sm:px-10 py-3 sm:py-3.5 rounded-2xl shadow-2xl transition-all cursor-pointer"
                                 style={{
                                     background: 'linear-gradient(135deg, #10b981, #059669)',
@@ -679,7 +679,7 @@ export default function GameTable() {
                             <motion.button
                                 whileHover={{ scale: 1.05, y: -2 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={playerStay}
+                                onClick={() => { speakPhrase('ผ่าน'); playerStay(); }}
                                 className="text-white font-bold text-lg sm:text-xl px-8 sm:px-10 py-3 sm:py-3.5 rounded-2xl shadow-2xl transition-all cursor-pointer"
                                 style={{
                                     background: 'linear-gradient(135deg, #f43f5e, #e11d48)',

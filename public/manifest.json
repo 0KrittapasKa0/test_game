@@ -1,0 +1,18 @@
+{
+    "name": "ป๊อกเด้ง (Pok Deng)",
+    "short_name": "ป๊อกเด้ง",
+    "description": "เกมไพ่ออนไลน์สุดคลาสสิก เล่นสนุก เดิมพันมันส์",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0a0a0c",
+    "theme_color": "#0a0a0c",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/icon.png",
+            "sizes": "192x192 512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

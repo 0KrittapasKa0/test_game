@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Users, Crown, ChevronRight, Lock } from 'lucide-react';
+import { ArrowLeft, Crown, ChevronRight, Lock, Volume2, Users } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { loadProfile, loadSettings } from '../utils/storage';
-import { formatChips } from '../utils/formatChips';
+import { formatChips, numberToThaiVoice } from '../utils/formatChips';
 import { ROOMS } from '../types/game';
 import type { RoomConfig } from '../types/game';
-import { SFX } from '../utils/sound';
+import { SFX, speakPhrase } from '../utils/sound';
 
 export default function GameSetupScreen() {
     const { setScreen, initGame } = useGameStore();
@@ -129,17 +129,32 @@ export default function GameSetupScreen() {
                                         { key: 'EXPERT', label: '🟣 เซียน', style: 'text-purple-400/60 hover:text-purple-300 hover:bg-purple-500/10', activeStyle: 'bg-gradient-to-b from-purple-600/30 to-purple-900/10 text-purple-300 border border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.15)] font-bold' },
                                         { key: 'LEGENDARY', label: '🔴 ตำนาน', style: 'text-red-400/60 hover:text-red-400 hover:bg-red-500/10', activeStyle: 'bg-gradient-to-b from-red-600/30 to-orange-600/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.15)] font-bold' },
                                         { key: 'ULTIMATE', label: '⚫ สูงสุด', style: 'text-gray-400/60 hover:text-gray-300 hover:bg-gray-500/10', activeStyle: 'bg-gradient-to-b from-gray-600/30 to-gray-900/10 text-gray-200 border border-gray-500/20 shadow-[0_0_10px_rgba(107,114,128,0.15)] font-bold' },
-                                    ] as const).map(tab => (
-                                        <button
-                                            key={tab.key}
-                                            onClick={() => setSelectedCategory(tab.key)}
-                                            className={`flex-1 py-2 text-[10px] sm:text-xs rounded-xl transition-all whitespace-nowrap px-1.5
-                                                ${selectedCategory === tab.key ? tab.activeStyle : tab.style}
-                                            `}
-                                        >
-                                            {tab.label}
-                                        </button>
-                                    ))}
+                                    ] as const).map(tab => {
+                                        const isActive = selectedCategory === tab.key;
+                                        return (
+                                            <button
+                                                key={tab.key}
+                                                onClick={() => {
+                                                    setSelectedCategory(tab.key);
+                                                    if (!isActive) {
+                                                        const vibeMap: Record<string, string> = {
+                                                            'STANDARD': 'ระดับทั่วไป คลาสสิก เหมาะสำหรับมือใหม่ค่ะ',
+                                                            'HIGH_STAKES': 'ระดับเดิมพันสูง โต๊ะวีไอพีหรูหราค่ะ',
+                                                            'EXPERT': 'ระดับเซียน แหล่งรวมยอดฝีมือค่ะ',
+                                                            'LEGENDARY': 'ระดับตำนาน โต๊ะหินอัคนีสุดเดือดค่ะ',
+                                                            'ULTIMATE': 'ระดับสูงสุด เหนือกาลเวลา ทะลุมิติค่ะ'
+                                                        };
+                                                        speakPhrase(vibeMap[tab.key]);
+                                                    }
+                                                }}
+                                                className={`flex-1 py-2 text-[10px] sm:text-xs rounded-xl transition-all whitespace-nowrap px-1.5
+                                                    ${isActive ? tab.activeStyle : tab.style}
+                                                `}
+                                            >
+                                                {tab.label}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
 
                                 {/* Room Selection List */}
@@ -189,6 +204,21 @@ export default function GameSetupScreen() {
                                                     </div>
                                                 </div>
 
+                                                {/* Voice Announcer Button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation(); // prevent triggering the room selection
+                                                        const minBetVoice = numberToThaiVoice(room.minBet);
+                                                        const maxBetVoice = numberToThaiVoice(room.maxBet);
+                                                        const dealerCapVoice = numberToThaiVoice(room.dealerMinCapital);
+                                                        const text = `โต๊ะ ${room.name} เดิมพันขั้นต่ำ ${minBetVoice} สูงสุด ${maxBetVoice} ต้องการทุนสำหรับเป็นเจ้ามืออย่างน้อย ${dealerCapVoice} ค่ะ`;
+                                                        speakPhrase(text);
+                                                    }}
+                                                    className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400/70 hover:text-blue-300 hover:bg-blue-500/20 hover:border-blue-500/40 transition-colors z-10 mr-1"
+                                                >
+                                                    <Volume2 size={14} />
+                                                </button>
+
                                                 {/* Status Icon */}
                                                 <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-black/40 border border-white/5 group-hover:bg-yellow-500/20 group-hover:border-yellow-500/30 transition-colors">
                                                     {affordable
@@ -205,11 +235,12 @@ export default function GameSetupScreen() {
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.96 }}
                                     onClick={handleQuickStart}
+                                    onPointerEnter={() => speakPhrase('ร่วมวงทันที')}
                                     className="w-full py-3 rounded-2xl text-black font-bold text-base sm:text-lg tracking-widest cursor-pointer transition-all relative overflow-hidden bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-600 border border-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:shadow-[0_0_30px_rgba(250,204,21,0.5)] uppercase"
                                 >
                                     <div className="absolute inset-0 bg-white/20 hover:opacity-0 transition-opacity" />
                                     <span className="relative z-10 flex items-center justify-center gap-2 drop-shadow-md">
-                                        <span className="text-2xl">🎲</span> เข้าโต๊ะอัตโนมัติ
+                                        <span className="text-2xl">🎲</span> ร่วมวงทันที
                                     </span>
                                 </motion.button>
                             </motion.div>
@@ -225,7 +256,7 @@ export default function GameSetupScreen() {
                                 exit={{ opacity: 0, x: -20 }}
                                 className="mt-6"
                             >
-                                <h3 className="text-center font-bold text-white/50 text-xs tracking-widest uppercase mb-4">
+                                <h3 className="text-center font-medium text-white/50 text-xs tracking-widest uppercase mb-4">
                                     ตั้งค่าโต๊ะ
                                 </h3>
 
@@ -238,15 +269,15 @@ export default function GameSetupScreen() {
                                         {selectedRoom.emoji}
                                     </div>
                                     <div className="flex-1 min-w-0 z-10">
-                                        <div className="text-yellow-500/70 text-[10px] font-bold tracking-widest uppercase mb-0.5">{selectedRoom.category} ROOM</div>
-                                        <p className="text-white font-bold text-base leading-tight drop-shadow-md">{selectedRoom.name}</p>
+                                        <div className="text-yellow-500/70 text-[10px] font-medium tracking-widest uppercase mb-0.5">{selectedRoom.category} ROOM</div>
+                                        <p className="text-white font-semibold text-base leading-tight drop-shadow-md">{selectedRoom.name}</p>
                                         <p className="text-white/50 text-[11px] tracking-wider mt-0.5">
                                             {formatChips(selectedRoom.minBet)} - {formatChips(selectedRoom.maxBet)}
                                         </p>
                                     </div>
                                     <button
                                         onClick={() => setStep('room')}
-                                        className="text-white/40 hover:text-white text-xs px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 cursor-pointer font-bold transition-colors z-10"
+                                        className="text-white/40 hover:text-white text-xs px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 cursor-pointer font-semibold transition-colors z-10"
                                     >
                                         เปลี่ยน
                                     </button>
@@ -254,17 +285,17 @@ export default function GameSetupScreen() {
 
                                 {/* Player Count */}
                                 <div className="mb-6 bg-black/40 p-4 rounded-2xl border border-white/5">
-                                    <label className="flex items-center gap-2 text-xs text-white/60 font-bold uppercase tracking-widest mb-3">
+                                    <label className="flex items-center gap-2 text-xs text-white/60 font-semibold uppercase tracking-widest mb-3">
                                         <Users size={16} className="text-blue-400" />
                                         จำนวนขาไพ่ในวง
                                     </label>
-                                    <div className="grid grid-cols-5 gap-2 justify-center">
+                                    <div className="grid grid-cols-3 gap-2 justify-center">
                                         {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                                             <motion.button
                                                 key={n}
                                                 whileTap={{ scale: 0.9 }}
-                                                onClick={() => { SFX.click(); setPlayerCount(n); }}
-                                                className={`h-12 rounded-xl text-lg font-bold transition-all cursor-pointer border relative overflow-hidden
+                                                onClick={() => { SFX.click(); setPlayerCount(n); speakPhrase(`วงไพ่ ${n} ท่าน ค่ะ`); }}
+                                                className={`h-12 rounded-xl text-lg transition-all cursor-pointer border relative overflow-hidden
                                                     ${playerCount === n
                                                         ? 'bg-gradient-to-b from-yellow-500 to-amber-600 text-black border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.4)] scale-105 z-10'
                                                         : 'bg-black/50 text-white/40 border-white/10 hover:border-white/20 hover:bg-white/5 hover:text-white/80'}`}
@@ -276,7 +307,7 @@ export default function GameSetupScreen() {
                                     </div>
                                     <div className="flex items-center justify-between mt-3 px-1">
                                         <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/10" />
-                                        <span className="text-white/30 text-[10px] uppercase tracking-widest px-2 font-bold">
+                                        <span className="text-white/30 text-[10px] uppercase tracking-widest px-2 font-semibold">
                                             ขนาดโต๊ะ {playerCount} ที่นั่ง
                                         </span>
                                         <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/10" />
@@ -285,7 +316,7 @@ export default function GameSetupScreen() {
 
                                 {/* Dealer Position Context */}
                                 <div className="mb-8">
-                                    <label className="flex items-center gap-2 text-xs text-white/60 font-bold uppercase tracking-widest mb-3 px-1">
+                                    <label className="flex items-center gap-2 text-xs text-white/60 font-semibold uppercase tracking-widest mb-3 px-1">
                                         <Crown size={16} className="text-yellow-400" />
                                         ระบุบทบาทของคุณ
                                     </label>
@@ -293,7 +324,7 @@ export default function GameSetupScreen() {
                                         {/* Dealer Option */}
                                         <motion.button
                                             whileTap={{ scale: 0.95 }}
-                                            onClick={() => { if (canBeDealer) { SFX.click(); setHumanIsDealer(true); } }}
+                                            onClick={() => { if (canBeDealer) { SFX.click(); setHumanIsDealer(true); speakPhrase('คุณเป็นเจ้ามือ กินให้เรียบแล้วรวบยกโต๊ะเลยค่ะ!'); } }}
                                             disabled={!canBeDealer}
                                             className={`p-4 rounded-2xl text-sm transition-all cursor-pointer relative flex flex-col items-center justify-center gap-2 border overflow-hidden
                                                 ${humanIsDealer
@@ -307,14 +338,14 @@ export default function GameSetupScreen() {
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-1 ${humanIsDealer ? 'bg-yellow-500/20' : 'bg-black/40'}`}>
                                                     <Crown size={20} className={humanIsDealer ? 'text-yellow-400 drop-shadow-md' : (canBeDealer ? 'text-white/50' : 'text-white/20')} />
                                                 </div>
-                                                <span className={`font-bold tracking-wider ${humanIsDealer ? 'text-yellow-400' : ''}`}>เป็นเจ้ามือ</span>
+                                                <span className={`font-semibold tracking-wider ${humanIsDealer ? 'text-yellow-400' : ''}`}>เป็นเจ้ามือ</span>
                                             </div>
 
                                             {canBeDealer ? (
-                                                <span className={`text-[10px] ${humanIsDealer ? 'text-yellow-500/80 font-bold' : 'text-white/30'} flex-1 flex items-end mt-1`}>กินเรียบ/จ่ายรอบวง!</span>
+                                                <span className={`text-[10px] ${humanIsDealer ? 'text-yellow-500/80 font-semibold' : 'text-white/30'} flex-1 flex items-end mt-1`}>กินเรียบ/จ่ายรอบวง!</span>
                                             ) : (
                                                 <div className="flex flex-col items-center justify-end flex-1 w-full mt-1">
-                                                    <div className="flex items-center gap-1 text-[9px] text-red-500/80 font-bold bg-red-950/50 px-2 py-0.5 rounded-full border border-red-500/20 truncate w-full justify-center">
+                                                    <div className="flex items-center gap-1 text-[9px] text-red-500/80 font-semibold bg-red-950/50 px-2 py-0.5 rounded-full border border-red-500/20 truncate w-full justify-center">
                                                         <Lock size={10} className="shrink-0" />
                                                         <span className="truncate">ทุนขั้นต่ำ {formatChips(selectedRoom.dealerMinCapital)}</span>
                                                     </div>
@@ -325,7 +356,7 @@ export default function GameSetupScreen() {
                                         {/* Player Option */}
                                         <motion.button
                                             whileTap={{ scale: 0.95 }}
-                                            onClick={() => { SFX.click(); setHumanIsDealer(false); }}
+                                            onClick={() => { SFX.click(); setHumanIsDealer(false); speakPhrase('คุณเป็นลูกขา ลุ้นไพ่แล้วขยี้เจ้ามือกันเถอะค่ะ!'); }}
                                             className={`p-4 rounded-2xl text-sm transition-all cursor-pointer flex flex-col items-center justify-center gap-2 border overflow-hidden relative
                                                 ${!humanIsDealer
                                                     ? 'bg-gradient-to-b from-blue-600/20 to-cyan-900/40 border-blue-400 text-blue-400 shadow-[0_0_20px_rgba(56,189,248,0.2)]'
@@ -336,9 +367,9 @@ export default function GameSetupScreen() {
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-1 ${!humanIsDealer ? 'bg-blue-500/20' : 'bg-black/40'}`}>
                                                     <Users size={20} className={!humanIsDealer ? 'text-blue-400 drop-shadow-md' : 'text-white/50'} />
                                                 </div>
-                                                <span className={`font-bold tracking-wider ${!humanIsDealer ? 'text-blue-400' : ''}`}>เป็นลูกขา</span>
+                                                <span className={`font-semibold tracking-wider ${!humanIsDealer ? 'text-blue-400' : ''}`}>เป็นลูกขา</span>
                                             </div>
-                                            <span className={`text-[10px] mt-1 ${!humanIsDealer ? 'text-blue-400/80 font-bold' : 'text-white/30'}`}>ลุ้นไพ่สวยๆ แทงสบายๆ</span>
+                                            <span className={`text-[10px] mt-1 ${!humanIsDealer ? 'text-blue-400/80 font-semibold' : 'text-white/30'}`}>ลุ้นไพ่สวยๆ แทงสบายๆ</span>
                                         </motion.button>
                                     </div>
                                 </div>
@@ -346,19 +377,20 @@ export default function GameSetupScreen() {
                                 {/* Action Bar */}
                                 <div className="pt-2 border-t border-white/5 mt-auto">
                                     <div className="flex items-center justify-between mb-4 px-1">
-                                        <span className="text-white/40 text-xs font-bold uppercase tracking-widest">ยอดชิปคงเหลือ:</span>
-                                        <span className="text-yellow-400 font-bold text-lg drop-shadow-md">{formatChips(profile.chips)}</span>
+                                        <span className="text-white/40 text-xs font-semibold uppercase tracking-widest">ยอดชิปคงเหลือ:</span>
+                                        <span className="text-yellow-400 font-semibold text-lg drop-shadow-md">{formatChips(profile.chips)}</span>
                                     </div>
 
                                     {/* Start Button */}
                                     <motion.button
-                                        whileHover={{ scale: 1.02 }}
+                                        whileHover={{ scale: 1.05, y: -2 }}
                                         whileTap={{ scale: 0.96 }}
                                         onClick={handleStart}
+                                        onPointerEnter={() => speakPhrase('ขอให้โชคดีนะคะ')}
                                         disabled={profile.chips < selectedRoom.minBet && !humanIsDealer}
-                                        className="btn-gold w-full text-xl py-4 flex items-center justify-center gap-2 uppercase tracking-widest disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
+                                        className="btn-gold w-full text-xl py-4 flex items-center justify-center gap-2 uppercase tracking-wide disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
                                     >
-                                        🚪 เข้าสู่โต๊ะ
+                                        🚪 ร่วมวง
                                     </motion.button>
                                 </div>
                             </motion.div>

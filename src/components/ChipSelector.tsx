@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SFX } from '../utils/sound';
-import { formatChips } from '../utils/formatChips';
+import { SFX, speakPhrase } from '../utils/sound';
+import { formatChips, numberToThaiVoice } from '../utils/formatChips';
 import { getChipStyle } from '../utils/chipColors';
 
 interface ChipSelectorProps {
@@ -28,17 +28,20 @@ export default function ChipSelector({
         const newTotal = currentBet + amount;
         if (newTotal <= maxBet) {
             SFX.chipStack();
+            speakPhrase(numberToThaiVoice(amount));
             onSelect(newTotal);
         }
     };
 
     const handleClear = () => {
         SFX.click();
+        speakPhrase('เรียกคืนนะคะ');
         onSelect(0);
     };
 
     const handleOpenRaise = () => {
         SFX.click();
+        speakPhrase('จะเกทับเท่าไหร่ดีคะ');
         // Start slider at current bet or minBet equivalent
         setRaiseAmount(Math.max(currentBet, maxBet > 0 ? maxBet : 0));
         setShowRaise(true);
@@ -47,8 +50,10 @@ export default function ChipSelector({
     const handleConfirmRaise = () => {
         if (raiseAmount === totalChips) {
             SFX.allIn();
+            speakPhrase('ทุ่มหมดตัว!');
         } else {
             SFX.betConfirm();
+            speakPhrase(`เกทับ ${numberToThaiVoice(raiseAmount)}`);
         }
         onSelect(raiseAmount);
         setShowRaise(false);
@@ -159,7 +164,7 @@ export default function ChipSelector({
                                 <motion.button
                                     key={label}
                                     whileTap={{ scale: 0.9 }}
-                                    onClick={() => { SFX.click(); setRaiseAmount(value); }}
+                                    onClick={() => { SFX.click(); setRaiseAmount(value); speakPhrase(label === 'All-in' ? 'ทุ่มหมดตัว' : numberToThaiVoice(value)); }}
                                     className={`py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border
                                         ${raiseAmount === value
                                             ? label === 'All-in'
@@ -210,7 +215,7 @@ export default function ChipSelector({
                                     onClick={handleClear}
                                     className="text-xs text-red-400 hover:text-red-300 underline cursor-pointer"
                                 >
-                                    ล้างค่า
+                                    เรียกคืน
                                 </button>
                             )}
                         </div>
@@ -250,7 +255,7 @@ export default function ChipSelector({
                             <div className="flex justify-center mb-4">
                                 <motion.button
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => { SFX.repeatBet(); onSelect(lastBet); }}
+                                    onClick={() => { SFX.repeatBet(); speakPhrase(`ย้ำทุนเดิม ${numberToThaiVoice(lastBet)} นะคะ`); onSelect(lastBet); }}
                                     className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-yellow-300/80 flex items-center gap-1 active:scale-95 transition cursor-pointer"
                                 >
                                     ↺ เดิมพันซ้ำ ({formatChips(lastBet)})

@@ -4,8 +4,8 @@ import { useGameStore } from '../store/useGameStore';
 import { AVATAR_COLORS } from '../types/game';
 import type { AvatarColor } from '../types/game';
 import { createDefaultProfile, saveProfile } from '../utils/storage';
-import { SFX } from '../utils/sound';
-import { Sparkles } from 'lucide-react';
+import { SFX, speakPhrase, speakWelcome } from '../utils/sound';
+import { Sparkles, UserPen } from 'lucide-react';
 
 /**
  * Compress an image file to a small base64 JPEG string.
@@ -45,10 +45,17 @@ export default function OnboardingScreen() {
     const [randomColor, setRandomColor] = useState<AvatarColor>(AVATAR_COLORS[0]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Set a random color on mount
+    // Initial load: random color and welcome sounds
     useEffect(() => {
         const rand = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
         setRandomColor(rand);
+
+        // Play welcome SFX
+        SFX.dealStart();
+        // Delay TTS slightly for better effect
+        setTimeout(() => {
+            speakPhrase('ยินดีต้อนรับเข้าสู่เกมป๊อกเด้งค่ะ เชิญตั้งชื่อผู้เล่นได้เลยค่ะ');
+        }, 800);
     }, []);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +75,13 @@ export default function OnboardingScreen() {
         SFX.betConfirm();
         const profile = createDefaultProfile(name.trim(), randomColor, avatarUrl || undefined);
         saveProfile(profile);
-        setScreen('MENU');
+
+        // Play welcome specifically for the player name if TTS enables it
+        speakWelcome(name.trim());
+
+        setTimeout(() => {
+            setScreen('MENU');
+        }, 500); // Give sound a little time before screen unmounts, or rely on global playback
     };
 
     const canStart = name.trim().length > 0;
@@ -76,19 +89,19 @@ export default function OnboardingScreen() {
     return (
         <div className="w-full h-full bg-casino-table flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden relative">
 
-            {/* Dark vignette matching SettingsScreen */}
-            <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)] z-0" />
+            {/* Dark vignette matching GameSetupScreen */}
+            <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)] z-10" />
 
             <motion.div
-                className="w-full max-w-md relative z-10 flex flex-col items-center"
+                className="w-full max-w-md relative z-20 flex flex-col items-center"
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
             >
                 {/* Header Section */}
-                <div className="text-center mb-8 relative">
+                <div className="text-center mb-6 relative">
                     <motion.div
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-yellow-500/20 blur-[50px] rounded-full pointer-events-none"
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-yellow-500/20 blur-[50px] rounded-full pointer-events-none"
                         animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
                         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                     />
@@ -112,23 +125,24 @@ export default function OnboardingScreen() {
                     </motion.div>
                 </div>
 
-                {/* Main Card */}
-                <div className="w-full relative p-[1px] rounded-[32px] group">
-                    {/* Glowing border effect */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/50 via-amber-500/10 to-transparent rounded-[32px] opacity-60 blur-sm" />
+                {/* Main Card - Premium Casino Glassmorphism Container */}
+                <div className="w-full relative shadow-2xl rounded-3xl group z-20">
+                    <div className="relative bg-black/60 border border-yellow-500/20 shadow-2xl rounded-3xl p-6 sm:p-8 lg:p-10 backdrop-blur-xl flex flex-col items-center gap-6 overflow-hidden">
 
-                    <div className="relative glass p-8 sm:p-10 flex flex-col items-center gap-8 border border-white/10 shadow-2xl overflow-hidden rounded-[32px] bg-black/60 backdrop-blur-xl">
+                        {/* Top Glow Decor */}
+                        <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent" />
+
                         {/* Inner corner glows */}
-                        <div className="absolute -top-20 -right-20 w-40 h-40 bg-yellow-500/10 blur-[50px] rounded-full pointer-events-none" />
-                        <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-amber-500/10 blur-[50px] rounded-full pointer-events-none" />
+                        <div className="absolute -top-16 -right-16 w-32 h-32 bg-yellow-500/10 blur-[50px] rounded-full pointer-events-none" />
+                        <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-amber-500/10 blur-[50px] rounded-full pointer-events-none" />
 
                         {/* Avatar Upload Section */}
-                        <div className="flex flex-col items-center relative z-10">
+                        <div className="flex flex-col items-center relative z-10 mt-2">
                             <motion.div
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => fileInputRef.current?.click()}
-                                className="w-36 h-36 rounded-full cursor-pointer relative transition-all duration-300 border-[3px] border-yellow-500/40 hover:border-yellow-400 overflow-hidden shadow-[0_0_40px_rgba(250,204,21,0.2)] bg-black/50 flex items-center justify-center p-1"
+                                className="w-32 h-32 sm:w-36 sm:h-36 rounded-full cursor-pointer relative transition-all duration-300 border-[3px] border-yellow-500/40 hover:border-yellow-400 overflow-hidden shadow-[0_0_40px_rgba(250,204,21,0.2)] bg-black/50 flex items-center justify-center p-1 group/avatar"
                             >
                                 <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-black/40 relative">
                                     {avatarUrl ? (
@@ -138,11 +152,14 @@ export default function OnboardingScreen() {
                                             className="w-full h-full flex items-center justify-center"
                                             style={{ background: `linear-gradient(135deg, ${randomColor}80, ${randomColor}30)` }}
                                         >
-                                            <span className="text-6xl font-black text-white drop-shadow-lg">
+                                            <span className="text-5xl sm:text-6xl font-black text-white drop-shadow-lg">
                                                 {name.trim() ? name.trim().charAt(0).toUpperCase() : '?'}
                                             </span>
                                         </div>
                                     )}
+                                </div>
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-white/90 z-20 rounded-full">
+                                    <UserPen size={32} />
                                 </div>
                             </motion.div>
 
@@ -154,14 +171,14 @@ export default function OnboardingScreen() {
                                 className="hidden"
                             />
 
-                            <p className="mt-4 text-white/50 text-xs font-medium tracking-widest uppercase">แตะเพื่อเปลี่ยนรูป (ทางเลือก)</p>
+                            <p className="mt-4 text-white/40 text-[10px] sm:text-xs font-semibold tracking-widest uppercase">แตะเพื่อเปลี่ยนรูป (ทางเลือก)</p>
                         </div>
 
                         {/* Name Input */}
-                        <div className="w-full relative z-10">
+                        <div className="w-full relative z-10 mt-2">
                             <div className="relative group/input">
                                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 via-amber-500/10 to-yellow-500/20 rounded-2xl blur opacity-0 group-focus-within/input:opacity-100 transition duration-500" />
-                                <div className="relative bg-black/40 border border-white/10 focus-within:border-yellow-500/50 rounded-2xl flex items-center px-4 transition-colors shadow-inner">
+                                <div className="relative bg-black/50 border border-white/10 focus-within:border-yellow-500/50 rounded-2xl flex items-center px-4 transition-colors shadow-inner">
                                     <input
                                         type="text"
                                         value={name}
@@ -169,7 +186,7 @@ export default function OnboardingScreen() {
                                         onKeyDown={(e) => e.key === 'Enter' && canStart && handleStart()}
                                         placeholder="ตั้งชื่อในเกมของคุณ"
                                         maxLength={20}
-                                        className="w-full text-center text-xl sm:text-2xl font-black py-5 bg-transparent text-white placeholder-white/20 focus:outline-none tracking-wider"
+                                        className="w-full text-center text-lg sm:text-xl font-bold py-4 bg-transparent text-white placeholder-white/20 focus:outline-none tracking-wider"
                                     />
                                     <AnimatePresence>
                                         {name.length > 0 && (
@@ -179,7 +196,7 @@ export default function OnboardingScreen() {
                                                 exit={{ scale: 0, opacity: 0 }}
                                                 className="absolute right-4 text-yellow-400"
                                             >
-                                                <Sparkles size={20} className="animate-pulse" />
+                                                <Sparkles size={18} className="animate-pulse" />
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
@@ -188,7 +205,7 @@ export default function OnboardingScreen() {
                         </div>
 
                         {/* Action Lines */}
-                        <div className="w-full flex items-center gap-4 relative z-10 opacity-30 mt-2 mb-2">
+                        <div className="w-full flex items-center gap-4 relative z-10 opacity-30 my-2">
                             <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/50" />
                             <div className="w-2 h-2 rotate-45 border border-white/50" />
                             <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/50" />
@@ -200,10 +217,10 @@ export default function OnboardingScreen() {
                             whileTap={canStart ? { scale: 0.98 } : {}}
                             onClick={handleStart}
                             disabled={!canStart}
-                            className={`w-full py-5 rounded-2xl font-black text-xl tracking-widest transition-all relative overflow-hidden group/btn shadow-xl
+                            className={`w-full py-4 rounded-xl font-bold text-lg tracking-widest transition-all relative overflow-hidden group/btn shadow-[0_4px_15px_rgba(0,0,0,0.4)]
                                 ${canStart
-                                    ? 'btn-gold text-black border-b-4 border-yellow-700 hover:shadow-[0_10px_30px_rgba(245,158,11,0.4)]'
-                                    : 'bg-white/5 text-white/30 cursor-not-allowed border border-white/5 shadow-none'
+                                    ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black border border-yellow-400 hover:brightness-110 shadow-[0_4px_15px_rgba(245,158,11,0.2)]'
+                                    : 'bg-black/50 text-white/30 cursor-not-allowed border border-white/5 shadow-none'
                                 }`}
                         >
                             {canStart && (

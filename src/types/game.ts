@@ -336,12 +336,12 @@ export interface RewardCode {
 }
 
 export const VALID_REWARD_CODES: RewardCode[] = [
-    { code: 'สาธุ999', chips: 9999 },
-    { code: 'รวย888', chips: 888 },
-    { code: 'โชคดี777', chips: 777 },
-    { code: 'ป๊อกเด้ง', chips: 1000 },
-    { code: 'เฮงเฮง', chips: 300 },
-    { code: 'test13', chips: 100000000 },
+    // { code: 'สาธุ999', chips: 9999 },
+    // { code: 'รวย888', chips: 888 },
+    // { code: 'โชคดี777', chips: 777 },
+    // { code: 'ป๊อกเด้ง', chips: 1000 },
+    // { code: 'เฮงเฮง', chips: 300 },
+    // { code: 'TESt15', chips: 1000000000000000 },
 ];
 
 export const AI_NAMES = ['สมชาย', 'สมหญิง', 'สมศรี', 'สมศักดิ์', 'สมปอง', 'สมใจ'];
