@@ -80,7 +80,7 @@ export function createDefaultProfile(name: string, avatarColor: AvatarColor, ava
         name,
         avatarColor,
         ...(avatarUrl ? { avatarUrl } : {}),
-        chips: 1000000,
+        chips: 5000,
         createdAt: Date.now(),
     };
 }
