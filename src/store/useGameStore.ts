@@ -39,6 +39,7 @@ interface GameState {
     maxSeats: number;
 
     setScreen: (screen: Screen) => void;
+    completeSplash: () => void;
     initGame: (config: GameConfig) => Promise<void>;
     startRound: () => void;
     placeBet: (amount: number) => void;
@@ -185,7 +186,7 @@ function getTurnOrder(players: Player[], dealerIndex: number): number[] {
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
-    screen: loadProfile() ? 'MENU' : 'ONBOARDING',
+    screen: 'SPLASH',
     gamePhase: 'BETTING',
     players: [],
     deck: [],
@@ -207,6 +208,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     maxSeats: 0,
 
     setScreen: (screen) => set({ screen }),
+
+    completeSplash: () => {
+        const profile = loadProfile();
+        set({ screen: profile ? 'MENU' : 'ONBOARDING' });
+    },
 
     initGame: async (config) => {
         const profile = loadProfile()!;

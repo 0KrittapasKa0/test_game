@@ -55,7 +55,7 @@ export interface PlayerStats {
     chipHistory: number[];     // chip balance after each round (last 30)
 }
 
-export type Screen = 'ONBOARDING' | 'MENU' | 'GAME_SETUP' | 'PLAYING' | 'SETTINGS' | 'REWARD_CODE' | 'PROFILE';
+export type Screen = 'SPLASH' | 'ONBOARDING' | 'MENU' | 'GAME_SETUP' | 'PLAYING' | 'SETTINGS' | 'REWARD_CODE' | 'PROFILE';
 
 export type GamePhase = 'BETTING' | 'DEALING' | 'PLAYER_ACTION' | 'AI_ACTION' | 'SHOWDOWN' | 'ROUND_END';
 

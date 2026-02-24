@@ -44,9 +44,14 @@ export default function MainMenuScreen() {
         };
 
         if (!hasGreeted) {
-            // ดักการกระทำครั้งแรกของผู้เล่นบนหน้าจอเพื่อปลดล็อกเสียง
-            window.addEventListener('pointerdown', playWelcome);
-            window.addEventListener('keydown', playWelcome);
+            // เช็คว่าผู้ใช้เคยมีปฏิสัมพันธ์กับเว็บหรือยัง (เช่น แตะข้ามโหลดเกม)
+            if (navigator.userActivation && navigator.userActivation.hasBeenActive) {
+                playWelcome();
+            } else {
+                // ดักการกระทำครั้งแรกของผู้เล่นบนหน้าจอเพื่อปลดล็อกเสียง
+                window.addEventListener('pointerdown', playWelcome);
+                window.addEventListener('keydown', playWelcome);
+            }
         }
 
         return () => {
