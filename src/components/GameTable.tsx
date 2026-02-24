@@ -142,44 +142,43 @@ function FlyingCardElement({ targetX, targetY, onComplete }: {
     targetY: number;
     onComplete: () => void;
 }) {
+    // We use a 2-layer approach to ensure 100% 60fps hardware acceleration on iOS.
+    // Animating 'left' and 'top' causes layout reflows (lag).
+    // Instead, we use a 100% width/height wrapper. Animating 'x: 50%' on it moves it 50% of parent width.
     return (
         <motion.div
-            className="absolute pointer-events-none"
-            style={{ width: '48px', height: '68px', zIndex: 60 }}
-            initial={{
-                left: '50%',
-                top: '50%',
-                x: '-50%',
-                y: '-50%',
-                scale: 1,
-                opacity: 1,
-            }}
-            animate={{
-                left: `${targetX}%`,
-                top: `${targetY}%`,
-                scale: 0.65,
-                opacity: [1, 1, 0.3],
-            }}
-            transition={{
-                duration: 0.28,
-                ease: [0.25, 0.46, 0.45, 0.94],
-                opacity: { times: [0, 0.6, 1] },
-            }}
+            className="absolute top-0 left-0 w-full h-full pointer-events-none"
+            style={{ zIndex: 60, willChange: 'transform' }}
+            initial={{ x: '50%', y: '50%' }}
+            animate={{ x: `${targetX}%`, y: `${targetY}%` }}
+            transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
             onAnimationComplete={onComplete}
         >
-            <div
-                className="w-full h-full rounded-md bg-white p-[3px] sm:p-[4px]"
-                style={{
-                    border: '1px solid #e5e7eb',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+            <motion.div
+                className="absolute top-0 left-0"
+                style={{ width: '48px', height: '68px', willChange: 'transform, opacity' }}
+                initial={{ x: '-50%', y: '-50%', scale: 1, opacity: 1 }}
+                animate={{ x: '-50%', y: '-50%', scale: 0.65, opacity: [1, 1, 0.3] }}
+                transition={{
+                    duration: 0.28,
+                    ease: [0.25, 0.46, 0.45, 0.94],
+                    opacity: { times: [0, 0.6, 1] },
                 }}
             >
-                <div className="w-full h-full rounded-[4px] border-[1.5px] border-[#e5e7eb] flex items-center justify-center">
-                    <span className="text-[#e5e7eb] text-sm drop-shadow-none leading-none">
-                        ♠
-                    </span>
+                <div
+                    className="w-full h-full rounded-md bg-white p-[3px] sm:p-[4px]"
+                    style={{
+                        border: '1px solid #e5e7eb',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                    }}
+                >
+                    <div className="w-full h-full rounded-[4px] border-[1.5px] border-[#e5e7eb] flex items-center justify-center">
+                        <span className="text-[#e5e7eb] text-sm drop-shadow-none leading-none">
+                            ♠
+                        </span>
+                    </div>
                 </div>
-            </div>
+            </motion.div>
         </motion.div>
     );
 }
@@ -759,20 +758,42 @@ export default function GameTable() {
             {/* ===== Dealer Deal Button ===== */}
             <AnimatePresence>
                 {gamePhase === 'BETTING' && !isSpectating && humanIsDealer && (
-                    <motion.div
-                        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-40 pointer-events-auto"
-                        initial={{ y: 50, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                    >
-                        <motion.button
-                            whileHover={!aiBettingInProgress ? { scale: 1.05 } : {}}
-                            whileTap={!aiBettingInProgress ? { scale: 0.95 } : {}}
-                            onClick={() => !aiBettingInProgress && handleBetConfirm()}
-                            className={`btn-gold text-lg sm:text-xl px-10 sm:px-12 py-3.5 sm:py-4 shadow-2xl cursor-pointer transition-opacity ${aiBettingInProgress ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            {aiBettingInProgress ? 'รอผู้เล่นอื่น วางเดิมพัน...' : 'แจกไพ่'}
-                        </motion.button>
-                    </motion.div>
+                    <div className="absolute bottom-0 left-0 right-0 pb-6 pt-0 px-4 z-40 pointer-events-none flex justify-center">
+                        <div className="pointer-events-auto max-w-md w-full relative">
+                            {/* Gradient Background for Visibility */}
+                            <div className="absolute inset-0 -inset-x-4 bg-gradient-to-t from-black/90 to-transparent rounded-t-3xl -z-10" />
+
+                            <motion.div
+                                className="glass p-4 sm:p-5 w-full mx-auto flex flex-col items-center"
+                                initial={{ y: 40, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                transition={{ type: 'spring', stiffness: 240, damping: 22 }}
+                            >
+                                {aiBettingInProgress ? (
+                                    <motion.button
+                                        disabled
+                                        className="w-full py-3 rounded-lg font-bold text-lg shadow-lg border-b-4 bg-gray-600 text-gray-300 border-gray-700 cursor-wait animate-pulse"
+                                    >
+                                        ⏳ รอผู้เล่นอื่น วางเดิมพัน...
+                                    </motion.button>
+                                ) : (
+                                    <>
+                                        <div className="flex items-center justify-between w-full mb-3 px-2">
+                                            <p className="text-yellow-400/80 text-sm font-medium">👑 คุณคือเจ้ามือ</p>
+                                        </div>
+                                        <motion.button
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            onClick={() => handleBetConfirm()}
+                                            className="w-full py-3 rounded-lg font-bold text-lg shadow-lg border-b-4 transition-all cursor-pointer bg-gradient-to-r from-yellow-500 to-amber-600 text-black border-amber-700"
+                                        >
+                                            ✅ แจกไพ่
+                                        </motion.button>
+                                    </>
+                                )}
+                            </motion.div>
+                        </div>
+                    </div>
                 )}
             </AnimatePresence>
 

@@ -3,24 +3,15 @@ import { useEffect, useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { unlockSpeech } from '../utils/sound';
 
-interface SplashScreenProps {
-    loadProgress: number; // 0 - 100
-}
-
-export default function SplashScreen({ loadProgress }: SplashScreenProps) {
+export default function SplashScreen() {
     const completeSplash = useGameStore(s => s.completeSplash);
-    const [isLoaded, setIsLoaded] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
 
-    useEffect(() => {
-        if (loadProgress >= 100) {
-            // ให้ค้างหน้าหลอด 100% ไว้แป๊บนึงก่อนขึ้นข้อความให้แตะหน้าจอ 
-            const timer = setTimeout(() => setIsLoaded(true), 400);
-            return () => clearTimeout(timer);
-        }
-    }, [loadProgress]);
+    // State สำหรับการโหลดหลอก (Text Animation)
+    const [isFakeLoading, setIsFakeLoading] = useState(false);
+    const [loadingText, setLoadingText] = useState("");
 
-    // ตอนเข้ามาครั้งแรกให้เช็คเผื่อไว้ (จริงๆ จะดังตอนเข้าเมนูหลักถ้าแตะหน้านี้แล้ว)
+    // ไม่จำเป็นต้องเช็ค Pointer Events ตอนโหลดเสร็จแล้ว เพราะโชว์ปุ่มเลย
     useEffect(() => {
         const handleInteraction = () => {
             window.removeEventListener('pointerdown', handleInteraction);
@@ -30,17 +21,40 @@ export default function SplashScreen({ loadProgress }: SplashScreenProps) {
     }, []);
 
     const handleTap = () => {
-        if (isLoaded && !isTransitioning) {
+        if (!isFakeLoading && !isTransitioning) {
             // Unlock Web Speech API synchronously upon user gesture (crucial for iOS Safari)
             unlockSpeech();
 
-            setIsTransitioning(true);
-            // หน่วงเวลาเล็กน้อย (เช่น 0.8 วิ) 
-            // - เพื่อให้เสียงเริ่มโหลดใน Background (Browser ได้รับ User Gesture แล้ว)
-            // - เพื่อให้ UI มีเวลาทำอนิเมชั่นจางหายไปแบบสมูทๆ
+            // เริ่มเฟส: กำลังอ่านข้อมูลหลอกๆ (5 วินาที) เพื่อถ่วงเวลาให้ iOS Speech พร้อม
+            setIsFakeLoading(true);
+
+            const fakeTexts = [
+                "กำลังยืนยันตัวตนเซิร์ฟเวอร์...",
+                "กำลังอ่านข้อมูลทรัพยากร...",
+                "เตรียมระบบเสียงและกราฟิก...",
+                "กำลังจัดเรียงโต๊ะไพ่ป๊อกเด้ง...",
+                "พร้อมเข้าสู่เกม!"
+            ];
+
+            let step = 0;
+            setLoadingText(fakeTexts[0]);
+
+            // เปลี่ยนข้อความทุกๆ 1 วินาที (รวม 5 วินาที)
+            const textInterval = setInterval(() => {
+                step++;
+                if (step < fakeTexts.length) {
+                    setLoadingText(fakeTexts[step]);
+                }
+            }, 1000);
+
             setTimeout(() => {
-                completeSplash();
-            }, 800);
+                clearInterval(textInterval);
+                setIsTransitioning(true);
+                // พอหลอกเสร็จ ค่อยเปลี่ยนหน้าในอีก 0.8 วิ (รอภาพเฟดเอาท์)
+                setTimeout(() => {
+                    completeSplash();
+                }, 800);
+            }, 5000);
         }
     };
 
@@ -48,7 +62,7 @@ export default function SplashScreen({ loadProgress }: SplashScreenProps) {
         <AnimatePresence>
             {!isTransitioning && (
                 <motion.div
-                    className={`w-full h-full flex flex-col items-center justify-center p-4 relative overflow-hidden ${isLoaded ? 'cursor-pointer' : 'cursor-wait'}`}
+                    className={`w-full h-full flex flex-col items-center justify-center p-4 relative overflow-hidden ${!isFakeLoading ? 'cursor-pointer' : 'cursor-wait'}`}
                     style={{ backgroundColor: '#000' }}
                     onClick={handleTap}
                     initial={{ opacity: 1 }}
@@ -62,25 +76,25 @@ export default function SplashScreen({ loadProgress }: SplashScreenProps) {
                             style={{ background: 'radial-gradient(circle, #eab308, transparent 70%)', filter: 'blur(80px)', transform: 'translate(50%, 50%)' }} />
                     </div>
 
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 1, ease: 'easeOut' }}
-                        className="flex flex-col items-center gap-8 z-10"
-                    >
-                        <div className="relative">
+                    <div className="flex flex-col items-center gap-8 z-10">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 1.5, ease: 'easeOut' }}
+                            className="relative"
+                        >
                             <motion.div
                                 className="absolute inset-0 rounded-full bg-yellow-500/20 blur-3xl"
                                 animate={{ opacity: [0.2, 0.5, 0.2] }}
                                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                             />
                             <img src="/icon.png" alt="Pok Deng Icon" className="w-40 h-40 object-contain drop-shadow-[0_0_25px_rgba(234,179,8,0.4)] relative z-10" />
-                        </div>
+                        </motion.div>
 
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            transition={{ delay: 0.8, duration: 0.8 }}
+                            transition={{ delay: 1.5, duration: 1 }}
                             className="text-center"
                         >
                             <p className="text-yellow-500 font-bold text-3xl tracking-widest mb-3 drop-shadow-md">POK DENG</p>
@@ -90,27 +104,30 @@ export default function SplashScreen({ loadProgress }: SplashScreenProps) {
                                 <div className="w-8 h-[1px] bg-white/20"></div>
                             </div>
                         </motion.div>
-                    </motion.div>
+                    </div>
 
                     <motion.div
-                        className="absolute bottom-16 w-full max-w-[200px] z-10 h-12 flex flex-col justify-end"
+                        className="absolute bottom-16 w-full max-w-[300px] z-10 h-12 flex flex-col justify-end items-center"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: 1.5, duration: 1 }}
+                        transition={{ delay: 2.5, duration: 1 }}
                     >
-                        {!isLoaded ? (
-                            <>
-                                <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden mb-3">
-                                    <motion.div
-                                        className="h-full bg-gradient-to-r from-yellow-600 via-yellow-400 to-yellow-600 rounded-full shadow-[0_0_10px_rgba(234,179,8,0.5)] transition-all duration-300 ease-out"
-                                        style={{ width: `${loadProgress}%` }}
-                                    />
-                                </div>
-                                <p className="text-center text-white/40 text-[10px] tracking-widest uppercase font-mono">
-                                    Loading System... {loadProgress}%
-                                </p>
-                            </>
+                        {isFakeLoading ? (
+                            // Fake Loading Text Animation (After Tap)
+                            <AnimatePresence mode="wait">
+                                <motion.p
+                                    key={loadingText}
+                                    initial={{ opacity: 0, y: 5 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -5 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="text-center text-yellow-300/80 text-xs tracking-widest"
+                                >
+                                    {loadingText}
+                                </motion.p>
+                            </AnimatePresence>
                         ) : (
+                            // "Tap to Continue" prompt shown immediately
                             <motion.div
                                 animate={{ opacity: [0.3, 1, 0.3] }}
                                 transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}

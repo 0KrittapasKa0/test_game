@@ -76,7 +76,7 @@ export default function MainMenuScreen() {
             </div>
 
             {/* Floating Cards Background */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ transform: 'translateZ(0)' }}>
                 {bgCards.map(card => (
                     <div
                         key={card.id}
@@ -96,12 +96,8 @@ export default function MainMenuScreen() {
                 ))}
             </div>
 
-            <motion.div
-                className="w-full max-w-md text-center relative z-10 flex flex-col items-center"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-            >
+            {/* Remove staggered layout entry animations which cause heavy layout thrashing on every visibility toggle during DOM Caching */}
+            <div className="w-full max-w-md text-center relative z-10 flex flex-col items-center">
                 {/* Logo Area */}
                 <div className="relative mb-6 mt-4">
                     <motion.div
@@ -111,39 +107,23 @@ export default function MainMenuScreen() {
                     />
                     <motion.div
                         className="relative z-10 flex items-center justify-center w-28 h-28 mx-auto rounded-full border-4 border-yellow-500/30 bg-black/40 backdrop-blur-md shadow-2xl shadow-yellow-500/20 mb-3"
-                        initial={{ rotate: -180, scale: 0 }}
-                        animate={{ rotate: 0, scale: 1 }}
-                        transition={{ type: "spring", damping: 15, stiffness: 100, delay: 0.1 }}
                         whileHover={{ scale: 1.05, borderColor: "rgba(234, 179, 8, 0.6)" }}
                     >
                         <PokDengLogo className="w-full h-full" />
                     </motion.div>
 
-                    <motion.h1
-                        className="text-5xl sm:text-6xl font-bold text-gold-gradient tracking-tight"
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ delay: 0.3, duration: 0.5 }}
-                    >
+                    <h1 className="text-5xl sm:text-6xl font-bold text-gold-gradient tracking-tight">
                         ป๊อกเด้ง
-                    </motion.h1>
-                    <motion.div
-                        className="flex items-center justify-center gap-2 mt-1"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5 }}
-                    >
+                    </h1>
+                    <div className="flex items-center justify-center gap-2 mt-1">
                         <div className="h-[1px] w-8 bg-gradient-to-r from-transparent to-yellow-500/50" />
                         <p className="text-yellow-500/80 text-xs tracking-[0.3em] font-medium uppercase">Pok Deng</p>
                         <div className="h-[1px] w-8 bg-gradient-to-l from-transparent to-yellow-500/50" />
-                    </motion.div>
+                    </div>
                 </div>
 
                 <motion.div
                     className="w-full relative p-[1px] rounded-2xl mb-8 group cursor-pointer"
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.4 }}
                     onClick={() => { speakPhrase('ดูโปรไฟล์ของฉัน'); nav('PROFILE'); }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -186,9 +166,6 @@ export default function MainMenuScreen() {
                 {/* Action Buttons */}
                 <div className="w-full flex justify-between gap-3 px-2">
                     <motion.button
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.5 }}
                         whileHover={{ scale: 1.05, y: -2 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => { speakPhrase('โปรไฟล์ผู้เล่น'); nav('PROFILE'); }}
@@ -200,11 +177,7 @@ export default function MainMenuScreen() {
                     </motion.button>
 
                     {/* Primary Play Button */}
-                    <motion.div className="flex-1 max-w-[140px] -mt-6 z-20"
-                        initial={{ y: 30, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.55, type: 'spring', stiffness: 200, damping: 20 }}
-                    >
+                    <div className="flex-1 max-w-[140px] -mt-6 z-20">
                         <motion.button
                             whileHover={{ scale: 1.05, y: -2 }}
                             whileTap={{ scale: 0.95 }}
@@ -216,12 +189,9 @@ export default function MainMenuScreen() {
                             <Play size={32} fill="currentColor" className="drop-shadow-md text-black" />
                             <span className="text-xl font-semibold tracking-widest drop-shadow-sm text-black">เล่นเกม</span>
                         </motion.button>
-                    </motion.div>
+                    </div>
 
                     <motion.button
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.6 }}
                         whileHover={{ scale: 1.05, y: -2 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => { speakPhrase('การตั้งค่า'); nav('SETTINGS'); }}
@@ -234,19 +204,18 @@ export default function MainMenuScreen() {
                 </div>
 
                 <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.7 }}
                     onClick={() => { speakPhrase('กิจกรรมรับชิป'); nav('REWARD_CODE'); }}
                     className="mt-6 flex items-center justify-center gap-2 text-yellow-500/80 hover:text-yellow-400 text-sm font-normal transition-colors px-6 py-2.5 rounded-full border border-yellow-500/10 hover:bg-yellow-500/10"
                     style={{ background: 'rgba(0,0,0,0.2)' }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                 >
                     <Gift size={16} />
                     <span>กิจกรรมรับชิป</span>
                 </motion.button>
 
                 <p className="text-white/20 text-[10px] mt-8 tracking-widest uppercase mb-4">Beta Version 1.0</p>
-            </motion.div>
+            </div>
         </div>
     );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Crown, ChevronRight, Lock, Volume2, Users } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
@@ -9,11 +9,21 @@ import type { RoomConfig } from '../types/game';
 import { SFX, speakPhrase } from '../utils/sound';
 
 export default function GameSetupScreen() {
-    const { setScreen, initGame } = useGameStore();
+    const { setScreen, initGame, screen } = useGameStore();
     const profile = loadProfile()!;
     const settings = loadSettings();
 
     const [step, setStep] = useState<'room' | 'config'>('room');
+
+    // Reset to room selection when leaving the screen (so it's pre-rendered for next time)
+    useEffect(() => {
+        if (screen !== 'GAME_SETUP') {
+            // Add a tiny delay so the fade-out animation finishes before the layout snaps back
+            const timer = setTimeout(() => setStep('room'), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [screen]);
+
     const [selectedRoom, setSelectedRoom] = useState<RoomConfig>(
         ROOMS.find(r => r.id === settings.lastRoomId) || ROOMS[1]
     );
