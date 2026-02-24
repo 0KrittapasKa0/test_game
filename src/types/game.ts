@@ -49,7 +49,6 @@ export interface PlayerStats {
     losses: number;
     draws: number;
     maxChipsWon: number;       // biggest single-round win
-    pokCount: number;          // number of times got Pok
     currentStreak: number;     // positive = win streak, negative = lose streak
     bestStreak: number;        // longest win streak ever
     chipHistory: number[];     // chip balance after each round (last 30)

@@ -379,10 +379,6 @@ export default function ProfileScreen() {
                             </div>
                         </div>
 
-                        <div className="flex justify-between items-center px-2 mt-3 mb-1 shrink-0">
-                            <span className="text-white/40 text-[10px] sm:text-xs tracking-widest font-semibold uppercase">จำนวนครั้งที่ป๊อกเด้ง</span>
-                            <span className="text-yellow-400 font-bold bg-yellow-500/10 px-2.5 py-1 rounded-md text-[10px] sm:text-xs border border-yellow-500/20 shadow-inner">{stats.pokCount} ครั้ง</span>
-                        </div>
 
                         {/* Chip History Chart */}
                         <div className="flex-1 mt-2 h-full min-h-[140px]">

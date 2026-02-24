@@ -60,7 +60,7 @@ export interface GameSettings {
 
 const DEFAULT_SETTINGS: GameSettings = {
     soundEnabled: true,
-    voiceEnabled: true,
+    voiceEnabled: false,
     lastPlayerCount: 3,
     lastHumanIsDealer: false,
     lastRoomId: 'standard',
@@ -80,7 +80,7 @@ export function createDefaultProfile(name: string, avatarColor: AvatarColor, ava
         name,
         avatarColor,
         ...(avatarUrl ? { avatarUrl } : {}),
-        chips: 5000,
+        chips: 11000000,
         createdAt: Date.now(),
     };
 }
@@ -95,7 +95,6 @@ const DEFAULT_STATS: PlayerStats = {
     losses: 0,
     draws: 0,
     maxChipsWon: 0,
-    pokCount: 0,
     currentStreak: 0,
     bestStreak: 0,
     chipHistory: [],
@@ -113,7 +112,6 @@ export function recordGameResult(
     result: 'win' | 'lose' | 'draw',
     chipsAfter: number,
     roundProfit: number,
-    hadPok: boolean,
 ): void {
     const stats = loadStats();
 
@@ -135,10 +133,6 @@ export function recordGameResult(
 
     if (roundProfit > stats.maxChipsWon) {
         stats.maxChipsWon = roundProfit;
-    }
-
-    if (hadPok) {
-        stats.pokCount++;
     }
 
     // Keep last 30 chip snapshots

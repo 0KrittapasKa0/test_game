@@ -853,7 +853,6 @@ export const useGameStore = create<GameState>((set, get) => ({
                     humanPlayer.result as 'win' | 'lose' | 'draw',
                     humanPlayer.chips,
                     humanPlayer.roundProfit ?? 0,
-                    humanPlayer.hasPok,
                 );
             }
         }
