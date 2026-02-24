@@ -84,12 +84,14 @@ export default function RoundResultSummary() {
             {isEpicWin && (
                 <div className="absolute inset-0 pointer-events-none flex justify-center items-center z-0 overflow-hidden mix-blend-screen">
                     <motion.div
-                        className="absolute w-[200vw] h-[200vh] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(253,224,71,0.5)_20deg,transparent_40deg,rgba(253,224,71,0.5)_60deg,transparent_80deg,rgba(253,224,71,0.5)_100deg,transparent_120deg)]"
+                        className="absolute w-[200vw] h-[200vh] will-change-transform"
+                        style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(253,224,71,0.5) 20deg, transparent 40deg, rgba(253,224,71,0.5) 60deg, transparent 80deg, rgba(253,224,71,0.5) 100deg, transparent 120deg)' }}
                         animate={{ rotate: 360, opacity: [0, 1, 0.5, 0] }}
                         transition={{ rotate: { duration: 15, repeat: Infinity, ease: "linear" }, opacity: { duration: 3, times: [0, 0.1, 0.3, 1] } }}
                     />
                     <motion.div
-                        className="absolute w-full h-full bg-yellow-400 blur-[150px]"
+                        className="absolute w-[150vw] h-[150vw] sm:w-[800px] sm:h-[800px] rounded-full will-change-opacity mix-blend-screen"
+                        style={{ background: 'radial-gradient(circle, rgba(250,204,21,0.6) 0%, rgba(202,138,4,0.3) 40%, transparent 80%)' }}
                         animate={{ opacity: [0, 0.8, 0] }}
                         transition={{ duration: 1.5, times: [0, 0.1, 1] }}
                     />
@@ -156,11 +158,11 @@ export default function RoundResultSummary() {
                             <motion.div
                                 key={p.id}
                                 layout
-                                className={`flex items-center gap-3 p-3 rounded-xl border ${bgClass}`}
+                                className={`flex flex-row items-center justify-between gap-1.5 sm:gap-4 p-2 sm:p-3 rounded-xl border ${bgClass}`}
                             >
                                 {/* Avatar & Name */}
-                                <div className="flex items-center gap-3 w-32 sm:w-40 shrink-0">
-                                    <div className="scale-75 origin-left">
+                                <div className="flex items-center gap-1.5 sm:gap-3 w-[110px] sm:w-[180px] shrink-0">
+                                    <div className="shrink-0 relative">
                                         <PlayerAvatar
                                             name={p.name}
                                             color={p.avatarColor}
@@ -169,35 +171,35 @@ export default function RoundResultSummary() {
                                             isDealer={p.isDealer}
                                             isActive={false}
                                             result={p.result}
-                                            size={48}
+                                            size={40}
                                             hideInfo={true}
                                         />
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span className={`font-bold truncate ${p.isHuman ? 'text-yellow-300' : 'text-white'}`}>
-                                            {p.name} {p.isHuman && '(คุณ)'}
+                                    <div className="flex flex-col min-w-0 flex-1">
+                                        <span className={`font-bold text-[11px] sm:text-sm truncate leading-tight ${p.isHuman ? 'text-yellow-300' : 'text-white'}`}>
+                                            {p.name}{p.isHuman && '\u00A0(คุณ)'}
                                         </span>
-                                        <span className="text-xs text-white/50">
+                                        <span className="text-[9px] sm:text-xs text-white/50 truncate leading-tight mt-0.5">
                                             {p.isDealer ? 'เจ้ามือ' : `เดิมพัน: ${formatChips(p.bet)}`}
                                         </span>
                                     </div>
                                 </div>
 
                                 {/* Cards & Hand Type */}
-                                <div className="flex-1 flex flex-col sm:flex-row items-center gap-4">
-                                    <div className="flex -space-x-2">
+                                <div className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 min-w-0 shrink">
+                                    <div className="flex -space-x-3 sm:-space-x-2">
                                         {p.cards.map((c) => (
-                                            <div key={c.id} className="transform scale-75 origin-left">
+                                            <div key={c.id}>
                                                 <Card card={c} small category={config?.room?.category} />
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span className="font-bold text-white text-sm sm:text-base">
+                                    <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+                                        <span className="font-bold text-white text-[11px] sm:text-sm leading-tight whitespace-nowrap">
                                             {handResult.name}
                                         </span>
                                         {handResult.deng > 1 && (
-                                            <span className="text-xs text-yellow-400 font-bold">
+                                            <span className="text-[10px] sm:text-xs text-yellow-400 font-bold leading-tight">
                                                 {handResult.deng} เด้ง
                                             </span>
                                         )}
@@ -205,8 +207,8 @@ export default function RoundResultSummary() {
                                 </div>
 
                                 {/* Net Result */}
-                                <div className="w-24 sm:w-32 text-right shrink-0">
-                                    <span className={`font-mono font-bold text-lg ${colorClass} ${isHumanEpicWin ? 'animate-pulse text-2xl drop-shadow-[0_0_10px_currentColor]' : ''}`}>
+                                <div className="w-[65px] sm:w-[90px] text-right shrink-0">
+                                    <span className={`font-mono font-bold text-xs sm:text-lg ${colorClass} ${isHumanEpicWin ? 'animate-pulse text-base sm:text-xl drop-shadow-[0_0_10px_currentColor]' : ''} truncate block`}>
                                         {profit > 0 ? '+' : ''}{formatChips(profit)}
                                     </span>
                                 </div>

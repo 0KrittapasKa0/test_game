@@ -18,14 +18,14 @@ export const PokDengLogo = ({ className = "" }: { className?: string }) => {
             >
                 <div className="flex flex-col items-start leading-none relative z-10 w-full pl-0.5 pt-0.5 pb-0">
                     <span className="text-black font-black text-xl leading-none">9</span>
-                    <span className="text-black text-sm leading-none -mt-1">♠</span>
+                    <span className="text-black text-sm leading-none -mt-1 font-sans">{'♠\uFE0E'}</span>
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-black text-4xl drop-shadow-sm">♠</span>
+                    <span className="text-black text-4xl drop-shadow-sm font-sans">{'♠\uFE0E'}</span>
                 </div>
                 <div className="flex flex-col items-start leading-none rotate-180 relative z-10 w-full pl-0.5 pt-0.5 pb-0">
                     <span className="text-black font-black text-xl leading-none">9</span>
-                    <span className="text-black text-sm leading-none -mt-1">♠</span>
+                    <span className="text-black text-sm leading-none -mt-1 font-sans">{'♠\uFE0E'}</span>
                 </div>
             </motion.div>
 
@@ -44,14 +44,14 @@ export const PokDengLogo = ({ className = "" }: { className?: string }) => {
             >
                 <div className="flex flex-col items-start leading-none relative z-10 w-full pl-0.5 pt-0.5 pb-0">
                     <span className="text-red-500 font-black text-xl leading-none">8</span>
-                    <span className="text-red-500 text-sm leading-none -mt-1">♥</span>
+                    <span className="text-red-500 text-sm leading-none -mt-1 font-sans">{'♥\uFE0E'}</span>
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-red-500 text-4xl drop-shadow-sm">♥</span>
+                    <span className="text-red-500 text-4xl drop-shadow-sm font-sans">{'♥\uFE0E'}</span>
                 </div>
                 <div className="flex flex-col items-start leading-none rotate-180 relative z-10 w-full pl-0.5 pt-0.5 pb-0">
                     <span className="text-red-500 font-black text-xl leading-none">8</span>
-                    <span className="text-red-500 text-sm leading-none -mt-1">♥</span>
+                    <span className="text-red-500 text-sm leading-none -mt-1 font-sans">{'♥\uFE0E'}</span>
                 </div>
             </motion.div>
 

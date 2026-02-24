@@ -234,8 +234,7 @@ export default function GameSetupScreen() {
                                 <motion.button
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.96 }}
-                                    onClick={handleQuickStart}
-                                    onPointerEnter={() => speakPhrase('ร่วมวงทันที')}
+                                    onClick={() => { speakPhrase('ร่วมวงทันที'); handleQuickStart(); }}
                                     className="w-full py-3 rounded-2xl text-black font-bold text-base sm:text-lg tracking-widest cursor-pointer transition-all relative overflow-hidden bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-600 border border-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:shadow-[0_0_30px_rgba(250,204,21,0.5)] uppercase"
                                 >
                                     <div className="absolute inset-0 bg-white/20 hover:opacity-0 transition-opacity" />
@@ -385,8 +384,7 @@ export default function GameSetupScreen() {
                                     <motion.button
                                         whileHover={{ scale: 1.05, y: -2 }}
                                         whileTap={{ scale: 0.96 }}
-                                        onClick={handleStart}
-                                        onPointerEnter={() => speakPhrase('ขอให้โชคดีนะคะ')}
+                                        onClick={() => { speakPhrase('ขอให้โชคดีนะคะ'); handleStart(); }}
                                         disabled={profile.chips < selectedRoom.minBet && !humanIsDealer}
                                         className="btn-gold w-full text-xl py-4 flex items-center justify-center gap-2 uppercase tracking-wide disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
                                     >

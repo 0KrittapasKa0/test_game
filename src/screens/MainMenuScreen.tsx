@@ -84,8 +84,8 @@ export default function MainMenuScreen() {
                         }}
                     >
                         {/* Center suit large watermark */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-10 text-4xl">
-                            {card.suit.includes('heart') ? '♥' : card.suit.includes('spade') ? '♠' : card.suit.includes('club') ? '♣' : '♦'}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-10 text-4xl font-sans">
+                            {(card.suit.includes('heart') ? '♥' : card.suit.includes('spade') ? '♠' : card.suit.includes('club') ? '♣' : '♦') + '\uFE0E'}
                         </div>
                     </div>
                 ))}
@@ -139,8 +139,7 @@ export default function MainMenuScreen() {
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.4 }}
-                    onClick={() => nav('PROFILE')}
-                    onPointerEnter={() => speakPhrase('ดูโปรไฟล์ของฉัน')}
+                    onClick={() => { speakPhrase('ดูโปรไฟล์ของฉัน'); nav('PROFILE'); }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                 >
@@ -187,8 +186,7 @@ export default function MainMenuScreen() {
                         transition={{ delay: 0.5 }}
                         whileHover={{ scale: 1.05, y: -2 }}
                         whileTap={{ scale: 0.95 }}
-                        onPointerEnter={() => speakPhrase('โปรไฟล์ผู้เล่น')}
-                        onClick={() => nav('PROFILE')}
+                        onClick={() => { speakPhrase('โปรไฟล์ผู้เล่น'); nav('PROFILE'); }}
                         className="btn-dark flex-1 flex flex-col items-center justify-center gap-2 py-4 backdrop-blur-sm border-white/10 hover:border-yellow-500/30 group relative overflow-hidden"
                         style={{ background: 'rgba(0,0,0,0.4)' }}
                     >
@@ -205,8 +203,7 @@ export default function MainMenuScreen() {
                         <motion.button
                             whileHover={{ scale: 1.05, y: -2 }}
                             whileTap={{ scale: 0.95 }}
-                            onPointerEnter={() => speakPhrase('เลือกโต๊ะเที่จะร่วมวง')}
-                            onClick={() => nav('GAME_SETUP')}
+                            onClick={() => { speakPhrase('เลือกโต๊ะที่จะร่วมวง'); nav('GAME_SETUP'); }}
                             className="btn-gold w-full h-full flex flex-col items-center justify-center gap-2 py-6 rounded-2xl relative overflow-hidden shadow-[0_10px_30px_rgba(245,158,11,0.4)] border-b-4 border-yellow-700"
                         >
                             <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent h-1/2 rounded-t-2xl pointer-events-none" />
@@ -222,8 +219,7 @@ export default function MainMenuScreen() {
                         transition={{ delay: 0.6 }}
                         whileHover={{ scale: 1.05, y: -2 }}
                         whileTap={{ scale: 0.95 }}
-                        onPointerEnter={() => speakPhrase('การตั้งค่า')}
-                        onClick={() => nav('SETTINGS')}
+                        onClick={() => { speakPhrase('การตั้งค่า'); nav('SETTINGS'); }}
                         className="btn-dark flex-1 flex flex-col items-center justify-center gap-2 py-4 backdrop-blur-sm border-white/10 hover:border-yellow-500/30 group"
                         style={{ background: 'rgba(0,0,0,0.4)' }}
                     >
@@ -236,8 +232,7 @@ export default function MainMenuScreen() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.7 }}
-                    onPointerEnter={() => speakPhrase('กิจกรรมรับชิป')}
-                    onClick={() => nav('REWARD_CODE')}
+                    onClick={() => { speakPhrase('กิจกรรมรับชิป'); nav('REWARD_CODE'); }}
                     className="mt-6 flex items-center justify-center gap-2 text-yellow-500/80 hover:text-yellow-400 text-sm font-normal transition-colors px-6 py-2.5 rounded-full border border-yellow-500/10 hover:bg-yellow-500/10"
                     style={{ background: 'rgba(0,0,0,0.2)' }}
                 >

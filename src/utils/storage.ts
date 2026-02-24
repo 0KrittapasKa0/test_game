@@ -235,3 +235,44 @@ export function loadMathGameState(): MathGameStats {
 export function saveMathGameState(state: MathGameStats): void {
     setItem(MATH_GAME_KEY, state);
 }
+
+// ── Account Transfer ──
+
+export function exportGameData(): string {
+    try {
+        const data: Record<string, string> = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('pokdeng_')) {
+                data[key] = localStorage.getItem(key) || '';
+            }
+        }
+        return btoa(encodeURIComponent(JSON.stringify(data)));
+    } catch {
+        return '';
+    }
+}
+
+export function importGameData(encodedData: string): boolean {
+    try {
+        if (!encodedData || encodedData.trim() === '') return false;
+        const jsonString = decodeURIComponent(atob(encodedData.trim()));
+        const data = JSON.parse(jsonString);
+
+        // Basic validation
+        if (typeof data !== 'object' || !data) return false;
+        if (!data['pokdeng_profile']) return false; // Must have at least a profile
+
+        // Save to local storage
+        Object.entries(data).forEach(([key, value]) => {
+            if (key.startsWith('pokdeng_') && typeof value === 'string') {
+                localStorage.setItem(key, value);
+            }
+        });
+
+        return true;
+    } catch (e) {
+        console.error('Import failed', e);
+        return false;
+    }
+}

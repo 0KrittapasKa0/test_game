@@ -55,7 +55,7 @@ export default function Card({ card, faceDown = false, delay = 0, small = false,
             initial={wrapperInitial}
             animate={wrapperAnimate}
             transition={transitionProps}
-            style={{ perspective: 1000 }} // Perspective defines the depth for the inner 3D space
+            style={{ perspective: 1000, WebkitPerspective: 1000 }} // Perspective defines the depth for the inner 3D space
         >
             {/* INNER 3D CONTAINER */}
             <motion.div
@@ -63,64 +63,53 @@ export default function Card({ card, faceDown = false, delay = 0, small = false,
                 initial={innerInitial}
                 animate={innerAnimate}
                 transition={transitionProps}
-                style={{ transformStyle: 'preserve-3d' }}
+                style={{ transformStyle: 'preserve-3d', WebkitTransformStyle: 'preserve-3d' as any }}
             >
                 {/* Front Face */}
                 <div
-                    className="absolute inset-0 rounded-lg flex flex-col justify-between overflow-hidden"
+                    className="absolute inset-0 rounded-lg bg-white"
                     style={{
                         backfaceVisibility: 'hidden',
-                        background: 'linear-gradient(160deg, #ffffff 0%, #f8f8f8 50%, #f0f0f0 100%)',
-                        border: '1px solid #d4d4d4',
-                        boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)', // Subtle inner shadow
+                        WebkitBackfaceVisibility: 'hidden',
+                        transform: 'rotateY(0deg) translateZ(1px)',
+                        WebkitTransform: 'rotateY(0deg) translateZ(1px)',
+                        border: '1px solid #e5e7eb', // subtle border
                     }}
                 >
-                    {/* Subtle shine overlay */}
-                    <div className="absolute inset-0 pointer-events-none rounded-lg"
-                        style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.02) 100%)' }}
-                    />
-
                     {/* Top-left corner */}
-                    <div className="flex flex-col items-start leading-none pl-1.5 pt-1 relative z-10">
-                        <span className={`${textBase} font-extrabold`} style={{ color }}>{card.rank}</span>
-                        <span className={`${small ? 'text-[10px]' : 'text-xs sm:text-sm'} -mt-0.5`} style={{ color }}>{card.suit}</span>
+                    <div className={`absolute ${small ? 'top-1 left-1' : 'top-1.5 left-1.5'} flex flex-col items-center leading-none z-10 w-[20px] sm:w-[24px]`}>
+                        <span className={`${textBase} font-extrabold text-center`} style={{ color }}>{card.rank}</span>
+                        <span className={`${small ? 'text-[11px]' : 'text-sm sm:text-lg'} -mt-0.5 font-sans`} style={{ color }}>{card.suit + '\uFE0E'}</span>
                     </div>
 
                     {/* Center suit */}
-                    <div className="flex items-center justify-center -mt-1 -mb-1 relative z-10">
-                        <span className={`${textCenter} drop-shadow-sm`} style={{ color }}>{card.suit}</span>
+                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                        <span className={`${textCenter} drop-shadow-none font-sans`} style={{ color }}>{card.suit + '\uFE0E'}</span>
                     </div>
 
                     {/* Bottom-right corner (inverted) */}
-                    <div className="flex flex-col items-end leading-none pr-1.5 pb-1 rotate-180 relative z-10">
-                        <span className={`${textBase} font-extrabold`} style={{ color }}>{card.rank}</span>
-                        <span className={`${small ? 'text-[10px]' : 'text-xs sm:text-sm'} -mt-0.5`} style={{ color }}>{card.suit}</span>
+                    <div className={`absolute ${small ? 'bottom-1 right-1' : 'bottom-1.5 right-1.5'} flex flex-col items-center leading-none rotate-180 z-10 w-[20px] sm:w-[24px]`}>
+                        <span className={`${textBase} font-extrabold text-center`} style={{ color }}>{card.rank}</span>
+                        <span className={`${small ? 'text-[11px]' : 'text-sm sm:text-lg'} -mt-0.5 font-sans`} style={{ color }}>{card.suit + '\uFE0E'}</span>
                     </div>
                 </div>
 
                 {/* Back Face */}
                 <div
-                    className="absolute inset-0 rounded-lg"
+                    className="absolute inset-0 rounded-lg bg-white"
                     style={{
                         backfaceVisibility: 'hidden',
-                        transform: 'rotateY(180deg)',
-                        background: 'linear-gradient(145deg, #1e3f6e 0%, #2a5490 40%, #1e3f6e 100%)',
-                        border: '1px solid rgba(80,130,200,0.3)',
+                        WebkitBackfaceVisibility: 'hidden',
+                        transform: 'rotateY(180deg) translateZ(1px)',
+                        WebkitTransform: 'rotateY(180deg) translateZ(1px)',
+                        border: '1px solid #e5e7eb', // matches front
                     }}
                 >
-                    <div className="w-full h-full flex items-center justify-center p-1.5">
-                        <div
-                            className="w-full h-full rounded-sm border border-white/15"
-                            style={{
-                                background: `
-                                    repeating-linear-gradient(45deg, transparent 0px, transparent 2px, rgba(255,255,255,0.04) 2px, rgba(255,255,255,0.04) 4px),
-                                    repeating-linear-gradient(-45deg, transparent 0px, transparent 2px, rgba(255,255,255,0.04) 2px, rgba(255,255,255,0.04) 4px)
-                                `,
-                            }}
-                        >
-                            <div className="w-full h-full flex items-center justify-center">
-                                <span className="text-white/10 text-xs">♠</span>
-                            </div>
+                    <div className="w-full h-full p-[5px] sm:p-[6px]">
+                        <div className="w-full h-full rounded-[6px] border-[1.5px] border-[#e5e7eb] flex items-center justify-center">
+                            <span className="text-[#e5e7eb] text-xl sm:text-2xl drop-shadow-none leading-none font-sans">
+                                {'♠\uFE0E'}
+                            </span>
                         </div>
                     </div>
                 </div>

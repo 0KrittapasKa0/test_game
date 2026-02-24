@@ -168,15 +168,16 @@ function FlyingCardElement({ targetX, targetY, onComplete }: {
             onAnimationComplete={onComplete}
         >
             <div
-                className="w-full h-full rounded-md"
+                className="w-full h-full rounded-md bg-white p-[3px] sm:p-[4px]"
                 style={{
-                    background: 'linear-gradient(135deg, #2548a8, #1e3a8a)',
-                    border: '1px solid rgba(120,160,240,0.25)',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                    border: '1px solid #e5e7eb',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
                 }}
             >
-                <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-6 h-10 border border-white/15 rounded-sm" />
+                <div className="w-full h-full rounded-[4px] border-[1.5px] border-[#e5e7eb] flex items-center justify-center">
+                    <span className="text-[#e5e7eb] text-sm drop-shadow-none leading-none">
+                        ♠
+                    </span>
                 </div>
             </div>
         </motion.div>
@@ -408,7 +409,7 @@ export default function GameTable() {
 
                                     {/* ===== Deck Area ===== */}
                                     <div className="absolute inset-0 flex items-center justify-center z-1 pointer-events-none">
-                                        {isDealing ? (
+                                        {isDealing && (
                                             <motion.div
                                                 className="relative"
                                                 initial={{ opacity: 0, scale: 0.8 }}
@@ -417,33 +418,32 @@ export default function GameTable() {
                                                 {[2, 1, 0].map((offset) => (
                                                     <div
                                                         key={offset}
-                                                        className="absolute top-0 left-0 w-12 h-17 sm:w-14 sm:h-20 rounded-lg"
+                                                        className="absolute top-0 left-0 w-12 h-17 sm:w-14 sm:h-20 rounded-lg bg-white p-[3px] sm:p-[4px]"
                                                         style={{
-                                                            background: 'linear-gradient(135deg, #1e3a8a, #172554)',
-                                                            border: '1px solid rgba(100,140,220,0.15)',
+                                                            border: '1px solid #e5e7eb',
                                                             transform: `translate(${-offset * 1.5}px, ${-offset * 1.5}px)`,
-                                                            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                                                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                                                         }}
-                                                    />
+                                                    >
+                                                        <div className="w-full h-full rounded-[4px] border-[1.5px] border-[#e5e7eb]" />
+                                                    </div>
                                                 ))}
                                                 <motion.div
-                                                    className="w-12 h-17 sm:w-14 sm:h-20 rounded-lg shadow-xl relative z-10"
+                                                    className="w-12 h-17 sm:w-14 sm:h-20 rounded-lg shadow-xl relative z-10 bg-white p-[3px] sm:p-[4px]"
                                                     style={{
-                                                        background: 'linear-gradient(135deg, #2548a8, #1e3a8a)',
-                                                        border: '1px solid rgba(120,160,240,0.2)',
+                                                        border: '1px solid #e5e7eb',
+                                                        boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
                                                     }}
                                                     animate={{ y: [0, -3, 0] }}
                                                     transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
                                                 >
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <div className="w-7 h-12 sm:w-8 sm:h-14 border border-white/10 rounded-sm" />
+                                                    <div className="w-full h-full rounded-[4px] border-[1.5px] border-[#e5e7eb] flex items-center justify-center">
+                                                        <span className="text-[#e5e7eb] text-lg sm:text-xl drop-shadow-none leading-none">
+                                                            ♠
+                                                        </span>
                                                     </div>
                                                 </motion.div>
                                             </motion.div>
-                                        ) : (
-                                            <div className="w-12 h-17 sm:w-14 sm:h-20 border border-dashed border-white/8 rounded-lg flex items-center justify-center">
-                                                <span className="text-white/12 text-lg">♠</span>
-                                            </div>
                                         )}
                                     </div>
 
@@ -679,7 +679,7 @@ export default function GameTable() {
                             <motion.button
                                 whileHover={{ scale: 1.05, y: -2 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => { speakPhrase('ผ่าน'); playerStay(); }}
+                                onClick={() => { speakPhrase('หยุด'); playerStay(); }}
                                 className="text-white font-bold text-lg sm:text-xl px-8 sm:px-10 py-3 sm:py-3.5 rounded-2xl shadow-2xl transition-all cursor-pointer"
                                 style={{
                                     background: 'linear-gradient(135deg, #f43f5e, #e11d48)',

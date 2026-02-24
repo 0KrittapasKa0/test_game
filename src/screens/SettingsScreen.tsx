@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Volume2, VolumeX, Settings as SettingsIcon, Mic, MicOff, Check, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Volume2, VolumeX, Settings as SettingsIcon, Mic, MicOff, Check, X, Download, Upload, Save } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
-import { loadSettings, saveSettings } from '../utils/storage';
-import { SFX } from '../utils/sound';
+import { loadSettings, saveSettings, exportGameData, importGameData } from '../utils/storage';
+import { SFX, speakPhrase } from '../utils/sound';
 
 const ToggleSwitch = ({ enabled, onClick, activeColorClass }: { enabled: boolean; onClick: () => void; activeColorClass: string }) => (
     <div
@@ -30,6 +30,11 @@ export default function SettingsScreen() {
     const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
     const [voiceEnabled, setVoiceEnabled] = useState(settings.voiceEnabled ?? true);
 
+    // Account Transfer States
+    const [showImport, setShowImport] = useState(false);
+    const [importData, setImportData] = useState('');
+    const [transferMsg, setTransferMsg] = useState('');
+
     const toggleSound = () => {
         const newVal = !soundEnabled;
         setSoundEnabled(newVal);
@@ -42,6 +47,39 @@ export default function SettingsScreen() {
         setVoiceEnabled(newVal);
         saveSettings({ voiceEnabled: newVal });
         if (soundEnabled) SFX.click();
+    };
+
+    const handleExport = async () => {
+        SFX.click();
+        const data = exportGameData();
+        if (data) {
+            try {
+                await navigator.clipboard.writeText(data);
+                speakPhrase('คัดลอกรหัสข้อมูลเรียบร้อยค่ะ');
+                setTransferMsg('คัดลอกสำเร็จ');
+                setTimeout(() => setTransferMsg(''), 3000);
+            } catch {
+                setTransferMsg('ไม่สามารถคัดลอกได้อัตโนมัติ');
+            }
+        }
+    };
+
+    const handleImport = () => {
+        SFX.click();
+        if (!importData.trim()) return;
+
+        const success = importGameData(importData);
+        if (success) {
+            speakPhrase('โหลดข้อมูลสำเร็จ กำลังรีสตาร์ทเกมค่ะ');
+            setTransferMsg('นำเข้าสำเร็จ! กำลังโหลด...');
+            setTimeout(() => {
+                window.location.reload(); // Reload to apply new storage data
+            }, 1500);
+        } else {
+            speakPhrase('ข้อมูลไม่ถูกต้องค่ะ');
+            setTransferMsg('รหัสข้อมูลไม่ถูกต้อง');
+            setTimeout(() => setTransferMsg(''), 3000);
+        }
     };
 
     return (
@@ -122,6 +160,73 @@ export default function SettingsScreen() {
                                         onClick={toggleVoice}
                                         activeColorClass="bg-gradient-to-b from-pink-400 to-pink-600 shadow-[0_0_10px_rgba(236,72,153,0.5)]"
                                     />
+                                </div>
+                            </div>
+
+                            {/* Account Transfer Section */}
+                            <div className="mt-8 pt-6 border-t border-white/10">
+                                <h3 className="text-white/80 font-bold mb-4 text-sm tracking-widest flex items-center gap-2">
+                                    <Save size={16} /> โอนย้ายข้อมูลบัญชี
+                                </h3>
+
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={handleExport}
+                                        className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-yellow-400 transition-colors"
+                                    >
+                                        <Upload size={18} />
+                                        <span>ส่งออกข้อมูล (คัดลอกโค้ด)</span>
+                                    </button>
+
+                                    {!showImport ? (
+                                        <button
+                                            onClick={() => { SFX.click(); setShowImport(true); }}
+                                            className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-emerald-400 transition-colors"
+                                        >
+                                            <Download size={18} />
+                                            <span>นำเข้าข้อมูล (ใส่โค้ด)</span>
+                                        </button>
+                                    ) : (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            className="bg-black/30 p-3 rounded-xl border border-emerald-500/30 space-y-3"
+                                        >
+                                            <textarea
+                                                value={importData}
+                                                onChange={(e) => setImportData(e.target.value)}
+                                                placeholder="วางรหัสข้อมูลบัญชีของคุณที่นี่..."
+                                                className="w-full h-20 bg-black/50 border border-white/20 rounded-lg p-2 text-xs text-white/70 focus:outline-none focus:border-emerald-500/50 resize-none font-mono"
+                                            />
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setShowImport(false)}
+                                                    className="flex-1 py-2 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white text-sm"
+                                                >
+                                                    ยกเลิก
+                                                </button>
+                                                <button
+                                                    onClick={handleImport}
+                                                    className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg border border-emerald-400/50"
+                                                >
+                                                    นำเข้า
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    <AnimatePresence>
+                                        {transferMsg && (
+                                            <motion.p
+                                                initial={{ opacity: 0, y: -5 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0 }}
+                                                className={`text-center text-xs font-bold ${transferMsg.includes('สำเร็จ') ? 'text-emerald-400' : 'text-red-400'}`}
+                                            >
+                                                {transferMsg}
+                                            </motion.p>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             </div>
                         </div>

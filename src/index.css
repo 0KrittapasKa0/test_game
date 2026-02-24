@@ -203,10 +203,11 @@ button {
 
 .floating-card::before,
 .floating-card::after {
-  content: "♦";
+  content: "♦\FE0E";
   color: #ef4444;
   position: absolute;
   font-size: 24px;
+  font-family: Arial, sans-serif;
 }
 
 .floating-card::before {
@@ -222,19 +223,19 @@ button {
 
 .floating-card.black::before,
 .floating-card.black::after {
-  content: "♠";
+  content: "♠\FE0E";
   color: #111827;
 }
 
 .floating-card.club::before,
 .floating-card.club::after {
-  content: "♣";
+  content: "♣\FE0E";
   color: #111827;
 }
 
 .floating-card.heart::before,
 .floating-card.heart::after {
-  content: "♥";
+  content: "♥\FE0E";
   color: #ef4444;
 }
 

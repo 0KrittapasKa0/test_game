@@ -35,7 +35,7 @@ export default function ChipSelector({
 
     const handleClear = () => {
         SFX.click();
-        speakPhrase('เรียกคืนนะคะ');
+        speakPhrase('เรียกคืน');
         onSelect(0);
     };
 
@@ -50,7 +50,7 @@ export default function ChipSelector({
     const handleConfirmRaise = () => {
         if (raiseAmount === totalChips) {
             SFX.allIn();
-            speakPhrase('ทุ่มหมดตัว!');
+            speakPhrase('สู้หมดหน้าตัก!');
         } else {
             SFX.betConfirm();
             speakPhrase(`เกทับ ${numberToThaiVoice(raiseAmount)}`);
@@ -209,7 +209,7 @@ export default function ChipSelector({
                         className="w-full flex flex-col items-center"
                     >
                         <div className="flex items-center justify-between w-full mb-3 px-2">
-                            <p className="text-yellow-400/80 text-sm font-medium">💰 วางเดิมพัน (ผสมชิปได้)</p>
+                            <p className="text-yellow-400/80 text-sm font-medium">💰 วางเดิมพัน</p>
                             {currentBet > 0 && (
                                 <button
                                     onClick={handleClear}
@@ -255,7 +255,7 @@ export default function ChipSelector({
                             <div className="flex justify-center mb-4">
                                 <motion.button
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => { SFX.repeatBet(); speakPhrase(`ย้ำทุนเดิม ${numberToThaiVoice(lastBet)} นะคะ`); onSelect(lastBet); }}
+                                    onClick={() => { SFX.repeatBet(); speakPhrase(`วางทุนเดิม ${numberToThaiVoice(lastBet)} นะคะ`); onSelect(lastBet); }}
                                     className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-yellow-300/80 flex items-center gap-1 active:scale-95 transition cursor-pointer"
                                 >
                                     ↺ เดิมพันซ้ำ ({formatChips(lastBet)})

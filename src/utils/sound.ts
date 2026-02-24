@@ -295,10 +295,65 @@ export function initAudio() {
 // ══════════════════════════════════════════════════════════════
 // WEB SPEECH API (Voice TTS)
 // ══════════════════════════════════════════════════════════════
+
+type OSType = 'Windows' | 'iOS' | 'Android' | 'Other';
+
+function getOS(): OSType {
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    if (/windows/.test(userAgent)) return 'Windows';
+    if (/iphone|ipad|ipod/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'iOS';
+    if (/android/.test(userAgent)) return 'Android';
+    return 'Other';
+}
+
+interface VoiceConfig {
+    voice: SpeechSynthesisVoice | null;
+    rate: number;
+    pitch: number;
+    volume: number;
+}
+
+function getVoiceConfig(): VoiceConfig {
+    const os = getOS();
+    const voices = window.speechSynthesis.getVoices();
+
+    let selectedVoice: SpeechSynthesisVoice | null = null;
+    let rate = 1.0;
+    let pitch = 1.0;
+    const volume = 1.0; // บังคับให้เสียงพากย์ดังสุดเสมอ
+
+    if (os === 'Windows') {
+        // ค้นหาเสียง Microsoft Premwadee Online (ตัวที่เป็น Natural Voice) ก่อน
+        selectedVoice = voices.find(v => v.name.includes('Microsoft Premwadee Online (Natural)')) ||
+            voices.find(v => v.name.includes('Premwadee')) ||
+            voices.find(v => v.lang.startsWith('th')) || null;
+        rate = 1.0;   // ปรับเข้ากับจังหวะของ Premwadee
+        pitch = 1.15; // ให้เสียงสว่างใสขึ้น
+    } else if (os === 'iOS') {
+        // ใช้ Local Voice ของ iOS (เช่น Kanya, Narisa)
+        selectedVoice = voices.find(v => v.lang.startsWith('th') && v.localService) ||
+            voices.find(v => v.lang.startsWith('th')) || null;
+        rate = 1.0;
+        pitch = 1.05; // iOS มักจะมีเสียงผู้หญิงที่ทุ้มกว่า จึงปรับให้สว่างขึ้นเล็กน้อย
+    } else if (os === 'Android') {
+        // ใช้ Local Voice ของ Google TTS
+        selectedVoice = voices.find(v => v.lang.startsWith('th') && v.localService) ||
+            voices.find(v => v.lang.startsWith('th')) || null;
+        rate = 0.95;  // Android TTS มักจะพูดค่อนข้างรัว การลด rate ลงนิดนึงช่วยให้ฟังชัดขึ้น
+        pitch = 1.1;
+    } else {
+        // ระบบปฏิบัติการอื่นๆ (Mac, Linux, etc.)
+        selectedVoice = voices.find(v => v.lang.startsWith('th')) || null;
+        rate = 1.0;
+        pitch = 1.1;
+    }
+
+    return { voice: selectedVoice, rate, pitch, volume };
+}
+
 export function speakWelcome(playerName: string = "ผู้เล่น") {
     if (!isSoundEnabled() || !isVoiceEnabled() || !('speechSynthesis' in window)) return;
 
-    // Stop any currently playing speech to avoid overlapping
     window.speechSynthesis.cancel();
 
     const greetings = [
@@ -338,36 +393,21 @@ export function speakWelcome(playerName: string = "ผู้เล่น") {
 
     const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
     const utterance = new SpeechSynthesisUtterance(randomGreeting);
+    utterance.lang = 'th-TH'; // สำรองไว้เผื่อระบบไม่ได้ผูก voice
 
-    utterance.lang = 'th-TH'; // บังคับภาษาไทย
-    // Make the voice sound mature, smooth, and elegant
-    utterance.rate = 1.0;
-    utterance.pitch = 1.15;
-    utterance.volume = 0.8;
-
-    // ฟังก์ชันค้นหาเสียงภาษาไทยที่ใช้งานได้
     const setVoiceAndSpeak = () => {
-        const voices = window.speechSynthesis.getVoices();
+        const config = getVoiceConfig();
 
-        // ค้นหาเสียงที่เป็นภาษาไทย (th-TH, th, หรือชื่อมีคำว่า Thai/Premwadee/Kanya)
-        const thaiVoice = voices.find(v =>
-            v.lang.toLowerCase().startsWith('th') ||
-            v.name.toLowerCase().includes('thai') ||
-            v.name.toLowerCase().includes('premwadee') // Windows default Thai voice
-        );
-
-        if (thaiVoice) {
-            utterance.voice = thaiVoice;
-        }
+        if (config.voice) utterance.voice = config.voice;
+        utterance.rate = config.rate;
+        utterance.pitch = config.pitch;
+        utterance.volume = config.volume;
 
         window.speechSynthesis.speak(utterance);
     };
 
-    // Chrome/Safari บางตัวโหลดเสียงไม่มาทันทีตอนหน้าเว็บเรนเดอร์ครั้งแรก
     if (window.speechSynthesis.getVoices().length === 0) {
-        window.speechSynthesis.addEventListener('voiceschanged', () => {
-            setVoiceAndSpeak();
-        }, { once: true }); // ให้เกิด event แค่ครั้งเดียว
+        window.speechSynthesis.addEventListener('voiceschanged', setVoiceAndSpeak, { once: true });
     } else {
         setVoiceAndSpeak();
     }
@@ -379,7 +419,6 @@ let lastSpokenTime = 0;
 export function speakPhrase(text: string) {
     if (!isSoundEnabled() || !isVoiceEnabled() || !('speechSynthesis' in window)) return;
 
-    // Prevent spamming the same phrase instantly
     const now = Date.now();
     if (text === lastSpokenText && now - lastSpokenTime < 500) return;
 
@@ -387,21 +426,13 @@ export function speakPhrase(text: string) {
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'th-TH';
-    // Match the Glamorous Dealer tone
-    utterance.rate = 1.0;
-    utterance.pitch = 1.15;
-    utterance.volume = 0.8;
 
-    const voices = window.speechSynthesis.getVoices();
-    const thaiVoice = voices.find(v =>
-        v.lang.toLowerCase().startsWith('th') ||
-        v.name.toLowerCase().includes('thai') ||
-        v.name.toLowerCase().includes('premwadee')
-    );
+    const config = getVoiceConfig();
 
-    if (thaiVoice) {
-        utterance.voice = thaiVoice;
-    }
+    if (config.voice) utterance.voice = config.voice;
+    utterance.rate = config.rate;
+    utterance.pitch = config.pitch;
+    utterance.volume = config.volume;
 
     lastSpokenText = text;
     lastSpokenTime = now;
