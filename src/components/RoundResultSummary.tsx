@@ -101,11 +101,15 @@ export default function RoundResultSummary() {
             <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="w-full max-w-4xl bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10"
-                style={isEpicWin ? {
-                    boxShadow: '0 0 100px rgba(234, 179, 8, 0.6), inset 0 0 30px rgba(234, 179, 8, 0.3)',
-                    border: '2px solid rgba(253, 224, 71, 0.8)'
-                } : {}}
+                style={{
+                    willChange: 'transform, opacity',
+                    ...(isEpicWin ? {
+                        boxShadow: '0 0 100px rgba(234, 179, 8, 0.6), inset 0 0 30px rgba(234, 179, 8, 0.3)',
+                        border: '2px solid rgba(253, 224, 71, 0.8)'
+                    } : {})
+                }}
             >
                 {/* Header */}
                 <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/5 relative overflow-hidden">
@@ -137,7 +141,7 @@ export default function RoundResultSummary() {
 
                 {/* List */}
                 <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2">
-                    {sortedPlayers.map((p) => {
+                    {sortedPlayers.map((p, index) => {
                         const handResult = evaluateHand(p.cards);
                         const profit = p.roundProfit || 0;
                         const isWin = profit > 0;
@@ -157,7 +161,10 @@ export default function RoundResultSummary() {
                         return (
                             <motion.div
                                 key={p.id}
-                                layout
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.2 + index * 0.08, duration: 0.3, ease: 'easeOut' }}
+                                style={{ willChange: 'transform, opacity' }}
                                 className={`flex flex-row items-center justify-between gap-1.5 sm:gap-4 p-2 sm:p-3 rounded-xl border ${bgClass}`}
                             >
                                 {/* Avatar & Name */}

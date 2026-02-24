@@ -55,7 +55,7 @@ export default function Card({ card, faceDown = false, delay = 0, small = false,
             initial={wrapperInitial}
             animate={wrapperAnimate}
             transition={transitionProps}
-            style={{ perspective: 1000, WebkitPerspective: 1000 }} // Perspective defines the depth for the inner 3D space
+            style={{ perspective: 1000, WebkitPerspective: 1000, willChange: 'transform, opacity' }} // Perspective defines the depth for the inner 3D space
         >
             {/* INNER 3D CONTAINER */}
             <motion.div
@@ -63,7 +63,7 @@ export default function Card({ card, faceDown = false, delay = 0, small = false,
                 initial={innerInitial}
                 animate={innerAnimate}
                 transition={transitionProps}
-                style={{ transformStyle: 'preserve-3d', WebkitTransformStyle: 'preserve-3d' as any }}
+                style={{ transformStyle: 'preserve-3d', WebkitTransformStyle: 'preserve-3d' as any, willChange: 'transform' }}
             >
                 {/* Front Face */}
                 <div

@@ -68,11 +68,11 @@ export default function ChipStack({ amount, delay = 0, chipPresets, category = '
                         bg-gradient-to-br ${chip.style.fromTo} border border-white/10`}
                     style={{
                         zIndex: i,
-                        y: -i * 4,
+                        willChange: 'transform, opacity' // Hardware acceleration hint
                     }}
-                    initial={{ y: -100, opacity: 0, rotate: Math.random() * 360 }}
-                    animate={{ y: -i * 4, opacity: 1, rotate: chip.rotation }}
-                    transition={{ delay: delay + i * 0.05, type: 'spring', stiffness: 300, damping: 20 }}
+                    initial={{ y: -100, opacity: 0, scale: 0.8, rotate: Math.random() * 90 }}
+                    animate={{ y: -i * 4, opacity: 1, scale: 1, rotate: chip.rotation }}
+                    transition={{ delay: delay + i * 0.05, type: 'tween', duration: 0.35, ease: 'backOut' }}
                 >
                     {/* Dashed Stripe Pattern (Outer Ring) */}
                     <div className="absolute inset-0 rounded-full border-[4px] border-dashed border-white/40 opacity-80" />

@@ -6,10 +6,19 @@ import { unlockSpeech } from '../utils/sound';
 export default function SplashScreen() {
     const completeSplash = useGameStore(s => s.completeSplash);
     const [isTransitioning, setIsTransitioning] = useState(false);
+    const [showPrompt, setShowPrompt] = useState(false);
 
     // State สำหรับการโหลดหลอก (Text Animation)
     const [isFakeLoading, setIsFakeLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("");
+
+    // รอให้อนิเมชันโลโก้และชื่อเสร็จก่อน (2.5 วิ) ค่อยอนุญาตให้กดหน้าจอได้
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setShowPrompt(true);
+        }, 2500);
+        return () => clearTimeout(timer);
+    }, []);
 
     // ไม่จำเป็นต้องเช็ค Pointer Events ตอนโหลดเสร็จแล้ว เพราะโชว์ปุ่มเลย
     useEffect(() => {
@@ -21,6 +30,9 @@ export default function SplashScreen() {
     }, []);
 
     const handleTap = () => {
+        // บล็อคการกด จนกว่าปุ่มจะขึ้น
+        if (!showPrompt) return;
+
         if (!isFakeLoading && !isTransitioning) {
             // Unlock Web Speech API synchronously upon user gesture (crucial for iOS Safari)
             unlockSpeech();
@@ -62,7 +74,7 @@ export default function SplashScreen() {
         <AnimatePresence>
             {!isTransitioning && (
                 <motion.div
-                    className={`w-full h-full flex flex-col items-center justify-center p-4 relative overflow-hidden ${!isFakeLoading ? 'cursor-pointer' : 'cursor-wait'}`}
+                    className={`w-full h-full flex flex-col items-center justify-center p-4 relative overflow-hidden ${!showPrompt ? 'cursor-default' : (!isFakeLoading ? 'cursor-pointer' : 'cursor-wait')}`}
                     style={{ backgroundColor: '#000' }}
                     onClick={handleTap}
                     initial={{ opacity: 1 }}

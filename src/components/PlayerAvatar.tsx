@@ -43,22 +43,39 @@ export default function PlayerAvatar({
         result === 'win' ? { boxShadow: `0 0 0 2.5px #34d399, 0 0 12px rgba(52,211,153,0.4)` }
             : result === 'lose' ? { boxShadow: `0 0 0 2.5px #f87171, 0 0 12px rgba(248,113,113,0.4)` }
                 : result === 'draw' ? { boxShadow: `0 0 0 2.5px #fbbf24, 0 0 12px rgba(251,191,36,0.4)` }
-                    : isActive ? { boxShadow: `0 0 0 2.5px #fde047, 0 0 16px rgba(253,224,71,0.5)` }
-                        : { boxShadow: '0 2px 8px rgba(0,0,0,0.3)' };
+                    : { boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }; // Default static shadow
 
     const pixelSize = isCustomSize ? size as number : undefined;
 
     return (
-        <motion.div
-            className="flex flex-col items-center gap-0.5"
-            animate={isActive ? { scale: [1, 1.06, 1] } : {}}
-            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-        >
+        <div className="flex flex-col items-center gap-0.5">
             <div className="relative">
+                {/* === Hardware Accelerated Pulse Glow Array (Active Player) === */}
+                {isActive && (
+                    <motion.div
+                        className="absolute inset-0 rounded-full"
+                        style={{
+                            background: 'transparent',
+                            boxShadow: '0 0 0 2.5px #fde047, 0 0 16px rgba(253,224,71,0.5)',
+                            zIndex: -1,
+                            willChange: 'transform, opacity'
+                        }}
+                        animate={{ scale: [1, 1.15, 1], opacity: [0.8, 0, 0.8] }}
+                        transition={{ duration: 1.5, ease: 'easeInOut', repeat: Infinity }}
+                    />
+                )}
+                {/* Active Player Static Ring */}
+                {isActive && (
+                    <div
+                        className="absolute inset-0 rounded-full"
+                        style={{ boxShadow: '0 0 0 2.5px #fde047', zIndex: -1 }}
+                    />
+                )}
+
                 {avatarUrl ? (
                     /* API avatar: photo image */
                     <div
-                        className={`${s.circle} rounded-full transition-all duration-300 overflow-hidden`}
+                        className={`${s.circle} rounded-full transition-all duration-300 overflow-hidden relative z-10`}
                         style={{
                             width: pixelSize ?? undefined,
                             height: pixelSize ?? undefined,
@@ -75,7 +92,7 @@ export default function PlayerAvatar({
                 ) : (
                     /* Fallback: colored initial */
                     <div
-                        className={`${s.circle} rounded-full transition-all duration-300`}
+                        className={`${s.circle} rounded-full transition-all duration-300 relative z-10`}
                         style={{
                             background: `linear-gradient(145deg, ${color}, ${color}dd)`,
                             width: pixelSize ?? undefined,
@@ -88,7 +105,7 @@ export default function PlayerAvatar({
                     </div>
                 )}
                 {isDealer && (
-                    <div className="absolute -top-1 -right-1 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg border border-white/20"
+                    <div className="absolute -top-1 -right-1 z-20 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg border border-white/20"
                         style={{ background: 'linear-gradient(135deg, #fbbf24, #d97706)' }}
                     >
                         D
@@ -106,6 +123,6 @@ export default function PlayerAvatar({
                     </div>
                 </>
             )}
-        </motion.div>
+        </div>
     );
 }
