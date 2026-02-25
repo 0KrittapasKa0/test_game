@@ -11,8 +11,7 @@ import {
     shouldAssistOpening, pickAssistedOpeningCards,
     shouldAssistThirdCard, pickAssistedThirdCard,
     recordRoundResult,
-    shouldNerfAiOpening, pickNerfedAiCards,
-    shouldProtectNearMiss,
+    shouldNerfAiOpening, pickNerfedAiCards
 } from '../utils/luckAssist';
 import { getAiLeavers } from '../utils/aiLeave';
 
@@ -761,22 +760,10 @@ export const useGameStore = create<GameState>((set, get) => ({
                 result = 'win';
                 const winnings = p.bet * playerResult.deng;
                 finalChips = p.chips + p.bet + winnings;
-            } else if (outcome === 'dealer') {
-                // ── Near-Miss Protection (Strategy 5) ──
-                // ถ้าผู้เล่นแพ้ห่างแค่ 1 แต้ม มีโอกาสเปลี่ยนเป็นเสมอ
-                if (p.isHuman
-                    && playerResult.type === HandType.NORMAL
-                    && dealerResult.type === HandType.NORMAL
-                    && shouldProtectNearMiss(playerResult.score, dealerResult.score)
-                ) {
-                    result = 'draw';
-                    finalChips = p.chips + p.bet;
-                } else {
-                    result = 'lose';
-                    const extraLoss = p.bet * (dealerResult.deng - 1);
-                    finalChips = Math.max(0, p.chips - extraLoss);
-                }
-            } else {
+                // Player lost
+                result = 'lose';
+                const extraLoss = p.bet * (dealerResult.deng - 1);
+                finalChips = Math.max(0, p.chips - extraLoss);
                 result = 'draw';
                 finalChips = p.chips + p.bet;
             }

@@ -4,13 +4,12 @@
  * ระบบช่วยเหลือความโชคดีสำหรับผู้เล่นสูงอายุ
  * ออกแบบให้รู้สึกเป็นธรรมชาติ ไม่มีรูปแบบที่ตรวจจับได้
  * 
- * === 6 กลยุทธ์หลัก ===
+ * === 5 กลยุทธ์หลัก ===
  * 1. เพิ่มโอกาสช่วยไพ่เปิด+จั่วผู้เล่น
  * 2. Nerf AI Opening — ให้ AI 1 คน/รอบ ได้ไพ่แย่
  * 3. Nerf AI Draw — ให้ AI แต้มดีจั่วเข้าตัว
  * 4. ป้องกันหมดตัว — ชิปน้อยช่วยมากขึ้น
- * 5. Near-Miss Protection — แพ้ห่าง 1 แต้ม → โอกาสเสมอ
- * 6. Win Rate Cap — ชนะ >60% ลดช่วยอัตโนมัติ
+ * 5. Win Rate Cap — ชนะ >60% ลดช่วยอัตโนมัติ
  * 
  * Applies ONLY to the human player. Never directly benefits AI.
  */
@@ -45,7 +44,7 @@ export function initLuckState(chips: number): void {
     currentRoundNumber = 0;
 }
 
-// ─── Win Rate Cap (Strategy 6) ───────────────────────────────────────────────
+// ─── Win Rate Cap (Strategy 5) ───────────────────────────────────────────────
 
 /**
  * คำนวณตัวคูณลดโอกาสช่วยเมื่อชนะบ่อยเกินไป
@@ -451,31 +450,6 @@ export function shouldNerfAiDraw(): boolean {
     return Math.random() < chance;
 }
 
-// ─── Strategy 5: Near-Miss Protection ────────────────────────────────────────
-
-/**
- * ตรวจสอบว่าควรเปลี่ยนผลแพ้เป็นเสมอหรือไม่
- * เงื่อนไข: แพ้ห่างแค่ 1 แต้ม (ไม่ใช่ special hand)
- * โอกาส ~10%
- */
-export function shouldProtectNearMiss(
-    playerScore: number,
-    dealerScore: number,
-): boolean {
-    // ทำงานเฉพาะเมื่อแพ้ห่าง 1 แต้ม
-    const diff = dealerScore - playerScore;
-    if (diff !== 1) return false;
-
-    let chance = 0.10;
-
-    // เพิ่มเมื่อแพ้ต่อเนื่อง
-    if (loseStreak >= 3) chance = 0.18;
-
-    // Win Rate Cap
-    chance *= getWinRateThrottle();
-
-    return Math.random() < chance;
-}
 
 // ─── Streak & Tracking ───────────────────────────────────────────────────────
 
