@@ -756,14 +756,17 @@ export const useGameStore = create<GameState>((set, get) => ({
             let finalChips = p.chips;
 
             if (outcome === 'player') {
-                // Return bet + (bet * playerDeng)
+                // Player won: Return bet + (bet * playerDeng)
                 result = 'win';
                 const winnings = p.bet * playerResult.deng;
                 finalChips = p.chips + p.bet + winnings;
+            } else if (outcome === 'dealer') {
                 // Player lost
                 result = 'lose';
                 const extraLoss = p.bet * (dealerResult.deng - 1);
                 finalChips = Math.max(0, p.chips - extraLoss);
+            } else {
+                // Draw: return bet only
                 result = 'draw';
                 finalChips = p.chips + p.bet;
             }
