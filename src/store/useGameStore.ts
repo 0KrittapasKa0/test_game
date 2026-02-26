@@ -59,6 +59,25 @@ interface GameState {
     addChips: (amount: number) => void;
 }
 
+// ─── Timeout Tracking System ──────────────────────────────────────────────────
+// Prevents memory leaks and race conditions if game is reset mid-round
+let activeTimeouts: ReturnType<typeof setTimeout>[] = [];
+
+const setGameTimeout = (handler: () => void, timeout?: number) => {
+    const id = setTimeout(() => {
+        // Remove self from tracking array when executed
+        activeTimeouts = activeTimeouts.filter(t => t !== id);
+        handler();
+    }, timeout);
+    activeTimeouts.push(id);
+    return id;
+};
+
+const clearAllGameTimeouts = () => {
+    activeTimeouts.forEach(clearTimeout);
+    activeTimeouts = [];
+};
+
 // ─── Random User API ─────────────────────────────────────────────────────────
 
 interface RandomUserResult {
@@ -210,7 +229,19 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     completeSplash: () => {
         const profile = loadProfile();
-        set({ screen: profile ? 'MENU' : 'ONBOARDING' });
+        clearAllGameTimeouts();
+        set({
+            screen: profile ? 'MENU' : 'ONBOARDING',
+            gamePhase: 'BETTING',
+            players: [],
+            deck: [],
+            roundNumber: 0,
+            resultMessage: '',
+            config: null,
+            activePlayerIndex: -1,
+            isSpectating: false,
+            maxSeats: 0,
+        });
     },
 
     initGame: async (config) => {
@@ -273,7 +304,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
 
         // Start AI betting sequence
-        setTimeout(() => get().startAiBetting(), 800);
+        setGameTimeout(() => get().startAiBetting(), 800);
     },
 
     startRound: () => {
@@ -311,7 +342,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
 
         // Start sequential AI betting after a short delay
-        setTimeout(() => get().startAiBetting(), isSpectating ? 300 : 600);
+        setGameTimeout(() => get().startAiBetting(), isSpectating ? 300 : 600);
     },
 
     startAiBetting: () => {
@@ -339,7 +370,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             const delay = (1500 + Math.random() * 2000) * speedMult;
             if (delay > maxDelay) maxDelay = delay;
 
-            setTimeout(() => {
+            setGameTimeout(() => {
                 const { players: currentPlayers, config: currentConfig } = get();
                 if (!currentConfig) return;
 
@@ -365,11 +396,11 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
 
         // Mark betting complete after all AI have placed
-        setTimeout(() => {
+        setGameTimeout(() => {
             set({ aiBettingInProgress: false });
             // Auto-deal when spectating or human already confirmed
             if (isSpectating || get().humanBetConfirmed) {
-                setTimeout(() => get().dealCards(), 500);
+                setGameTimeout(() => get().dealCards(), 500);
             }
         }, maxDelay + 300);
     },
@@ -412,12 +443,15 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         // If AI already done, deal immediately
         if (!aiBettingInProgress) {
-            setTimeout(() => get().dealCards(), 300);
+            setGameTimeout(() => get().dealCards(), 300);
         }
         // Otherwise, startAiBetting will trigger deal when it finishes
     },
 
     dealCards: () => {
+        // Guard: ป้องกันแจกไพ่ซ้ำจาก race condition
+        if (get().gamePhase !== 'BETTING') return;
+
         SFX.dealStart();
         set({
             gamePhase: 'DEALING',
@@ -425,7 +459,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             dealingPlayerIndex: 0,
             dealingRound: 0,
         });
-        setTimeout(() => get().dealNextCard(), 400);
+        setGameTimeout(() => get().dealNextCard(), 400);
     },
 
     dealNextCard: () => {
@@ -517,7 +551,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
 
         const delay = 350;
-        setTimeout(() => get().dealNextCard(), delay);
+        setGameTimeout(() => get().dealNextCard(), delay);
     },
 
     afterDealingComplete: () => {
@@ -529,8 +563,8 @@ export const useGameStore = create<GameState>((set, get) => ({
             // mark ทุกคน hasActed เพราะไม่มีสิทธิ์จั่ว
             SFX.pokReveal();
             // Countdown ticks before showdown
-            setTimeout(() => SFX.countdownTick(), 600);
-            setTimeout(() => SFX.countdownTick(), 1200);
+            setGameTimeout(() => SFX.countdownTick(), 600);
+            setGameTimeout(() => SFX.countdownTick(), 1200);
             const updatedPlayers = players.map(p => ({ ...p, hasActed: true }));
             set({
                 players: updatedPlayers,
@@ -539,7 +573,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 gamePhase: 'SHOWDOWN',
                 activePlayerIndex: -1,
             });
-            setTimeout(() => get().showdown(), 2000);
+            setGameTimeout(() => get().showdown(), 2000);
         } else {
             // กรณี 2: เจ้ามือไม่ป๊อก
             // ผู้เล่นที่ป๊อก → ชนะทันที, mark hasActed
@@ -553,7 +587,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 return p;
             });
             set({ isDealing: false, players: updatedPlayers, activePlayerIndex: -1 });
-            setTimeout(() => get().startActionPhase(), 600);
+            setGameTimeout(() => get().startActionPhase(), 600);
         }
     },
 
@@ -568,7 +602,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             const updated = [...players];
             updated[firstIdx] = { ...updated[firstIdx], hasActed: true };
             set({ players: updated });
-            setTimeout(() => get().advanceToNextPlayer(), 500);
+            setGameTimeout(() => get().advanceToNextPlayer(), 500);
             return;
         }
 
@@ -578,7 +612,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             const updated = [...players];
             updated[firstIdx] = { ...updated[firstIdx], hasActed: true };
             set({ players: updated });
-            setTimeout(() => get().advanceToNextPlayer(), 100);
+            setGameTimeout(() => get().advanceToNextPlayer(), 100);
             return;
         }
 
@@ -594,7 +628,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 gamePhase: 'AI_ACTION',
                 activePlayerIndex: firstIdx,
             });
-            setTimeout(() => get().processCurrentAi(), 1200);
+            setGameTimeout(() => get().processCurrentAi(), 1200);
         }
     },
 
@@ -608,7 +642,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         if (nextOrderIdx >= turnOrder.length) {
             SFX.showdownReveal();
             set({ gamePhase: 'SHOWDOWN', showCards: true, activePlayerIndex: -1 });
-            setTimeout(() => get().showdown(), 1800);
+            setGameTimeout(() => get().showdown(), 1800);
             return;
         }
 
@@ -619,7 +653,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             const updated = [...players];
             updated[nextIdx] = { ...updated[nextIdx], hasActed: true };
             set({ players: updated, activePlayerIndex: nextIdx });
-            setTimeout(() => get().advanceToNextPlayer(), 500);
+            setGameTimeout(() => get().advanceToNextPlayer(), 500);
             return;
         }
 
@@ -628,7 +662,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             const updated = [...players];
             updated[nextIdx] = { ...updated[nextIdx], hasActed: true };
             set({ players: updated, activePlayerIndex: nextIdx });
-            setTimeout(() => get().advanceToNextPlayer(), 100);
+            setGameTimeout(() => get().advanceToNextPlayer(), 100);
             return;
         }
 
@@ -644,7 +678,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 gamePhase: 'AI_ACTION',
                 activePlayerIndex: nextIdx,
             });
-            setTimeout(() => get().processCurrentAi(), 1200);
+            setGameTimeout(() => get().processCurrentAi(), 1200);
         }
     },
 
@@ -687,7 +721,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
 
         set({ players: updated, deck: deckCopy });
-        setTimeout(() => get().advanceToNextPlayer(), 800);
+        setGameTimeout(() => get().advanceToNextPlayer(), 800);
     },
 
     playerStay: () => {
@@ -698,7 +732,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             return { ...p, hasActed: true };
         });
         set({ players: updated });
-        setTimeout(() => get().advanceToNextPlayer(), 500);
+        setGameTimeout(() => get().advanceToNextPlayer(), 500);
     },
 
     processCurrentAi: () => {
@@ -732,7 +766,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             set({ players: updated });
         }
 
-        setTimeout(() => get().advanceToNextPlayer(), 800);
+        setGameTimeout(() => get().advanceToNextPlayer(), 800);
     },
 
     showdown: () => {
@@ -863,7 +897,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             if (humanPlayer.result === 'win') {
                 msg = `🎉 คุณชนะ +${net.toLocaleString()}`;
                 if (humanPlayer.dengMultiplier >= 2) { SFX.bigWin(); } else { SFX.win(); }
-                setTimeout(() => SFX.chipCollect(), 400);
+                setGameTimeout(() => SFX.chipCollect(), 400);
             }
             else if (humanPlayer.result === 'lose') { msg = `😔 คุณแพ้ ${net.toLocaleString()}`; SFX.lose(); }
             else { msg = '🤝 เสมอ (ไม่เสียเงิน)'; SFX.draw(); }
@@ -981,6 +1015,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     },
 
     resetGame: () => {
+        clearAllGameTimeouts();
         set({
             screen: 'MENU',
             gamePhase: 'BETTING',
@@ -992,6 +1027,14 @@ export const useGameStore = create<GameState>((set, get) => ({
             activePlayerIndex: -1,
             isSpectating: false,
             maxSeats: 0,
+            isDealing: false,
+            showCards: false,
+            dealingPlayerIndex: 0,
+            dealingRound: 0,
+            pendingAssistedCards: null,
+            aiBettingInProgress: false,
+            aiBettingQueue: [],
+            humanBetConfirmed: false,
         });
     },
 
