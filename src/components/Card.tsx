@@ -6,52 +6,32 @@ interface CardProps {
     faceDown?: boolean;
     delay?: number;
     small?: boolean;
-    category?: 'STANDARD' | 'HIGH_STAKES' | 'EXPERT' | 'LEGENDARY' | 'ULTIMATE';
 }
 
 function isRed(suit: string): boolean {
     return suit === '♥' || suit === '♦';
 }
 
-export default function Card({ card, faceDown = false, delay = 0, small = false, category = 'STANDARD' }: CardProps) {
+export default function Card({ card, faceDown = false, delay = 0, small = false }: CardProps) {
     const color = isRed(card.suit) ? '#dc2626' : '#1e293b';
     const w = small ? 'w-[46px] h-[66px]' : 'w-[70px] h-[98px] sm:w-[82px] sm:h-[115px]';
     const textBase = small ? 'text-[11px]' : 'text-sm sm:text-base';
     const textCenter = small ? 'text-lg' : 'text-2xl sm:text-3xl';
 
-    // Different deal animations based on room tier
-    const isUltimate = category === 'ULTIMATE';
-    const isLegendary = category === 'LEGENDARY';
-
-    // WRAPPER ANIMATION (Position, Scale, Opacity, and Glow)
-    let wrapperInitial: any = { scale: 0.6, opacity: 0, y: -50 };
-    if (isUltimate) {
-        wrapperInitial = { scale: 3, opacity: 0, y: -200, rotateZ: 45 };
-    } else if (isLegendary) {
-        wrapperInitial = { scale: 0.2, opacity: 0, y: 100 };
-    }
-
-    let wrapperAnimate: any = { scale: 1, opacity: 1, y: 0, rotateZ: 0 };
-
-    // For ultimate, add a light glow during animate
-    if (isUltimate && !faceDown) {
-        wrapperAnimate = { ...wrapperAnimate, boxShadow: ['0 0 0px rgba(0,0,0,0)', '0 0 50px rgba(253,224,71,0.8)', '0 2px 8px rgba(0,0,0,0.4)'] };
-    } else {
-        wrapperAnimate = { ...wrapperAnimate, boxShadow: '0 2px 8px rgba(0,0,0,0.4)' };
-    }
+    // WRAPPER ANIMATION (Position, Scale, Opacity)
+    const wrapperInitial = { scale: 0.6, opacity: 0, y: -50 };
+    const wrapperAnimate = { scale: 1, opacity: 1, y: 0, rotateZ: 0 };
 
     // INNER ANIMATION (3D Rotation Only)
     // Always start rotated 180 (face down), then flip based on faceDown prop
     const innerInitial = { rotateY: 180 };
     const innerAnimate = { rotateY: faceDown ? 180 : 0 };
 
-    const transitionProps: any = isUltimate
-        ? { duration: 0.6, delay, type: 'spring', bounce: 0.5 }
-        : { duration: 0.45, delay, type: 'spring', stiffness: 220, damping: 20 };
+    const transitionProps: any = { duration: 0.45, delay, type: 'spring', stiffness: 220, damping: 20 };
 
     return (
         <motion.div
-            className={`${w} relative select-none drop-shadow-xl`}
+            className={`${w} relative select-none`}
             initial={wrapperInitial}
             animate={wrapperAnimate}
             transition={transitionProps}
@@ -74,6 +54,7 @@ export default function Card({ card, faceDown = false, delay = 0, small = false,
                         transform: 'rotateY(0deg) translateZ(1px)',
                         WebkitTransform: 'rotateY(0deg) translateZ(1px)',
                         border: '1px solid #e5e7eb', // subtle border
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)', // Hardware-friendly shadow
                     }}
                 >
                     {/* Top-left corner */}
@@ -103,6 +84,7 @@ export default function Card({ card, faceDown = false, delay = 0, small = false,
                         transform: 'rotateY(180deg) translateZ(1px)',
                         WebkitTransform: 'rotateY(180deg) translateZ(1px)',
                         border: '1px solid #e5e7eb', // matches front
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)', // Hardware-friendly shadow
                     }}
                 >
                     <div className="w-full h-full p-[5px] sm:p-[6px]">

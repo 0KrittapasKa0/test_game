@@ -4,6 +4,7 @@ import { ArrowLeft, Volume2, VolumeX, Settings as SettingsIcon, Mic, MicOff, Che
 import { useGameStore } from '../store/useGameStore';
 import { loadSettings, saveSettings, exportGameData, importGameData } from '../utils/storage';
 import { SFX, speakPhrase } from '../utils/sound';
+import { GAME_VERSION } from '../version';
 
 const ToggleSwitch = ({ enabled, onClick, activeColorClass }: { enabled: boolean; onClick: () => void; activeColorClass: string }) => (
     <div
@@ -232,7 +233,7 @@ export default function SettingsScreen() {
                         </div>
 
                         <p className="text-center text-white/20 text-[10px] mt-10 mb-2 tracking-widest uppercase font-bold">
-                            Version 0.0.1
+                            {GAME_VERSION}
                         </p>
                     </div>
                 </div>

@@ -28,8 +28,8 @@ function computeSeatPositions(
 ): SeatPosition[] {
     const positions: (SeatPosition | null)[] = new Array(playerCount).fill(null);
 
-    // Dealer: กลางด้านบน (นอกโต๊ะไกลๆ มากขึ้น)
-    positions[dealerIndex] = { x: 50, y: -18 };
+    // Dealer: กลางด้านบน (ติดขอบโต๊ะ)
+    positions[dealerIndex] = { x: 50, y: -5 };
 
     // Human: ด้านล่างกลาง
     if (humanIndex !== dealerIndex && humanIndex >= 0) {
@@ -530,7 +530,6 @@ export default function GameTable() {
                                         transform: 'translate(-50%, -50%)',
                                         minWidth: '100px',
                                         zIndex: isActive ? 100 : zIndex,
-                                        filter: isActive && isPanel ? 'drop-shadow(0 0 16px rgba(250,204,21,0.5))' : undefined,
                                     }}
                                 >
                                     <div className="relative flex flex-col items-center z-0 pointer-events-auto group">
@@ -585,7 +584,6 @@ export default function GameTable() {
                                                         faceDown={!showCards && !player.hasPok}
                                                         delay={ci * 0.1}
                                                         small={true}
-                                                        category={config?.room?.category}
                                                     />
                                                 </div>
                                             ))}
@@ -635,7 +633,6 @@ export default function GameTable() {
                                                             faceDown={false}
                                                             delay={ci * 0.1}
                                                             small={false}
-                                                            category={config?.room?.category}
                                                         />
                                                     </div>
                                                 ))}
@@ -736,9 +733,6 @@ export default function GameTable() {
                 {gamePhase === 'BETTING' && !isSpectating && humanPlayer && !humanIsDealer && config && (
                     <div className="absolute bottom-0 left-0 right-0 pb-6 pt-0 px-4 z-40 pointer-events-none flex justify-center">
                         <div className="pointer-events-auto max-w-md w-full relative">
-                            {/* Gradient Background for Visibility */}
-                            <div className="absolute inset-0 -inset-x-4 bg-gradient-to-t from-black/90 to-transparent rounded-t-3xl -z-10" />
-
                             <ChipSelector
                                 maxBet={Math.min(humanPlayer.chips + humanPlayer.bet, config.room.maxBet)}
                                 totalChips={humanPlayer.chips + humanPlayer.bet}
@@ -760,9 +754,6 @@ export default function GameTable() {
                 {gamePhase === 'BETTING' && !isSpectating && humanIsDealer && (
                     <div className="absolute bottom-0 left-0 right-0 pb-6 pt-0 px-4 z-40 pointer-events-none flex justify-center">
                         <div className="pointer-events-auto max-w-md w-full relative">
-                            {/* Gradient Background for Visibility */}
-                            <div className="absolute inset-0 -inset-x-4 bg-gradient-to-t from-black/90 to-transparent rounded-t-3xl -z-10" />
-
                             <motion.div
                                 className="glass p-4 sm:p-5 w-full mx-auto flex flex-col items-center"
                                 initial={{ y: 40, opacity: 0 }}

@@ -163,13 +163,13 @@ export default function ChipSelector({
                             ].map(({ label, value }) => (
                                 <motion.button
                                     key={label}
-                                    whileTap={{ scale: 0.9 }}
+                                    whileTap={{ scale: 0.95 }}
                                     onClick={() => { SFX.click(); setRaiseAmount(value); speakPhrase(label === 'All-in' ? 'ทุ่มหมดตัว' : numberToThaiVoice(value)); }}
                                     className={`py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border
                                         ${raiseAmount === value
                                             ? label === 'All-in'
-                                                ? 'bg-gradient-to-b from-red-500 to-red-700 text-white border-red-800 shadow-lg shadow-red-500/30'
-                                                : 'bg-gradient-to-b from-yellow-400 to-amber-500 text-black border-amber-600 shadow-lg shadow-amber-500/20'
+                                                ? 'bg-gradient-to-b from-red-500 to-red-700 text-white border-red-800 shadow-md'
+                                                : 'bg-gradient-to-b from-yellow-400 to-amber-500 text-black border-amber-600 shadow-md'
                                             : label === 'All-in'
                                                 ? 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
                                                 : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10'
@@ -229,7 +229,7 @@ export default function ChipSelector({
                                 return (
                                     <motion.button
                                         key={amount}
-                                        whileTap={canAdd ? { scale: 0.85, rotate: 10 } : {}}
+                                        whileTap={canAdd ? { scale: 0.92 } : {}}
                                         disabled={!canAdd}
                                         onClick={() => handleAddChip(amount)}
                                         className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-lg flex items-center justify-center
@@ -239,7 +239,7 @@ export default function ChipSelector({
                                         <div className="absolute inset-0 rounded-full border-[3px] border-dashed border-white/40 opacity-80" />
                                         <div className="absolute w-[68%] h-[68%] rounded-full border border-white/20 bg-black/10 flex items-center justify-center shadow-inner">
                                             <div className="w-[85%] h-[85%] rounded-full border border-white/10 bg-white/5 flex items-center justify-center">
-                                                <span className={`${style.textColor} font-bold text-sm sm:text-base drop-shadow-md z-10`}>
+                                                <span className={`${style.textColor} font-bold text-sm sm:text-base z-10`} style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
                                                     {formatChips(amount)}
                                                 </span>
                                             </div>

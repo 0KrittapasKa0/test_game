@@ -88,7 +88,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'regular',
         name: 'ขาประจำ',
-        emoji: '🎯',
+        emoji: '☕',
         minBet: 50,
         maxBet: 500,
         chipPresets: [50, 100, 200, 500],
@@ -100,7 +100,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'skilled',
         name: 'ชำนาญเกม',
-        emoji: '⭐',
+        emoji: '🎯',
         minBet: 100,
         maxBet: 1000,
         chipPresets: [100, 200, 500, 1000],
@@ -112,7 +112,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'pro',
         name: 'มือโปร',
-        emoji: '🏅',
+        emoji: '🕶️',
         minBet: 500,
         maxBet: 5000,
         chipPresets: [500, 1000, 2000, 5000],
@@ -138,7 +138,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'hs_heavy',
         name: 'มือหนัก',
-        emoji: '🥈',
+        emoji: '💸',
         minBet: 2000,
         maxBet: 20000,
         chipPresets: [2000, 5000, 10000, 20000],
@@ -150,7 +150,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'hs_bigshot',
         name: 'ขาใหญ่',
-        emoji: '🥇',
+        emoji: '🥊',
         minBet: 5000,
         maxBet: 50000,
         chipPresets: [5000, 10000, 20000, 50000],
@@ -176,7 +176,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'exp_junior',
         name: 'เซียนขั้นต้น',
-        emoji: '💎',
+        emoji: '🔮',
         minBet: 20000,
         maxBet: 200000,
         chipPresets: [20000, 50000, 100000, 200000],
@@ -188,7 +188,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'exp_senior',
         name: 'เซียนชั้นสูง',
-        emoji: '👑',
+        emoji: '🎩',
         minBet: 50000,
         maxBet: 500000,
         chipPresets: [50000, 100000, 200000, 500000],
@@ -200,7 +200,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'exp_master',
         name: 'ปรมาจารย์',
-        emoji: '⚡',
+        emoji: '🪄',
         minBet: 100000,
         maxBet: 1000000,
         chipPresets: [100000, 200000, 500000, 1000000],
@@ -212,7 +212,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'exp_dominator',
         name: 'ครองเกม',
-        emoji: '🐉',
+        emoji: '♟️',
         minBet: 200000,
         maxBet: 2000000,
         chipPresets: [200000, 500000, 1000000, 2000000],
@@ -226,7 +226,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'leg_rising',
         name: 'ตำนานหน้าใหม่',
-        emoji: '🏆',
+        emoji: '🌟',
         minBet: 500000,
         maxBet: 5000000,
         chipPresets: [500000, 1000000, 2000000, 5000000],
@@ -238,7 +238,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'leg_champion',
         name: 'ตำนานผู้ชนะ',
-        emoji: '🔱',
+        emoji: '🏆',
         minBet: 1000000,
         maxBet: 10000000,
         chipPresets: [1000000, 2000000, 5000000, 10000000],
@@ -250,7 +250,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'leg_supreme',
         name: 'เหนือชั้น',
-        emoji: '🌌',
+        emoji: '⚡',
         minBet: 2000000,
         maxBet: 20000000,
         chipPresets: [2000000, 5000000, 10000000, 20000000],
@@ -262,7 +262,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'leg_conqueror',
         name: 'ผู้ครองอันดับ',
-        emoji: '🦅',
+        emoji: '🔱',
         minBet: 5000000,
         maxBet: 50000000,
         chipPresets: [5000000, 10000000, 20000000, 50000000],
@@ -276,7 +276,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'ult_undefeated',
         name: 'ไร้พ่าย',
-        emoji: '♾️',
+        emoji: '🛡️',
         minBet: 10000000,
         maxBet: 100000000,
         chipPresets: [10000000, 20000000, 50000000, 100000000],
@@ -288,7 +288,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'ult_immortal',
         name: 'อมตะ',
-        emoji: '🌟',
+        emoji: '♾️',
         minBet: 20000000,
         maxBet: 200000000,
         chipPresets: [20000000, 50000000, 100000000, 200000000],
@@ -300,7 +300,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'ult_timeless',
         name: 'เหนือกาลเวลา',
-        emoji: '🌠',
+        emoji: '⏳',
         minBet: 50000000,
         maxBet: 500000000,
         chipPresets: [50000000, 100000000, 200000000, 500000000],
@@ -312,7 +312,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'ult_peak',
         name: 'จุดสูงสุด',
-        emoji: '👑',
+        emoji: '♠️',
         minBet: 100000000,
         maxBet: 1000000000, // 1 Billion ceiling
         chipPresets: [100000000, 200000000, 500000000, 1000000000],
@@ -340,7 +340,7 @@ export const VALID_REWARD_CODES: RewardCode[] = [
     { code: 'โชคดี777', chips: 777 },
     { code: 'ป๊อกเด้ง', chips: 1000 },
     { code: 'เฮงเฮง', chips: 300 },
-    { code: 'TESt15', chips: 1000000000000000 },
+    { code: 'Dev', chips: 1000000000000000 },
 ];
 
 export const AI_NAMES = ['สมชาย', 'สมหญิง', 'สมศรี', 'สมศักดิ์', 'สมปอง', 'สมใจ'];

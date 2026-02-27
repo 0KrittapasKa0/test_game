@@ -7,6 +7,7 @@ import { loadProfile } from '../utils/storage';
 import { SFX, speakWelcome, speakPhrase } from '../utils/sound';
 import { formatChips } from '../utils/formatChips';
 import { useMemo, useEffect } from 'react';
+import { GAME_VERSION } from '../version';
 
 // Generates random configurations for floating background cards
 const generateCards = (count: number) => {
@@ -214,7 +215,7 @@ export default function MainMenuScreen() {
                     <span>กิจกรรมรับชิป</span>
                 </motion.button>
 
-                <p className="text-white/20 text-[10px] mt-8 tracking-widest uppercase mb-4">Beta Version 1.0</p>
+                <p className="text-white/20 text-[10px] mt-8 tracking-widest uppercase mb-4">{GAME_VERSION}</p>
             </div>
         </div>
     );
