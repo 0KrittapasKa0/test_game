@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Crown, ArrowLeft, Info, Coins } from 'lucide-react';
+import { Users, Crown, ArrowLeft } from 'lucide-react';
 import { useOnlineStore } from '../store/useOnlineStore';
 import { useGameStore } from '../store/useGameStore';
 import { loadProfile } from '../utils/storage';
