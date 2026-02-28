@@ -8,6 +8,8 @@ import GameScreen from './screens/GameScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import RewardCodeScreen from './screens/RewardCodeScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import OnlineGameScreen from './screens/OnlineGameScreen';
+import OnlineJoinScreen from './screens/OnlineJoinScreen';
 
 const screenComponents = {
   SPLASH: SplashScreen,
@@ -15,6 +17,8 @@ const screenComponents = {
   MENU: MainMenuScreen,
   GAME_SETUP: GameSetupScreen,
   PLAYING: GameScreen,
+  ONLINE_PLAYING: OnlineGameScreen,
+  ONLINE_JOIN: OnlineJoinScreen,
   SETTINGS: SettingsScreen,
   REWARD_CODE: RewardCodeScreen,
   PROFILE: ProfileScreen,

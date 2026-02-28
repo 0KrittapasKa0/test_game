@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Crown, ChevronRight, Lock, Volume2, Users } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
+import { useOnlineStore } from '../store/useOnlineStore';
 import { loadProfile, loadSettings } from '../utils/storage';
 import { formatChips, numberToThaiVoice } from '../utils/formatChips';
 import { ROOMS } from '../types/game';
@@ -14,6 +15,12 @@ export default function GameSetupScreen() {
     const settings = loadSettings();
 
     const [step, setStep] = useState<'room' | 'config'>('room');
+
+    const [searchRoomId, setSearchRoomId] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchError, setSearchError] = useState('');
+    const [showSearchModal, setShowSearchModal] = useState(false);
+    const { searchRoom } = useOnlineStore();
 
     // Reset to room selection when leaving the screen (so it's pre-rendered for next time)
     useEffect(() => {
@@ -79,6 +86,26 @@ export default function GameSetupScreen() {
         });
     };
 
+    const handleSearchRoom = async () => {
+        if (!searchRoomId.trim()) return;
+
+        setIsSearching(true);
+        setSearchError('');
+
+        try {
+            const success = await searchRoom(searchRoomId.trim().toUpperCase());
+            if (success) {
+                setScreen('ONLINE_JOIN');
+            } else {
+                setSearchError('ไม่พบหมายเลขห้องนี้');
+            }
+        } catch (error) {
+            setSearchError('เกิดข้อผิดพลาดในการค้นหา');
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
     return (
         <div className="w-full h-full bg-casino-table flex items-center justify-center p-4 sm:p-6 overflow-y-auto relative">
             {/* Ambient Dark Vignette overlay */}
@@ -94,22 +121,22 @@ export default function GameSetupScreen() {
                     {/* Top Glow Decor */}
                     <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent" />
 
-                    {/* Back Button */}
-                    <button
-                        onClick={() => {
-                            if (step === 'config') {
-                                setStep('room');
-                            } else {
-                                setScreen('MENU');
-                            }
-                        }}
-                        className="flex items-center justify-center w-10 h-10 rounded-full bg-black/40 border border-white/10 text-white/70 hover:text-white hover:bg-black/60 transition cursor-pointer shadow-lg mb-4 absolute top-4 left-4 z-20"
-                    >
-                        <ArrowLeft size={18} />
-                    </button>
-
-                    {/* Spacer for absolute button */}
-                    <div className="h-4" />
+                    {/* Top Action Bar (Back) */}
+                    <div className="flex justify-between items-center mb-2 relative z-20">
+                        {/* Back Button */}
+                        <button
+                            onClick={() => {
+                                if (step === 'config') {
+                                    setStep('room');
+                                } else {
+                                    setScreen('MENU');
+                                }
+                            }}
+                            className="flex items-center justify-center w-10 h-10 rounded-full bg-black/40 border border-white/10 text-white/70 hover:text-white hover:bg-black/60 transition cursor-pointer shadow-lg shrink-0"
+                        >
+                            <ArrowLeft size={18} />
+                        </button>
+                    </div>
 
                     <AnimatePresence mode="wait">
                         {/* ===== STEP 1: Room Selection ===== */}
@@ -119,7 +146,7 @@ export default function GameSetupScreen() {
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 20 }}
-                                className="mt-6"
+                                className="mt-2"
                             >
                                 <h2 className="text-xl sm:text-2xl font-bold text-gold-gradient text-center tracking-widest drop-shadow-md uppercase mb-1">
                                     เลือกโต๊ะ
@@ -240,18 +267,36 @@ export default function GameSetupScreen() {
                                     })}
                                 </div>
 
-                                {/* Quick Start Button */}
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.96 }}
-                                    onClick={() => { speakPhrase('ร่วมวงทันที'); handleQuickStart(); }}
-                                    className="w-full py-3 rounded-2xl text-black font-bold text-base sm:text-lg tracking-widest cursor-pointer transition-all relative overflow-hidden bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-600 border border-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:shadow-[0_0_30px_rgba(250,204,21,0.5)] uppercase"
-                                >
-                                    <div className="absolute inset-0 bg-white/20 hover:opacity-0 transition-opacity" />
-                                    <span className="relative z-10 flex items-center justify-center gap-2 drop-shadow-md">
-                                        <span className="text-2xl">🎲</span> ร่วมวงทันที
-                                    </span>
-                                </motion.button>
+                                {/* Action Buttons: Search and Quick Start */}
+                                <div className="flex gap-3 mt-4">
+                                    {/* Search Button */}
+                                    <div className="relative">
+                                        {/* Unstable badge */}
+                                        <div className="absolute -top-2 -right-2 z-20 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.6)] tracking-widest uppercase border border-orange-300/30">
+                                            ไม่เสถียร
+                                        </div>
+                                        <motion.button
+                                            whileHover={{ scale: 1.02 }}
+                                            whileTap={{ scale: 0.96 }}
+                                            onClick={() => { SFX.click(); setShowSearchModal(true); }}
+                                            className="px-4 py-2.5 rounded-2xl font-bold text-sm tracking-widest cursor-pointer transition-all relative overflow-hidden bg-black/60 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-950/40 hover:border-cyan-400/60 shadow-[0_0_15px_rgba(6,182,212,0.15)] flex items-center justify-center gap-2 shrink-0"
+                                        >
+                                            <span className="text-lg">🔍</span> ค้นหา
+                                        </motion.button>
+                                    </div>
+
+                                    {/* Quick Start Button */}
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.96 }}
+                                        onClick={() => { speakPhrase('ร่วมวงทันที'); handleQuickStart(); }}
+                                        className="flex-1 px-4 py-2.5 rounded-2xl text-black font-bold text-base tracking-widest cursor-pointer transition-all relative overflow-hidden bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-600 border border-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:shadow-[0_0_30px_rgba(250,204,21,0.5)] uppercase flex items-center justify-center gap-2"
+                                    >
+                                        <div className="absolute inset-0 bg-white/20 hover:opacity-0 transition-opacity" />
+                                        <span className="text-xl drop-shadow-md z-10">🎲</span>
+                                        <span className="relative z-10 drop-shadow-md">ร่วมวงทันที</span>
+                                    </motion.button>
+                                </div>
                             </motion.div>
                         )}
 
@@ -390,22 +435,140 @@ export default function GameSetupScreen() {
                                         <span className="text-yellow-400 font-semibold text-lg drop-shadow-md">{formatChips(profile.chips)}</span>
                                     </div>
 
-                                    {/* Start Button */}
-                                    <motion.button
-                                        whileHover={{ scale: 1.05, y: -2 }}
-                                        whileTap={{ scale: 0.96 }}
-                                        onClick={() => { speakPhrase('ขอให้โชคดีนะคะ'); handleStart(); }}
-                                        disabled={profile.chips < selectedRoom.minBet && !humanIsDealer}
-                                        className="btn-gold w-full text-xl py-4 flex items-center justify-center gap-2 uppercase tracking-wide disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
-                                    >
-                                        🚪 ร่วมวง
-                                    </motion.button>
+                                    {/* Button Row */}
+                                    <div className="flex gap-3">
+                                        {/* Create Room Button (Online Testing) */}
+                                        <div className="relative flex-1">
+                                            {/* Unstable badge */}
+                                            <div className="absolute -top-2 -right-1 z-20 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.6)] tracking-widest uppercase border border-orange-300/30">
+                                                ไม่เสถียร
+                                            </div>
+                                            <motion.button
+                                                whileHover={{ scale: 1.05, y: -2 }}
+                                                whileTap={{ scale: 0.96 }}
+                                                onClick={() => {
+                                                    speakPhrase('สร้างห้องออนไลน์ค่ะ');
+                                                    useOnlineStore.getState().createRoom({
+                                                        playerCount,
+                                                        humanIsDealer: canBeDealer ? humanIsDealer : false,
+                                                        room: selectedRoom,
+                                                    });
+                                                    setScreen('ONLINE_PLAYING');
+                                                }}
+                                                disabled={profile.chips < selectedRoom.minBet && !humanIsDealer}
+                                                className="w-full py-3 rounded-2xl flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed
+                                                    bg-gradient-to-b from-cyan-600/80 to-blue-900/80
+                                                    border border-cyan-400
+                                                    shadow-[0_0_15px_rgba(6,182,212,0.4)]"
+                                            >
+                                                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+                                                <span className="text-lg relative z-10 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">🌐</span>
+                                                <span className="text-cyan-100 font-bold text-sm tracking-wider relative z-10">สร้างห้อง</span>
+                                            </motion.button>
+                                        </div>
+
+                                        {/* Join Game Button */}
+                                        <motion.button
+                                            whileHover={{ scale: 1.05, y: -2 }}
+                                            whileTap={{ scale: 0.96 }}
+                                            onClick={() => { speakPhrase('ขอให้โชคดีนะคะ'); handleStart(); }}
+                                            disabled={profile.chips < selectedRoom.minBet && !humanIsDealer}
+                                            className="flex-1 btn-gold text-base py-3 flex items-center justify-center gap-2 uppercase tracking-wide disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed rounded-2xl"
+                                        >
+                                            <span className="text-lg">🚪</span>
+                                            <span className="font-bold tracking-widest">ร่วมวง</span>
+                                        </motion.button>
+                                    </div>
                                 </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
-            </motion.div>
-        </div>
+            </motion.div >
+
+            {/* ===== Search Modal ===== */}
+            <AnimatePresence>
+                {
+                    showSearchModal && (
+                        <motion.div
+                            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                        >
+                            {/* Backdrop */}
+                            <motion.div
+                                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => {
+                                    SFX.click();
+                                    setShowSearchModal(false);
+                                }}
+                            />
+
+                            {/* Modal Content */}
+                            <motion.div
+                                className="bg-gray-900 border border-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.2)] rounded-3xl p-6 w-full max-w-sm relative z-10"
+                                initial={{ scale: 0.9, y: 20 }}
+                                animate={{ scale: 1, y: 0 }}
+                                exit={{ scale: 0.9, y: 20 }}
+                            >
+                                <h2 className="text-xl font-bold text-center text-cyan-400 mb-6 drop-shadow-md">
+                                    ค้นหาห้อง
+                                </h2>
+
+                                <div className="relative mb-6">
+                                    <input
+                                        type="text"
+                                        placeholder="รหัสห้อง 6 หลัก"
+                                        value={searchRoomId}
+                                        onChange={(e) => {
+                                            setSearchRoomId(e.target.value.toUpperCase().slice(0, 6));
+                                            if (searchError) setSearchError('');
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && searchRoomId.trim()) handleSearchRoom();
+                                        }}
+                                        className={`w-full bg-black/50 border ${searchError ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-cyan-500'} rounded-xl px-4 py-3 text-center text-2xl font-bold tracking-[0.5em] text-white placeholder:text-white/20 outline-none transition-colors uppercase`}
+                                        autoFocus
+                                    />
+                                    {searchError && (
+                                        <p className="absolute -bottom-5 left-0 right-0 text-center text-red-400 text-xs font-semibold animate-pulse">
+                                            {searchError}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.96 }}
+                                        onClick={() => { SFX.click(); setShowSearchModal(false); }}
+                                        className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-300 font-bold hover:bg-gray-700 transition-colors"
+                                    >
+                                        ยกเลิก
+                                    </motion.button>
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.96 }}
+                                        onClick={handleSearchRoom}
+                                        disabled={isSearching || !searchRoomId.trim()}
+                                        className="flex-[2] py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 disabled:grayscale transition-all shadow-[0_0_15px_rgba(6,182,212,0.4)] relative flex items-center justify-center"
+                                    >
+                                        {isSearching ? (
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            'เข้าร่วม'
+                                        )}
+                                    </motion.button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )
+                }
+            </AnimatePresence >
+        </div >
     );
 }
