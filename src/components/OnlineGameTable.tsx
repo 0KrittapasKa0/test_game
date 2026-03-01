@@ -1,12 +1,12 @@
 import { useOnlineStore } from '../store/useOnlineStore';
 import PlayerAvatar from './PlayerAvatar';
 import Card from './Card';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { evaluateHand } from '../utils/deck';
-import { speakPhrase } from '../utils/sound';
-import ChipSelector from './ChipSelector';
+// Removed unused imports
 import ChipStack from './ChipStack';
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { formatChips } from '../utils/formatChips';
 
 // This is a simplified version of GameTable for the online mode.
 // We reuse the basic rendering but hook it into useOnlineStore.
@@ -121,23 +121,15 @@ function getChipPosition(playerPos: SeatPosition): SeatPosition {
 }
 
 export default function OnlineGameTable() {
-    const { players, gamePhase, activePlayerIndex, isDealing, showCards, isSpectating, localPlayerId, config, isHost, humanBetConfirmed } = useOnlineStore();
+    const { players, gamePhase, activePlayerIndex, isDealing, showCards, localPlayerId, config } = useOnlineStore();
 
-    // Use placeholder local actions for MVP since useOnlineStore doesn't have them yet.
-    // They will be passed to useOnlineStore in the next step.
-    const playerDraw = () => useOnlineStore.getState().playerAction('draw');
-    const playerStay = () => useOnlineStore.getState().playerAction('stay');
-    const placeBet = (amount: number) => useOnlineStore.getState().placeBet(amount);
-    const confirmBet = () => useOnlineStore.getState().confirmBet();
+    const activePlayers = players.filter(p => !p.isSpectating);
+    const activeHumanIndex = activePlayers.findIndex(p => p.id === localPlayerId);
+    const activeDealerIndex = activePlayers.findIndex(p => p.isDealer);
 
-    const humanIndex = players.findIndex(p => p.id === localPlayerId);
-    const dealerIndex = players.findIndex(p => p.isDealer);
-
-    const seatPositions = players.length > 0
-        ? computeSeatPositions(players.length, dealerIndex >= 0 ? dealerIndex : 0, humanIndex >= 0 ? humanIndex : -1)
+    const seatPositions = activePlayers.length > 0
+        ? computeSeatPositions(activePlayers.length, activeDealerIndex >= 0 ? activeDealerIndex : 0, activeHumanIndex >= 0 ? activeHumanIndex : -1)
         : [];
-
-    const allPlayersReady = players.every(p => p.isDealer || p.hasActed);
 
     // Animation tracking
     const [flyingCards, setFlyingCards] = useState<{ id: string; targetX: number; targetY: number }[]>([]);
@@ -151,7 +143,7 @@ export default function OnlineGameTable() {
     useEffect(() => {
         if (!isDealing && gamePhase !== 'DEALING') return;
 
-        players.forEach((p, idx) => {
+        activePlayers.forEach((p, idx) => {
             const currentCount = p.cards.length;
             const prevCount = prevCardCountsRef.current[p.id] || 0;
 
@@ -196,7 +188,7 @@ export default function OnlineGameTable() {
             ))}
 
             {/* ===== Render Chips on Table ===== */}
-            {players.map((player, idx) => {
+            {activePlayers.map((player, idx) => {
                 const pos = seatPositions[idx];
                 if (!pos || player.isDealer || player.bet <= 0) return null;
                 const chipPos = getChipPosition(pos);
@@ -218,7 +210,7 @@ export default function OnlineGameTable() {
 
             {/* ===== Players Layer ===== */}
             <div className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', zIndex: 20 }}>
-                {players.map((player, idx) => {
+                {activePlayers.map((player, idx) => {
                     const pos = seatPositions[idx];
                     if (!pos) return null;
 
@@ -254,6 +246,7 @@ export default function OnlineGameTable() {
                                         isActive={isActive}
                                         result={gamePhase === 'ROUND_END' ? player.result : 'pending'}
                                         size={isHuman ? 60 : 48}
+                                        isSpectating={player.isSpectating}
                                     />
 
                                     {/* Score Badge (for opponents when cards revealed) */}
@@ -353,7 +346,7 @@ export default function OnlineGameTable() {
                             {player.bet > 0 && (
                                 <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none">
                                     <span className="bg-black/60 text-yellow-400 font-bold px-3 py-1 rounded-full text-xs font-mono shadow-md border border-yellow-500/30">
-                                        {player.bet.toLocaleString()}฿
+                                        {formatChips(player.bet)}
                                     </span>
                                 </div>
                             )}
@@ -361,104 +354,6 @@ export default function OnlineGameTable() {
                     );
                 })}
             </div>
-            {/* ===== Human Turn Controls ===== */}
-            <AnimatePresence>
-                {!isSpectating && gamePhase === 'PLAYER_ACTION' && activePlayerIndex === humanIndex && (
-                    <motion.div
-                        className="absolute bottom-0 left-0 right-0 z-50 pointer-events-auto flex justify-center pb-4 pt-12"
-                        style={{
-                            background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)',
-                        }}
-                        initial={{ y: 40, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 40, opacity: 0 }}
-                    >
-                        <div className="flex gap-4">
-                            <motion.button
-                                whileHover={{ scale: 1.05, y: -2 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => { speakPhrase('จั่ว'); playerDraw(); }}
-                                className="text-white font-bold text-lg sm:text-xl px-8 sm:px-10 py-3 sm:py-3.5 rounded-2xl shadow-2xl transition-all cursor-pointer"
-                                style={{
-                                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                                    borderBottom: '4px solid #047857',
-                                    boxShadow: '0 6px 24px rgba(16,185,129,0.4), 0 0 40px rgba(16,185,129,0.15)',
-                                }}
-                            >
-                                🃏 จั่วไพ่
-                            </motion.button>
-                            <motion.button
-                                whileHover={{ scale: 1.05, y: -2 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => { speakPhrase('หยุด'); playerStay(); }}
-                                className="text-white font-bold text-lg sm:text-xl px-8 sm:px-10 py-3 sm:py-3.5 rounded-2xl shadow-2xl transition-all cursor-pointer"
-                                style={{
-                                    background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
-                                    borderBottom: '4px solid #be123c',
-                                    boxShadow: '0 6px 24px rgba(244,63,94,0.4), 0 0 40px rgba(244,63,94,0.15)',
-                                }}
-                            >
-                                ✋ หยุด
-                            </motion.button>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* ===== Betting Controls ===== */}
-            <AnimatePresence>
-                {gamePhase === 'BETTING' && !isSpectating && humanIndex !== -1 && !players[humanIndex]?.isDealer && config && !humanBetConfirmed && (
-                    <div className="absolute bottom-0 left-0 right-0 pb-6 pt-0 px-4 z-40 pointer-events-none flex justify-center">
-                        <div className="pointer-events-auto max-w-md w-full relative">
-                            <ChipSelector
-                                maxBet={Math.min(players[humanIndex].chips + players[humanIndex].bet, config.room.maxBet)}
-                                totalChips={players[humanIndex].chips + players[humanIndex].bet}
-                                currentBet={players[humanIndex].bet}
-                                lastBet={players[humanIndex].lastBet}
-                                chipPresets={config.room.chipPresets}
-                                category={config.room.category}
-                                onSelect={placeBet}
-                                onConfirm={confirmBet}
-                                disabled={humanBetConfirmed}
-                            />
-                        </div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* ===== Dealer Deal Button ===== */}
-            <AnimatePresence>
-                {gamePhase === 'BETTING' && !isSpectating && humanIndex !== -1 && players[humanIndex]?.isDealer && (
-                    <div className="absolute bottom-0 left-0 right-0 pb-6 pt-0 px-4 z-40 pointer-events-none flex justify-center">
-                        <div className="pointer-events-auto max-w-md w-full relative">
-                            <motion.div
-                                className="glass p-4 sm:p-5 w-full mx-auto flex flex-col items-center"
-                                initial={{ y: 40, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                transition={{ type: 'spring', stiffness: 240, damping: 22 }}
-                            >
-                                <div className="flex items-center justify-between w-full mb-3 px-2">
-                                    <p className="text-yellow-400/80 text-sm font-medium">👑 คุณคือเจ้ามือ</p>
-                                </div>
-                                <motion.button
-                                    whileHover={allPlayersReady ? { scale: 1.02 } : {}}
-                                    whileTap={allPlayersReady ? { scale: 0.98 } : {}}
-                                    onClick={confirmBet}
-                                    disabled={!allPlayersReady || (humanBetConfirmed && isHost)}
-                                    className={`w-full py-3 rounded-lg font-bold text-lg shadow-lg border-b-4 transition-all ${!allPlayersReady
-                                        ? 'bg-gray-600 text-gray-400 border-gray-700 cursor-not-allowed'
-                                        : 'cursor-pointer bg-gradient-to-r from-yellow-500 to-amber-600 text-black border-amber-700 hover:from-yellow-400 hover:to-amber-500'
-                                        }`}
-                                >
-                                    {!allPlayersReady ? 'รอผู้เล่นวางเดิมพัน...' : (humanBetConfirmed && !isHost ? 'รอโฮสต์แจกไพ่...' : '✅ แจกไพ่')}
-                                </motion.button>
-                            </motion.div>
-                        </div>
-                    </div>
-                )
-                }
-            </AnimatePresence >
-        </div >
+        </div>
     );
 }
-

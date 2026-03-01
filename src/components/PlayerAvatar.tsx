@@ -11,6 +11,7 @@ interface PlayerAvatarProps {
     result?: 'win' | 'lose' | 'draw' | 'pending';
     size?: 'sm' | 'md' | 'lg' | number;
     hideInfo?: boolean;
+    isSpectating?: boolean;
 }
 
 export default function PlayerAvatar({
@@ -23,6 +24,7 @@ export default function PlayerAvatar({
     result = 'pending',
     size = 'md',
     hideInfo = false,
+    isSpectating = false,
 }: PlayerAvatarProps) {
     const sizeMap = {
         sm: { circle: 'w-9 h-9 text-xs', font: 'text-[10px]', chipFont: 'text-[10px]' },
@@ -104,20 +106,32 @@ export default function PlayerAvatar({
                         {name.charAt(0).toUpperCase()}
                     </div>
                 )}
-                {isDealer && (
+
+                {/* Dealer Badge */}
+                {isDealer && !isSpectating && (
                     <div className="absolute -top-1 -right-1 z-20 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg border border-white/20"
                         style={{ background: 'linear-gradient(135deg, #fbbf24, #d97706)' }}
                     >
                         D
                     </div>
                 )}
+
+                {/* Spectator Badge */}
+                {isSpectating && (
+                    <div className="absolute -bottom-1 -right-1 z-20 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg border border-white/20"
+                        style={{ background: 'linear-gradient(135deg, #64748b, #334155)', boxShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
+                        title="ผู้ชม"
+                    >
+                        👁️
+                    </div>
+                )}
             </div>
             {!hideInfo && (
                 <>
-                    <span className={`text-white ${s.font} font-medium truncate max-w-[70px] leading-tight drop-shadow-md`}>
+                    <span className={`text-white ${s.font} font-medium ${isSpectating ? 'opacity-50' : ''} truncate max-w-[70px] leading-tight drop-shadow-md`}>
                         {name}
                     </span>
-                    <div className="flex items-center gap-1 bg-black/40 px-1.5 rounded-full">
+                    <div className={`flex items-center gap-1 bg-black/40 px-1.5 rounded-full ${isSpectating ? 'opacity-50 grayscale' : ''}`}>
                         <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.8)]" />
                         <span className={`text-yellow-300 ${s.chipFont} font-bold`}>{formatChips(chips)}</span>
                     </div>

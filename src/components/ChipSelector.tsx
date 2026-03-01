@@ -6,6 +6,7 @@ import { getChipStyle } from '../utils/chipColors';
 
 interface ChipSelectorProps {
     maxBet: number;       // room maxBet (capped at chips) — for normal chip buttons
+    minBet?: number;      // mandatory minimum bet (defaults to 0)
     totalChips: number;   // total chips available — for raise slider
     currentBet: number;
     lastBet?: number;
@@ -17,7 +18,7 @@ interface ChipSelectorProps {
 }
 
 export default function ChipSelector({
-    maxBet, totalChips, currentBet, lastBet, chipPresets, category,
+    maxBet, minBet = 0, totalChips, currentBet, lastBet, chipPresets, category,
     onSelect, onConfirm, disabled = false,
 }: ChipSelectorProps) {
     const [showRaise, setShowRaise] = useState(false);
@@ -280,16 +281,16 @@ export default function ChipSelector({
                             <div className="flex gap-2">
                                 {/* Confirm Button */}
                                 <motion.button
-                                    whileHover={currentBet > 0 ? { scale: 1.02 } : {}}
-                                    whileTap={currentBet > 0 ? { scale: 0.98 } : {}}
+                                    whileHover={currentBet >= minBet ? { scale: 1.02 } : {}}
+                                    whileTap={currentBet >= minBet ? { scale: 0.98 } : {}}
                                     onClick={onConfirm}
-                                    disabled={currentBet === 0}
+                                    disabled={currentBet < minBet}
                                     className={`flex-1 py-3 rounded-lg font-bold text-base shadow-lg border-b-4 transition-all cursor-pointer
-                                        ${currentBet > 0
+                                        ${currentBet >= minBet
                                             ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-black border-amber-700'
                                             : 'bg-gray-700 text-gray-400 border-gray-800 cursor-not-allowed'}`}
                                 >
-                                    {currentBet > 0 ? '✅ ยืนยัน' : 'กรุณาเลือกชิป'}
+                                    {currentBet >= minBet ? '✅ ยืนยัน' : `ขั้นต่ำ ${formatChips(minBet)}`}
                                 </motion.button>
 
                                 {/* Raise Button */}

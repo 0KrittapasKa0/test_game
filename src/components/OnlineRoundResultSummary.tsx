@@ -7,21 +7,21 @@ import PlayerAvatar from './PlayerAvatar';
 import { formatChips } from '../utils/formatChips';
 
 export default function OnlineRoundResultSummary() {
-    const { players, dealerIndex, nextRound, isSpectating, isHost } = useOnlineStore();
+    const { players, dealerIndex, nextRound, isSpectating, isHost, localPlayerId } = useOnlineStore();
 
     const dealer = players[dealerIndex] || players.find(p => p.isDealer);
 
     const sortedPlayers = useMemo(() => {
         return [...players]
-            .filter(p => !isSpectating || !p.isHuman)
+            .filter(p => !p.isSpectating)
             .sort((a, b) => {
                 if (a.isDealer) return -1;
                 if (b.isDealer) return 1;
-                if (a.isHuman) return -1; // Keep local human top
-                if (b.isHuman) return 1;
+                if (a.id === localPlayerId) return -1; // Keep local player at the top
+                if (b.id === localPlayerId) return 1;
                 return 0;
             });
-    }, [players, isSpectating]);
+    }, [players, localPlayerId]);
 
     // Pre-calculate derived state to avoid calculating inside map
     const dealerStats = useMemo(() => {
@@ -63,7 +63,7 @@ export default function OnlineRoundResultSummary() {
                     {isSpectating && (
                         <span className="text-gray-400 text-sm">👀 ดูอยู่...</span>
                     )}
-                    {dealerStats && (
+                    {dealerStats && dealer?.id === localPlayerId && (
                         <div className="flex gap-2 sm:gap-4 text-xs sm:text-sm font-medium">
                             <span className="text-emerald-400">ได้: +{formatChips(dealerStats.totalWin)}</span>
                             <span className="text-red-400">เสีย: -{formatChips(dealerStats.totalLoss)}</span>
@@ -82,7 +82,7 @@ export default function OnlineRoundResultSummary() {
                         const isWin = profit > 0;
                         const isLoss = profit < 0;
                         const colorClass = isWin ? 'text-emerald-400' : isLoss ? 'text-red-400' : 'text-gray-400';
-                        const isHumanOwner = p.isHuman || p.id === 'human';
+                        const isHumanOwner = p.id === localPlayerId;
                         const bgClass = isHumanOwner
                             ? 'bg-[#222] border-yellow-600/50'
                             : p.isDealer

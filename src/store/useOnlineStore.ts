@@ -2,8 +2,18 @@ import { create } from 'zustand';
 import Peer, { DataConnection } from 'peerjs';
 import type { Player, GameConfig, GamePhase } from '../types/game';
 import type { NetworkMessage } from '../types/network';
-import { loadProfile, saveProfile } from '../utils/storage';
-import { initOnlinePlayerLuckState, removeOnlinePlayerLuckState } from '../utils/onlineLuckAssist';
+import { loadProfile, saveProfile, recordGameResult } from '../utils/storage';
+import {
+    initOnlinePlayerLuckState,
+    removeOnlinePlayerLuckState,
+    shouldAssistOnlineOpening,
+    pickAssistedOnlineOpeningCards,
+    shouldAssistOnlineThirdCard,
+    pickAssistedOnlineThirdCard,
+    recordOnlineRoundResult,
+    incrementOnlineTotalRounds,
+    resetOnlineRoundState
+} from '../utils/onlineLuckAssist';
 import { createDeck, shuffleDeck, evaluateHand, HandType, compareHands } from '../utils/deck';
 import { SFX } from '../utils/sound';
 
@@ -35,7 +45,7 @@ interface OnlineGameState {
     // Actions
     createRoom: (config: GameConfig) => void;
     searchRoom: (roomId: string) => Promise<boolean>;
-    joinRoom: (role: 'dealer' | 'player') => Promise<boolean>;
+    joinRoom: (role: 'dealer' | 'player' | 'spectator') => Promise<boolean>;
     leaveRoom: () => void;
 
     // Host only actions
@@ -44,6 +54,7 @@ interface OnlineGameState {
     processNextTurn: () => void;
     showdown: () => void;
     nextRound: () => void;
+    roundNumber: number;
 
     // Both
     playerAction: (action: 'draw' | 'stay') => void;
@@ -51,9 +62,22 @@ interface OnlineGameState {
     confirmBet: () => void;
 }
 
-// Simple deterministic timeout wrapper for host logic
-function setGameTimeout(callback: () => void, ms: number) {
-    return setTimeout(callback, ms);
+// ─── Timeout Tracking System ──────────────────────────────────────────────────
+// Prevents memory leaks and race conditions if game is reset mid-round
+let activeTimeouts: ReturnType<typeof setTimeout>[] = [];
+
+function setGameTimeout(handler: () => void, timeout?: number) {
+    const id = setTimeout(() => {
+        activeTimeouts = activeTimeouts.filter(t => t !== id);
+        handler();
+    }, timeout);
+    activeTimeouts.push(id);
+    return id;
+}
+
+function clearAllGameTimeouts() {
+    activeTimeouts.forEach(clearTimeout);
+    activeTimeouts = [];
 }
 
 function generateRoomId() {
@@ -65,10 +89,14 @@ function getTurnOrder(players: Player[], dealerIndex: number): number[] {
     // Start from player to the right of dealer (index - 1)
     // Go counter-clockwise down to 0, then from max to dealerIndex + 1
     for (let i = dealerIndex - 1; i >= 0; i--) {
-        order.push(i);
+        if (players[i] && !players[i].isSpectating) {
+            order.push(i);
+        }
     }
     for (let i = players.length - 1; i > dealerIndex; i--) {
-        order.push(i);
+        if (players[i] && !players[i].isSpectating) {
+            order.push(i);
+        }
     }
     return order;
 }
@@ -86,6 +114,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
     isSpectating: false,
     activePlayerIndex: -1,
     dealerIndex: -1,
+    roundNumber: 1,
     humanBetConfirmed: false,
     peer: null,
     connections: [],
@@ -138,7 +167,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                     const hasDealer = currentPlayers.some(p => p.isDealer);
                     conn.send({
                         type: 'ROOM_INFO',
-                        payload: { config: currentConfig, hostName: currentPlayers[0].name, hasDealer, currentPlayersCount: currentPlayers.length }
+                        payload: { config: currentConfig, hostName: currentPlayers[0].name, hasDealer, currentPlayersCount: currentPlayers.filter(p => !p.isSpectating).length }
                     } as NetworkMessage);
                 }
             });
@@ -151,10 +180,29 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                     const { player: joiningPlayer } = message.payload;
                     const { players: currentPlayers, config: currentConfig } = get();
 
-                    if (!currentConfig || currentPlayers.length >= currentConfig.playerCount) {
+                    // Exclude spectators from room full check
+                    const activePlayersCount = currentPlayers.filter(p => !p.isSpectating).length;
+
+                    // If room is full, only allow spectators
+                    if (!currentConfig || (activePlayersCount >= currentConfig.playerCount && !joiningPlayer.isSpectating)) {
                         conn.send({ type: 'JOIN_RESPONSE', payload: { accepted: false, reason: 'Room is full' } } as NetworkMessage);
                         return;
                     }
+
+                    // Assign a unique seat index
+                    let assignedSeat = joiningPlayer.isDealer ? 0 : 1;
+                    if (joiningPlayer.isSpectating) {
+                        assignedSeat = -1;
+                    } else if (!joiningPlayer.isDealer) {
+                        const usedSeats = new Set(currentPlayers.filter(p => !p.isSpectating).map(p => p.seatIndex));
+                        for (let i = 1; i < currentConfig.playerCount; i++) {
+                            if (!usedSeats.has(i)) {
+                                assignedSeat = i;
+                                break;
+                            }
+                        }
+                    }
+                    joiningPlayer.seatIndex = assignedSeat;
 
                     // Accept participant
                     const newPlayers = [...currentPlayers, joiningPlayer];
@@ -342,9 +390,20 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             const peer = new Peer();
             set({ connectionStatus: 'CONNECTING', peer });
 
+            let resolved = false;
+
+            const timeoutId = setTimeout(() => {
+                if (!resolved) {
+                    resolved = true;
+                    if (get().peer === peer) {
+                        get().leaveRoom();
+                    }
+                    resolve(false);
+                }
+            }, 6000); // 6 seconds to cover both peer open and connection
+
             peer.on('open', () => {
                 const conn = peer.connect(targetRoomId.toUpperCase());
-                let resolved = false;
 
                 conn.on('open', () => {
                     // Send a ping message or just establish connection
@@ -355,6 +414,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                     const message = data as NetworkMessage;
                     if (message.type === 'ROOM_INFO' && !resolved) {
                         resolved = true;
+                        clearTimeout(timeoutId);
                         set({
                             hostConnection: conn,
                             connectionStatus: 'CONNECTED',
@@ -364,26 +424,27 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                         resolve(true);
                     }
                 });
-
-                // Timeout
-                setTimeout(() => {
-                    if (!resolved) {
-                        resolved = true;
-                        get().leaveRoom();
-                        resolve(false);
-                    }
-                }, 4000);
             });
 
             peer.on('error', (err) => {
                 console.error("PeerJS Error:", err);
-                get().leaveRoom();
-                resolve(false);
+                if (!resolved) {
+                    resolved = true;
+                    clearTimeout(timeoutId);
+                    if (get().peer === peer) {
+                        get().leaveRoom();
+                    }
+                    resolve(false);
+                } else {
+                    if (get().peer === peer) {
+                        get().leaveRoom();
+                    }
+                }
             });
         });
     },
 
-    joinRoom: async (role: 'dealer' | 'player'): Promise<boolean> => {
+    joinRoom: async (role: 'dealer' | 'player' | 'spectator'): Promise<boolean> => {
         const { peer, hostConnection } = get();
         if (!peer || !hostConnection) return false;
 
@@ -397,6 +458,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             avatarUrl: profile.avatarUrl,
             isHuman: true,
             isDealer: role === 'dealer',
+            isSpectating: role === 'spectator',
             cards: [],
             bet: 0,
             chips: profile.chips,
@@ -409,10 +471,22 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
         };
 
         return new Promise((resolve) => {
+            let resolved = false;
+
+            const timeoutId = setTimeout(() => {
+                if (!resolved) {
+                    resolved = true;
+                    // If host doesn't respond in time, reject join attempt
+                    resolve(false);
+                }
+            }, 6000); // 6 second timeout to join
+
             // Listen for acceptance
             const tempListener = (data: any) => {
                 const message = data as NetworkMessage;
-                if (message.type === 'JOIN_RESPONSE') {
+                if (message.type === 'JOIN_RESPONSE' && !resolved) {
+                    resolved = true;
+                    clearTimeout(timeoutId);
                     hostConnection.off('data', tempListener); // clear listener
 
                     if (message.payload.accepted) {
@@ -436,6 +510,8 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                                     });
                                 }
 
+                                const myPlayerLocal = newPlayers.find((p: any) => p.id === currentState.localPlayerId);
+
                                 set({
                                     players: newPlayers,
                                     gamePhase: updateMsg.payload.gamePhase,
@@ -443,11 +519,37 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                                     showCards: updateMsg.payload.showCards ?? false,
                                     activePlayerIndex: updateMsg.payload.activePlayerIndex ?? -1,
                                     dealerIndex: updateMsg.payload.dealerIndex ?? -1,
+                                    isSpectating: myPlayerLocal ? myPlayerLocal.isSpectating : currentState.isSpectating,
                                 });
                                 // If game phase went back to BETTING or WAITING from another phase, reset confirmation constraint
                                 if (currentPhase !== updateMsg.payload.gamePhase) {
                                     if (updateMsg.payload.gamePhase === 'BETTING' || updateMsg.payload.gamePhase === 'WAITING') {
                                         set({ humanBetConfirmed: false });
+                                    }
+                                    // Client-side spectator detection: if we're broke when BETTING starts, enter spectator mode
+                                    if (updateMsg.payload.gamePhase === 'BETTING' && newPlayers) {
+                                        const myPlayer = newPlayers.find((p: any) => p.id === currentState.localPlayerId);
+                                        const myConfig = currentState.config;
+                                        if (myPlayer && myConfig && myPlayer.chips < myConfig.room.minBet && !myPlayer.isDealer) {
+                                            set({ isSpectating: true });
+                                        }
+                                    }
+                                    // Client-side stats tracking and profile persistence when round ends
+                                    if (updateMsg.payload.gamePhase === 'ROUND_END' && newPlayers) {
+                                        const myPlayer = newPlayers.find((p: any) => p.id === currentState.localPlayerId);
+                                        if (myPlayer && !currentState.isSpectating) {
+                                            const profile = loadProfile();
+                                            if (profile) {
+                                                profile.chips = myPlayer.chips;
+                                                saveProfile(profile);
+
+                                                recordGameResult(
+                                                    myPlayer.result as 'win' | 'lose' | 'draw',
+                                                    myPlayer.chips,
+                                                    myPlayer.roundProfit ?? 0
+                                                );
+                                            }
+                                        }
                                     }
                                 }
                             } else if (updateMsg.type === 'PLAYER_LEFT') {
@@ -459,8 +561,10 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
 
                         // Handle host disconnecting
                         hostConnection.on('close', () => {
-                            console.log("Host disconnected");
-                            get().leaveRoom();
+                            if (get().hostConnection === hostConnection) {
+                                console.log("Host disconnected");
+                                get().leaveRoom();
+                            }
                             // In a real app, you might want to show a toast/alert saying "Host left the game" here
                         });
 
@@ -477,7 +581,8 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                             isHost: false,
                             localPlayerId: peer.id,
                             config: realConfig,
-                            players: [humanPlayer] // Host will overwrite this with GAME_STATE_UPDATE
+                            players: [humanPlayer], // Host will overwrite this with GAME_STATE_UPDATE
+                            isSpectating: role === 'spectator'
                         });
                         resolve(true);
                     } else {
@@ -500,6 +605,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
         players.forEach(p => removeOnlinePlayerLuckState(p.id));
 
         if (pingInterval) clearInterval(pingInterval);
+        clearAllGameTimeouts();
 
         // Save current chips for the local player before leaving
         const humanPlayer = players.find(p => p.id === localPlayerId);
@@ -552,7 +658,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             score: 0,
             hasPok: false,
             dengMultiplier: 1,
-            bet: p.isDealer ? 0 : (p.isHuman ? 0 : config.room.minBet),
+            bet: 0, // no more auto-bet, let UI handle it
             previousChips: p.chips,
         }));
 
@@ -589,7 +695,29 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
 
         set({ gamePhase: 'DEALING', isDealing: true });
 
-        const deck = shuffleDeck(createDeck());
+        let deck = shuffleDeck(createDeck());
+
+        // --- Online Luck Assist: Opening Hand ---
+        // Need to run shouldAssistOnlineOpening for every player, and if true,
+        // pre-pick their 2 cards so they don't just get random ones.
+        // We'll store what they should get, and replace cards during dealing loop.
+        const assistedCardsMap = new Map<string, [import('../types/game').Card, import('../types/game').Card]>();
+
+        const { roundNumber } = get();
+        resetOnlineRoundState(roundNumber); // Reset flags for the new round
+
+        players.forEach(p => {
+            if (p.isSpectating) return; // Skip spectators
+            const totalChipsBeforeBet = p.chips + p.bet; // Because chips were already deducted
+            if (shouldAssistOnlineOpening(p.id, totalChipsBeforeBet)) {
+                const assisted = pickAssistedOnlineOpeningCards(p.id, deck, roundNumber);
+                if (assisted) {
+                    assistedCardsMap.set(p.id, assisted.cards);
+                    deck = assisted.remainingDeck;
+                }
+            }
+        });
+
         hostDeckRef.current = deck;
 
         connections.forEach(conn => {
@@ -614,8 +742,17 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             for (let i = 0; i < players.length; i++) {
                 // Determine order starting left of dealer
                 let pIndex = (dealerIndex + 1 + i) % players.length;
-                if (deck.length > 0) {
-                    dealSequence.push({ pIndex, card: deck.shift()! });
+                const p = players[pIndex];
+
+                if (p.isSpectating) continue; // Skip dealing to spectators
+
+                // Do they have assisted cards?
+                const assistedCards = assistedCardsMap.get(p.id);
+                if (assistedCards) {
+                    dealSequence.push({ pIndex, card: assistedCards[round] });
+                    totalCardsToDeal++;
+                } else if (hostDeckRef.current && hostDeckRef.current.length > 0) {
+                    dealSequence.push({ pIndex, card: hostDeckRef.current.shift()! });
                     totalCardsToDeal++;
                 }
             }
@@ -651,7 +788,8 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                         let evaluatedPlayers = currentP.map(p => {
                             const hand = evaluateHand(p.cards);
                             if (hand.type <= HandType.POK_8) {
-                                return { ...p, hasPok: true, hasActed: true, score: hand.score, dengMultiplier: hand.deng };
+                                // Do NOT set hasActed here, let processNextTurn show the skip animation
+                                return { ...p, hasPok: true, score: hand.score, dengMultiplier: hand.deng };
                             }
                             // Crucial: reset hasActed here so they get a chance to draw 3rd card!
                             return { ...p, hasPok: false, hasActed: false };
@@ -681,11 +819,15 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                             if (anyPok) SFX.pok();
 
                             set({ players: evaluatedPlayers, gamePhase: 'PLAYER_ACTION', isDealing: false });
-                            get().processNextTurn();
+
+                            // Delay before first action to match offline
+                            setGameTimeout(() => {
+                                get().processNextTurn();
+                            }, 600);
                         }
                     }, 1000);
                 }
-            }, index * 200 + 400); // Stagger deal by 200ms
+            }, index * 350 + 400); // Stagger deal by 350ms, initial delay 400ms to match offline
         });
     },
 
@@ -723,6 +865,28 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             return;
         }
 
+        const nextPlayer = players[nextPlayerIdx];
+
+        // Match offline Pok skipping animation
+        if (nextPlayer && nextPlayer.hasPok && nextPlayerIdx !== dealerIndex) {
+            const updated = [...players];
+            updated[nextPlayerIdx] = { ...updated[nextPlayerIdx], hasActed: true };
+
+            set({ players: updated, activePlayerIndex: nextPlayerIdx });
+
+            const skipState = get();
+            connections.forEach(conn => {
+                conn.send({
+                    type: 'GAME_STATE_UPDATE',
+                    payload: { players: skipState.players, gamePhase: skipState.gamePhase, isDealing: false, showCards: false, activePlayerIndex: nextPlayerIdx, dealerIndex }
+                } as NetworkMessage);
+            });
+
+            // Wait 500ms to show their turn visually, then process the next one
+            setGameTimeout(() => get().processNextTurn(), 500);
+            return;
+        }
+
         SFX.yourTurn();
         set({ activePlayerIndex: nextPlayerIdx });
 
@@ -748,24 +912,45 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
         const myPlayer = players.find(p => p.id === localPlayerId);
         if (!myPlayer) return;
 
-        // If client, send action to host
+        // If client, send action to host (spam-protected)
         if (!isHost) {
+            const clientTarget = players[activePlayerIndex];
+            if (!clientTarget || clientTarget.id !== localPlayerId || clientTarget.hasActed) return;
+            if (action === 'draw' && clientTarget.cards.length >= 3) return;
+
             if (hostConnection) {
                 hostConnection.send({ type: 'PLAYER_ACTION', payload: { action, playerId: myPlayer.id } } as NetworkMessage);
             }
             return;
         }
 
-        // If Host, process the action directly
+        // If Host, process the action directly (spam-protected)
         const targetPlayer = players[activePlayerIndex];
-        if (!targetPlayer) return;
+        if (!targetPlayer || targetPlayer.hasActed) return;
+        if (action === 'draw' && targetPlayer.cards.length >= 3) return;
 
         let updatedPlayers = [...players];
 
         if (action === 'draw') {
-            const deck = hostDeckRef.current;
+            let deck = hostDeckRef.current;
             if (deck && deck.length > 0) {
-                const card = deck.shift()!;
+                let card: import('../types/game').Card;
+
+                // --- Online Luck Assist: Third Card ---
+                const totalChipsBeforeBet = targetPlayer.chips + targetPlayer.bet;
+                if (shouldAssistOnlineThirdCard(targetPlayer.id, totalChipsBeforeBet)) {
+                    const assisted = pickAssistedOnlineThirdCard(targetPlayer.id, targetPlayer.cards, deck);
+                    if (assisted) {
+                        card = assisted.card;
+                        deck = assisted.remainingDeck;
+                        hostDeckRef.current = deck;
+                    } else {
+                        card = deck.shift()!;
+                    }
+                } else {
+                    card = deck.shift()!;
+                }
+
                 updatedPlayers[activePlayerIndex] = { ...targetPlayer, cards: [...targetPlayer.cards, card], hasActed: true };
             }
         } else {
@@ -798,13 +983,19 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             let finalChips = p.chips;
 
             if (outcome === 'player') {
+                // Player won: Return bet + (bet * playerDeng)
                 result = 'win';
                 const winnings = p.bet * playerResult.deng;
-                finalChips = p.chips + winnings;
+                finalChips = p.chips + p.bet + winnings;
             } else if (outcome === 'dealer') {
+                // Player lost
                 result = 'lose';
-                const loss = p.bet * dealerResult.deng;
-                finalChips = Math.max(0, p.chips - loss);
+                const extraLoss = p.bet * (dealerResult.deng - 1);
+                finalChips = Math.max(0, p.chips - extraLoss);
+            } else {
+                // Draw: return bet only
+                result = 'draw';
+                finalChips = p.chips + p.bet;
             }
 
             const startChips = p.previousChips ?? p.chips;
@@ -843,23 +1034,39 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
         results[dealerIndex] = {
             ...dealer,
             result: dealerNet >= 0 ? 'win' : 'lose',
-            chips: dealer.chips + dealerNet,
+            chips: Math.max(0, dealer.chips + dealerNet),
             score: dealerResultData.score,
             hasPok: dealerResultData.type <= HandType.POK_8,
             dengMultiplier: dealerResultData.deng,
             roundProfit: dealerNet,
         };
 
-        // Save profile for human player immediately after showdown calculations
-        const { localPlayerId } = get();
-        const humanPlayer = results.find(p => p.id === localPlayerId);
-        if (humanPlayer) {
-            const profile = loadProfile();
-            if (profile) {
-                profile.chips = humanPlayer.chips;
+        // --- Stats Tracking & AI Record ---
+        const { isSpectating, localPlayerId, roundNumber } = get();
+        const profile = loadProfile();
+
+        // Track the round globally
+        incrementOnlineTotalRounds();
+
+        results.forEach(p => {
+            // Record in Luck Assist tracking
+            recordOnlineRoundResult(p.id, p.result as 'win' | 'lose' | 'draw', roundNumber);
+
+            // Save actual profile storage for the local player
+            if (p.id === localPlayerId && !isSpectating && profile) {
+                profile.chips = p.chips;
                 saveProfile(profile);
+
+                // Add to overall stats
+                recordGameResult(
+                    p.result as 'win' | 'lose' | 'draw',
+                    p.chips,
+                    p.roundProfit ?? 0
+                );
             }
-        }
+        });
+
+
 
         set({ players: results, gamePhase: 'ROUND_END', activePlayerIndex: -1 });
 
@@ -873,22 +1080,80 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
     },
 
     nextRound: () => {
-        const { isHost, connections, players, config } = get();
+        const { isHost, connections, players, config, localPlayerId } = get();
         if (!isHost || !config) return;
 
-        const dealerIdx = config.humanIsDealer ? 0 : 1; // Assume player 2 is dealer if not host
+        // ── Check if local player (host) should enter spectator mode ──
+        const localPlayer = players.find(p => p.id === localPlayerId);
+        if (localPlayer && localPlayer.chips < config.room.minBet && !localPlayer.isDealer) {
+            set({ isSpectating: true });
+        }
+
+        // ── Check if dealer is broke → kick to spectator and reset to WAITING ──
+        const currentDealer = players.find(p => p.isDealer);
+        if (currentDealer && currentDealer.chips < config.room.minBet) {
+            // Dealer is broke, set them to spectating. 
+            // In online mode, we don't automatically assign a new dealer, so we reset to WAITING.
+
+            // Note: We use the local `isSpectating` for the host's perspective
+            if (currentDealer.id === localPlayerId) {
+                set({ isSpectating: true });
+            }
+
+            // No automatic dealer assignment in online mode -> reset to WAITING
+            const resetPlayers = players.map(p => ({
+                ...p,
+                isDealer: false, // Clear dealer status
+                isSpectating: p.id === currentDealer.id ? true : p.isSpectating,
+                cards: [],
+                bet: 0,
+                hasActed: false,
+                result: 'pending' as const,
+                score: 0,
+                hasPok: false,
+            }));
+
+            set({
+                players: resetPlayers,
+                gamePhase: 'WAITING',
+                isDealing: false,
+                showCards: false,
+                dealerIndex: -1,
+            });
+            connections.forEach(conn => {
+                conn.send({
+                    type: 'GAME_STATE_UPDATE',
+                    payload: { players: resetPlayers, gamePhase: 'WAITING', isDealing: false, showCards: false, activePlayerIndex: -1, dealerIndex: -1 }
+                } as NetworkMessage);
+            });
+            return;
+        }
+
+        // ── Check if any non-dealer player is broke → mark them not participating ──
+        // (They stay in the room but won't bet this round)
+
+        const currentPlayers = get().players;
+        const dealerIdx = currentPlayers.findIndex(p => p.isDealer);
 
         // Reset state for new round except chips
-        const resetPlayers = players.map((p) => ({
-            ...p,
-            cards: [],
-            hasActed: !p.isHuman, // AI players auto-confirm their bet to not block the host
-            result: 'pending' as const,
-            score: 0,
-            dengMultiplier: 1,
-            bet: p.isDealer ? 0 : (p.isHuman ? 0 : config.room.minBet), // Only AI auto-bets
-            previousChips: p.chips, // Track starting chips for profit calculation
-        }));
+        const resetPlayers = currentPlayers.map((p) => {
+            const isBroke = p.chips < config.room.minBet;
+
+            // If they are already spectating, or just went broke this round
+            const spectating = p.isSpectating || isBroke;
+
+            return {
+                ...p,
+                isSpectating: p.isDealer ? false : spectating,
+                cards: [],
+                hasActed: p.isDealer ? false : (spectating ? true : false), // Spectators auto-act
+                result: 'pending' as const,
+                score: 0,
+                dengMultiplier: 1,
+                bet: 0, // no more auto-bet, let UI handle it
+                previousChips: p.chips,
+            };
+        });
 
         set({
             players: resetPlayers,
@@ -898,6 +1163,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             activePlayerIndex: -1,
             dealerIndex: dealerIdx,
             humanBetConfirmed: false,
+            roundNumber: get().roundNumber + 1,
         });
 
         // Broadcast GAME_STATE_UPDATE

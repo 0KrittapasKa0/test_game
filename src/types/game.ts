@@ -41,6 +41,7 @@ export interface Player {
     roundsPlayed?: number;
     consecutiveLosses?: number;
     peakChips?: number;
+    isSpectating?: boolean;
 }
 
 export interface PlayerStats {

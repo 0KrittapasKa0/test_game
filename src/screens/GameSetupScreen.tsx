@@ -447,7 +447,7 @@ export default function GameSetupScreen() {
                                                 whileHover={{ scale: 1.05, y: -2 }}
                                                 whileTap={{ scale: 0.96 }}
                                                 onClick={() => {
-                                                    speakPhrase('สร้างห้องออนไลน์ค่ะ');
+                                                    speakPhrase('สร้างห้องเรียบร้อยค่ะ');
                                                     useOnlineStore.getState().createRoom({
                                                         playerCount,
                                                         humanIsDealer: canBeDealer ? humanIsDealer : false,

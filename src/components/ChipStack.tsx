@@ -42,17 +42,16 @@ export default function ChipStack({ amount, delay = 0, chipPresets, category = '
                 const chipPosition = position !== -1 ? position : 0;
                 const style = getChipStyle(chipPosition, category);
 
-                for (let i = 0; i < num; i++) {
-                    if (count < 15) {
-                        result.push({
-                            value: denom,
-                            style,
-                            index: count,
-                            rotation: Math.random() * 60 - 30,
-                        });
-                    }
-                    count++;
+                const chipsToPush = Math.min(num, 15 - count);
+                for (let i = 0; i < chipsToPush; i++) {
+                    result.push({
+                        value: denom,
+                        style,
+                        index: count + i,
+                        rotation: Math.random() * 60 - 30,
+                    });
                 }
+                count += num;
                 remaining %= denom;
             }
         }
