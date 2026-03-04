@@ -16,6 +16,7 @@ export type NetworkMessage =
             showCards?: boolean;
             activePlayerIndex?: number;
             dealerIndex?: number;
+            latestAiEvents?: { type: 'join' | 'leave'; player: { id: string, result: string, chips: number } }[];
         };
     }
     | { type: 'PLAYER_ACTION'; payload: { action: 'draw' | 'stay'; playerId: string } }

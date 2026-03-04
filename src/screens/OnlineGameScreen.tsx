@@ -8,7 +8,7 @@ import OnlineRoundResultSummary from '../components/OnlineRoundResultSummary';
 import { AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { SFX, speakPhrase } from '../utils/sound';
-import { formatChips } from '../utils/formatChips';
+import { formatChips, numberToThaiVoice } from '../utils/formatChips';
 import { loadProfile, saveProfile } from '../utils/storage';
 import { Copy, Check, Smile } from 'lucide-react';
 import ChipSelector from '../components/ChipSelector';
@@ -146,15 +146,17 @@ export default function OnlineGameScreen() {
                     ← ออก
                 </motion.button>
 
-                <button
-                    onClick={handleCopyId}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/40 hover:bg-black/60 transition-all border border-white/10 cursor-pointer pointer-events-auto group z-50"
-                >
-                    <span className="text-white font-bold tracking-widest uppercase text-xs sm:text-sm drop-shadow-lg">
-                        ID: {roomId}
-                    </span>
-                    {isCopied ? <Check size={14} className="text-green-400" /> : <Copy size={14} className="text-white/50 group-hover:text-white/80" />}
-                </button>
+                <div className="flex items-center gap-2 z-50 pointer-events-auto">
+                    {localPlayer && (
+                        <div
+                            className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-1.5 cursor-pointer hover:bg-black/60 transition-colors active:scale-95 shadow-lg shadow-black/50"
+                            onClick={() => { SFX.click(); speakPhrase(`มีชิปตุนไว้ ${numberToThaiVoice(localPlayer.chips)} ชิปค่ะ`); }}
+                        >
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-linear-to-br from-yellow-300 to-amber-500 shadow-[0_0_6px_rgba(250,204,21,0.6)]" />
+                            <span className="text-yellow-300 text-xs sm:text-sm font-bold">{formatChips(localPlayer.chips)}</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Table Environment */}
@@ -459,6 +461,22 @@ export default function OnlineGameScreen() {
                 onClose={() => setShowEmojiPicker(false)}
                 onSelect={handleSendEmoji}
             />
+
+            {/* Room ID Button (Bottom Right) */}
+            <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 pointer-events-auto">
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleCopyId}
+                    className="flex items-center gap-2 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl bg-black/40 hover:bg-black/60 transition-all backdrop-blur-md border border-white/20 cursor-pointer group shadow-lg shadow-black/50"
+                    title="คัดลอกรหัสห้อง"
+                >
+                    <span className="text-white font-bold tracking-widest uppercase text-xs sm:text-sm drop-shadow-lg">
+                        ID: {roomId}
+                    </span>
+                    {isCopied ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-white/50 group-hover:text-white/80" />}
+                </motion.button>
+            </div>
 
             {/* Exit Confirmation Modal */}
             <AnimatePresence>

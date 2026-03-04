@@ -36,6 +36,7 @@ interface GameState {
     humanBetConfirmed: boolean;
     isSpectating: boolean;
     maxSeats: number;
+    latestAiEvents: { type: 'join' | 'leave'; player: { id: string, result: string, chips: number } }[];
 
     setScreen: (screen: Screen) => void;
     completeSplash: () => void;
@@ -224,6 +225,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     humanBetConfirmed: false,
     isSpectating: false,
     maxSeats: 0,
+    latestAiEvents: [],
 
     setScreen: (screen) => set({ screen }),
 
@@ -761,7 +763,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         const deckCopy = [...deck];
 
-        if (aiShouldDraw(ai.cards)) {
+        if (aiShouldDraw(ai.cards, ai.id)) {
             SFX.aiDraw();
             const card = deckCopy.pop()!;
             const newCards = [...ai.cards, card];
@@ -986,6 +988,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         // Check if the current dealer is leaving
         const dealerIsLeaving = currentDealer && leaverIds.has(currentDealer.id);
 
+        const aiEvents: { type: 'join' | 'leave'; player: { id: string, result: string, chips: number } }[] = [];
+        leavers.forEach(l => aiEvents.push({
+            type: 'leave',
+            player: { id: l.player.id, result: l.player.result as string, chips: l.player.chips }
+        }));
+
         updatedPlayers = updatedPlayers.filter(p => {
             if (p.isHuman) return true; // Always keep human (for spectating)
             return !leaverIds.has(p.id);
@@ -1024,6 +1032,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 try {
                     const newAi = await createSingleAi(config.room.aiChips, seatIdx, config.room.minBet);
                     updatedPlayers.push(newAi);
+                    aiEvents.push({ type: 'join', player: { id: newAi.id, result: 'draw', chips: newAi.chips } });
                 } catch {
                     // Silently fail if API unavailable
                 }
@@ -1051,6 +1060,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             players: updatedPlayers,
             dealerIndex: newDealerIndex >= 0 ? newDealerIndex : 0,
             roundNumber: roundNumber + 1,
+            latestAiEvents: aiEvents,
         });
         get().startRound();
     },
@@ -1076,6 +1086,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             aiBettingInProgress: false,
             aiBettingQueue: [],
             humanBetConfirmed: false,
+            latestAiEvents: [],
         });
     },
 

@@ -14,6 +14,7 @@ import {
     incrementOnlineTotalRounds,
     resetOnlineRoundState
 } from '../utils/onlineLuckAssist';
+import { getAiLeavers } from '../utils/aiLeave';
 import { createDeck, shuffleDeck, evaluateHand, HandType, compareHands } from '../utils/deck';
 import { SFX } from '../utils/sound';
 
@@ -34,6 +35,7 @@ interface OnlineGameState {
     activePlayerIndex: number;
     dealerIndex: number;
     humanBetConfirmed: boolean;
+    latestAiEvents: { type: 'join' | 'leave'; player: { id: string, result: string, chips: number } }[];
 
     // Networking Data
     peer: Peer | null;
@@ -128,6 +130,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
     dealerIndex: -1,
     roundNumber: 1,
     humanBetConfirmed: false,
+    latestAiEvents: [],
     peer: null,
     connections: [],
     hostConnection: null,
@@ -1200,8 +1203,24 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
         const currentPlayers = get().players;
         const dealerIdx = currentPlayers.findIndex(p => p.isDealer);
 
+        // --- Remove Leaving AI Players ---
+        let updatedPlayers = [...currentPlayers];
+        const leavers = getAiLeavers(updatedPlayers, config.room.minBet);
+        const leaverIds = new Set(leavers.map(l => l.player.id));
+
+        const aiEvents: { type: 'join' | 'leave'; player: { id: string, result: string, chips: number } }[] = [];
+        leavers.forEach(l => aiEvents.push({
+            type: 'leave',
+            player: { id: l.player.id, result: l.player.result as string, chips: l.player.chips }
+        }));
+
+        updatedPlayers = updatedPlayers.filter(p => {
+            if (p.isHuman) return true; // Humans don't auto-leave this way
+            return !leaverIds.has(p.id);
+        });
+
         // Reset state for new round except chips
-        const resetPlayers = currentPlayers.map((p) => {
+        const resetPlayers = updatedPlayers.map((p) => {
             const isBroke = p.chips < config.room.minBet;
 
             // If they are already spectating, or just went broke this round
@@ -1262,6 +1281,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             dealerIndex: dealerIdx,
             humanBetConfirmed: false,
             roundNumber: get().roundNumber + 1,
+            latestAiEvents: aiEvents,
         });
 
         // Broadcast GAME_STATE_UPDATE
@@ -1275,7 +1295,8 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                     isDealing: false,
                     showCards: false,
                     activePlayerIndex: -1,
-                    dealerIndex: dealerIdx
+                    dealerIndex: dealerIdx,
+                    latestAiEvents: aiEvents,
                 }
             } as NetworkMessage);
         });

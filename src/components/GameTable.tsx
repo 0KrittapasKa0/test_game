@@ -9,7 +9,7 @@ import RoundResultSummary from './RoundResultSummary';
 import { useGameStore } from '../store/useGameStore';
 import { SFX, speakPhrase } from '../utils/sound';
 import { evaluateHand } from '../utils/deck';
-import { formatChips } from '../utils/formatChips';
+import { formatChips, numberToThaiVoice } from '../utils/formatChips';
 import { RoomEnvironment } from './RoomEnvironment';
 import EmojiPicker from './EmojiPicker';
 import FloatingEmoji, { type FloatingEmojiEvent } from './FloatingEmoji';
@@ -194,6 +194,7 @@ export default function GameTable() {
         isDealing, showCards, config,
         activePlayerIndex, aiBettingInProgress, isSpectating, humanBetConfirmed,
         placeBet, confirmBet, playerDraw, playerStay, resetGame, addChips,
+        latestAiEvents,
     } = useGameStore();
 
     const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -257,6 +258,45 @@ export default function GameTable() {
         setFlyingCards(prev => prev.filter(fc => fc.id !== id));
     }, []);
 
+    // --- Listen to Join/Leave Events ---
+    useEffect(() => {
+        if (!latestAiEvents || latestAiEvents.length === 0) return;
+
+        latestAiEvents.forEach(event => {
+            const delay = 400 + Math.random() * 800; // Quick reaction
+
+            setTimeout(() => {
+                let context: EmojiContext | null = null;
+                if (event.type === 'join') {
+                    context = 'join_room';
+                } else if (event.type === 'leave') {
+                    // Decide if they left rich or broke
+                    if (event.player.result === 'win' || event.player.result === 'draw') {
+                        context = 'leave_win';
+                    } else {
+                        context = 'leave_lose';
+                    }
+                }
+
+                if (context) {
+                    const emoji = tryBotEmoji(event.player.id, context);
+                    if (emoji) {
+                        const newEvent: FloatingEmojiEvent = {
+                            id: `ai-event-${Date.now()}-${event.player.id}`,
+                            playerId: event.player.id,
+                            emoji,
+                            timestamp: Date.now()
+                        };
+                        setEmojiEvents(prev => [...prev, newEvent]);
+                        setTimeout(() => {
+                            setEmojiEvents(prev => prev.filter(e => e.id !== newEvent.id));
+                        }, 2500);
+                    }
+                }
+            }, delay);
+        });
+    }, [latestAiEvents]);
+
     // Detect new cards being dealt and spawn flying card animations
     useEffect(() => {
         if (!isDealing && gamePhase !== 'PLAYER_ACTION') {
@@ -309,25 +349,26 @@ export default function GameTable() {
         const aiPlayers = activePlayers.filter(p => !p.isHuman);
         if (aiPlayers.length === 0) return;
 
-        // Smart contextual response based on what the human sent:
-        const randomAi = aiPlayers[Math.floor(Math.random() * aiPlayers.length)];
-        setTimeout(() => {
-            const aiEmoji = getContextualEmojiResponse(emoji, randomAi.id);
+        // Smart contextual response: letting all AIs evaluate if they want to respond
+        aiPlayers.forEach((ai) => {
+            const delay = 600 + Math.random() * 2500; // Random delay per bot
+            setTimeout(() => {
+                const aiEmoji = getContextualEmojiResponse(emoji, ai.id);
+                if (aiEmoji) {
+                    const aiEvent: FloatingEmojiEvent = {
+                        id: `emoji-ai-${Date.now()}-${ai.id}`,
+                        playerId: ai.id,
+                        emoji: aiEmoji,
+                        timestamp: Date.now()
+                    };
 
-            if (aiEmoji) {
-                const aiEvent: FloatingEmojiEvent = {
-                    id: `emoji-ai-${Date.now()}`,
-                    playerId: randomAi.id,
-                    emoji: aiEmoji,
-                    timestamp: Date.now()
-                };
-
-                setEmojiEvents(prev => [...prev, aiEvent]);
-                setTimeout(() => {
-                    setEmojiEvents(prev => prev.filter(e => e.id !== aiEvent.id));
-                }, 2000);
-            }
-        }, 800 + Math.random() * 1500);
+                    setEmojiEvents(prev => [...prev, aiEvent]);
+                    setTimeout(() => {
+                        setEmojiEvents(prev => prev.filter(e => e.id !== aiEvent.id));
+                    }, 2000);
+                }
+            }, delay);
+        });
     }, [humanPlayer, activePlayers]);
 
     // --- Autonomous AI Emojis (Organic Engine v2) ---
@@ -355,6 +396,27 @@ export default function GameTable() {
                 }, 2500);
             }, delayMs);
         };
+
+        // --- Herd Mentality: Reacting to other bots ---
+        // We look at the latest emoji event. If it's from a bot, others might pile on.
+        const latestEvent = emojiEvents[emojiEvents.length - 1];
+        if (latestEvent && latestEvent.timestamp > Date.now() - 3000) {
+            const isFromBot = aiPlayers.some(p => p.id === latestEvent.playerId);
+            if (isFromBot) {
+                // If the latest emoji was from a bot, give other bots a chance to react
+                aiPlayers.forEach(bot => {
+                    if (bot.id === latestEvent.playerId) return; // don't react to self
+
+                    // Higher chance to herd if it's a troll/reactionary context
+                    if (Math.random() < 0.3) {
+                        const emoji = getContextualEmojiResponse(latestEvent.emoji, bot.id); // This already checks traits inside
+                        if (emoji) {
+                            schedule(bot.id, emoji, 800 + Math.random() * 2000);
+                        }
+                    }
+                });
+            }
+        }
 
         const dealer = activePlayers.find(p => p.isDealer);
 
@@ -448,7 +510,10 @@ export default function GameTable() {
 
                 {/* Human chip display */}
                 {humanPlayer && (
-                    <div className="bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/6 flex items-center gap-1.5">
+                    <div
+                        className="bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/6 flex items-center gap-1.5 cursor-pointer pointer-events-auto hover:bg-black/50 transition-colors active:scale-95"
+                        onClick={() => { SFX.click(); speakPhrase(`มี ${numberToThaiVoice(humanPlayer.chips)} ชิปค่ะ`); }}
+                    >
                         <span className="inline-block w-2.5 h-2.5 rounded-full bg-linear-to-br from-yellow-300 to-amber-500 shadow-[0_0_6px_rgba(250,204,21,0.6)]" />
                         <span className="text-yellow-300 text-xs sm:text-sm font-bold">{formatChips(humanPlayer.chips)}</span>
                     </div>

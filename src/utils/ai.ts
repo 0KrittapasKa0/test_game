@@ -1,21 +1,57 @@
 import { calculateScore } from './deck';
 import { shouldNerfAiDraw } from './luckAssist';
+import { getBotTraits, getMood } from './aiEmojiLogic';
 import type { Card, RoomConfig } from '../types/game';
 
-export function aiShouldDraw(cards: Card[]): boolean {
+export function aiShouldDraw(cards: Card[], botId: string): boolean {
     const score = calculateScore(cards);
 
     // Nerf: AI ที่แต้มดี (6-7) อาจจั่วเข้าตัว — ดูเป็นธรรมชาติเหมือน AI ตัดสินใจผิด
     if (score >= 6 && shouldNerfAiDraw()) return true;
 
+    // แต้ม ≤3: จั่วเสมอ 100% (ยกเว้นมือพิเศษ ซึ่งปกติจะไม่โผล่มาตรงนี้ถ้ารวมแต้มได้แค่นี้)
     if (score <= 3) return true;
 
-    if (score >= 4 && score <= 5) {
-        return Math.random() < 0.65;
+    // --- ดึงอุปนิสัยและอารมณ์บอท ---
+    const traits = getBotTraits(botId);
+    const mood = getMood(botId); // -1.0 (เสียติด) ถึง +1.0 (ได้ติด)
+
+    // คำนวณความกล้าได้กล้าเสีย (Aggression)
+    // - ยิ่ง reactivity/emotionality สูงยิ่งกล้าจั่ว
+    // - ถ้ากำลังติดลมบน (mood > 0) ยิ่งมั่นใจ กล้าจั่ว
+    // - ถ้ากำลังเสีย (mood < -0.3) บางตัวอาจเพลย์เซฟ หรือหน้ามืดตามัวจั่ว
+    let aggression = (traits.reactivity + traits.emotionality) / 2;
+    if (mood > 0) aggression += mood * 0.2;
+
+    // ถ้าแพ้หนักๆ บอทกวนๆ จะยิ่งบ้าบิ่น (tilt)
+    if (mood < -0.5 && traits.trollLevel > 0.3) aggression += 0.3;
+
+    // Clamp aggression ให้อยู่ในช่วง 0.1 - 0.9
+    aggression = Math.max(0.1, Math.min(0.9, aggression));
+
+    // --- โอกาสจั่วตามแต้ม ---
+    if (score === 4) {
+        // Base chance: 80%. บอทขี้ขลาดลดเหลือ 60%, บอทกล้าได้ให้ 95%
+        const chance = 0.60 + (aggression * 0.35);
+        return Math.random() < chance;
+    }
+
+    if (score === 5) {
+        // Base chance: 50%. บอทขี้ขลาดลดเหลือ 20%, บอทกล้าได้ให้ 80%
+        const chance = 0.20 + (aggression * 0.60);
+        return Math.random() < chance;
     }
 
     if (score === 6) {
-        return Math.random() < 0.3;
+        // Base chance: 20%. บอทขี้ขลาด 5%, บอทกล้าได้ให้ 45%
+        const chance = 0.05 + (aggression * 0.40);
+        return Math.random() < chance;
+    }
+
+    if (score === 7) {
+        // แอบจั่วที่แต้ม 7 แบบโง่ๆ นานๆ ที (เฉพาะบอทบ้าบิ่นมาก)
+        if (aggression > 0.8 && Math.random() < 0.05) return true;
+        return false;
     }
 
     return false;

@@ -313,7 +313,7 @@ export const ROOMS: RoomConfig[] = [
     {
         id: 'ult_peak',
         name: 'จุดสูงสุด',
-        emoji: '♠️',
+        emoji: '👑',
         minBet: 100000000,
         maxBet: 1000000000, // 1 Billion ceiling
         chipPresets: [100000000, 200000000, 500000000, 1000000000],

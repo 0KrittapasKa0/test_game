@@ -158,7 +158,7 @@ export default function GameSetupScreen() {
                                 </h2>
 
                                 {/* Centered Capital Text Without Background or Icon */}
-                                <div className="text-center mb-6 w-full">
+                                <div className="text-center mb-6 w-full cursor-pointer hover:brightness-110 transition-all active:scale-95" onClick={() => { SFX.click(); speakPhrase(`มีทุน ${numberToThaiVoice(profile.chips)} ชิปค่ะ`); }}>
                                     <span className="text-white/40 text-xs font-bold uppercase tracking-wider mr-2">ทุนของคุณ:</span>
                                     <span className="text-yellow-400 font-bold tracking-wider">{formatChips(profile.chips)}</span>
                                 </div>
@@ -278,9 +278,9 @@ export default function GameSetupScreen() {
                                 <div className="flex gap-3 mt-4">
                                     {/* Search Button */}
                                     <div className="relative">
-                                        {/* Unstable badge */}
-                                        <div className="absolute -top-2 -right-2 z-20 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.6)] tracking-widest uppercase border border-orange-300/30">
-                                            ไม่เสถียร
+                                        {/* Stable/Online badge */}
+                                        <div className="absolute -top-2 -right-2 z-20 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)] tracking-widest uppercase border border-cyan-300/30">
+                                            ออนไลน์
                                         </div>
                                         <motion.button
                                             whileHover={{ scale: 1.02 }}
@@ -437,7 +437,7 @@ export default function GameSetupScreen() {
 
                                 {/* Action Bar */}
                                 <div className="pt-2 border-t border-white/5 mt-auto">
-                                    <div className="flex items-center justify-between mb-4 px-1">
+                                    <div className="flex items-center justify-between mb-4 px-1 cursor-pointer hover:brightness-110 transition-all active:scale-95" onClick={() => { SFX.click(); speakPhrase(`ยอดชิปคงเหลือ ${numberToThaiVoice(profile.chips)} ชิปค่ะ`); }}>
                                         <span className="text-white/40 text-xs font-semibold uppercase tracking-widest">ยอดชิปคงเหลือ:</span>
                                         <span className="text-yellow-400 font-semibold text-lg drop-shadow-md">{formatChips(profile.chips)}</span>
                                     </div>
@@ -446,9 +446,9 @@ export default function GameSetupScreen() {
                                     <div className="flex gap-3">
                                         {/* Create Room Button (Online Testing) */}
                                         <div className="relative flex-1">
-                                            {/* Unstable badge */}
-                                            <div className="absolute -top-2 -right-1 z-20 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.6)] tracking-widest uppercase border border-orange-300/30">
-                                                ไม่เสถียร
+                                            {/* Stable/Online badge */}
+                                            <div className="absolute -top-2 -right-1 z-20 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)] tracking-widest uppercase border border-cyan-300/30">
+                                                ออนไลน์เสถียร
                                             </div>
                                             <motion.button
                                                 whileHover={{ scale: 1.05, y: -2 }}

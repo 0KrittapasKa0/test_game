@@ -38,7 +38,7 @@ function getAllEmojis(): string[] {
 }
 
 // --- Bot Traits (5 continuous values, 0-1) ---
-interface BotTraits {
+export interface BotTraits {
     chattiness: number;    // how often they react overall
     emotionality: number;  // how dramatic (amplifies sad/celebrate/suspense)
     trollLevel: number;    // sarcasm level (amplifies tease/angry)
@@ -56,7 +56,7 @@ function hashFloat(str: string, seed: number): number {
     return (Math.abs(h) % 10000) / 10000;
 }
 
-function getBotTraits(botId: string): BotTraits {
+export function getBotTraits(botId: string): BotTraits {
     return {
         chattiness: 0.12 + hashFloat(botId, 1) * 0.23,  // 0.12 - 0.35
         emotionality: 0.1 + hashFloat(botId, 2) * 0.8,   // 0.1 - 0.9
@@ -96,22 +96,30 @@ function incrementBudget(botId: string): void {
 
 // --- Cooldown System ---
 const lastEmojiTime: Map<string, number> = new Map();
+let lastGlobalEmojiTime = 0; // Prevent multiple bots from firing at the exact same millisecond
 
 function getCooldownMs(botId: string): number {
     const t = getBotTraits(botId);
-    const base = 5000 + t.patience * 10000; // 5s to 15s
-    // Add random variance ±2s
-    return base + (Math.random() - 0.5) * 4000;
+    // Base cooldown increased to 8-18 seconds to prevent spam
+    const base = 8000 + t.patience * 10000;
+    // Add random variance ±3s
+    return base + (Math.random() - 0.5) * 6000;
 }
 
 function isOnCooldown(botId: string): boolean {
+    const now = Date.now();
+    // Global cooldown: no bot can speak within 2 seconds of another bot
+    if (now - lastGlobalEmojiTime < 2000) return true;
+
     const last = lastEmojiTime.get(botId);
     if (!last) return false;
-    return (Date.now() - last) < getCooldownMs(botId);
+    return (now - last) < getCooldownMs(botId);
 }
 
 function markUsed(botId: string): void {
-    lastEmojiTime.set(botId, Date.now());
+    const now = Date.now();
+    lastEmojiTime.set(botId, now);
+    lastGlobalEmojiTime = now;
     incrementBudget(botId);
 }
 
@@ -128,7 +136,7 @@ export function updateMood(botId: string, result: 'win' | 'lose' | 'draw'): void
     moodState.set(botId, newMood);
 }
 
-function getMood(botId: string): number {
+export function getMood(botId: string): number {
     return moodState.get(botId) ?? 0;
 }
 
@@ -138,56 +146,80 @@ interface WeightedEmoji {
     weight: number;
 }
 
+// Map the Category names used in aiEmojiLogic to the actual emojis from EmojiPicker
+const EXACT_EMOJIS: Record<string, string[]> = {
+    greeting: ['👋', '🙏', '🤝', '💖', '💯'],
+    celebrate: ['😄', '🎉', '👏', '🤩', '🤑'], // Maps to 'happy'
+    suspense: ['🫣', '🥶', '😱', '🤞', '🥺'],
+    sad: ['😭', '💔', '😓', '😵', '💸'],
+    angry: ['😡', '🤬', '😤', '🙄', '😠'],
+    tease: ['😏', '😝', '🤫', '🥱', '😎']     // Maps to 'teasing'
+};
+
 function buildPool(
     baseWeights: Record<string, number>,
     botId: string,
 ): WeightedEmoji[] {
     const pool: WeightedEmoji[] = [];
-    const groups = getEmojiGroups();
     const traits = getBotTraits(botId);
     const favorites = getBotFavorites(botId);
     const mood = getMood(botId);
 
-    for (const [groupName, emojis] of Object.entries(groups)) {
-        const base = baseWeights[groupName] ?? 0;
-        if (base <= 0) continue;
+    for (const [groupName, baseWeight] of Object.entries(baseWeights)) {
+        if (baseWeight <= 0) continue;
+
+        const emojis = EXACT_EMOJIS[groupName] || [];
 
         for (const emoji of emojis) {
-            let w = base;
+            let w = baseWeight;
 
             // --- Trait modifiers ---
-            if (groupName === 'tease' || groupName === 'angry') {
-                w *= (0.3 + traits.trollLevel * 1.5);
+            // Troll bots love teasing, angry, and suspense
+            if (groupName === 'tease' || groupName === 'angry' || groupName === 'suspense') {
+                w *= (0.5 + traits.trollLevel * 2.0); // Up to 2.5x base weight
             }
-            if (groupName === 'sad' || groupName === 'celebrate') {
-                w *= (0.4 + traits.emotionality * 1.2);
+            // Emotional bots lean heavily into sad, celebrate, angry
+            if (groupName === 'sad' || groupName === 'celebrate' || groupName === 'angry') {
+                w *= (0.4 + traits.emotionality * 1.5);
             }
-            if (groupName === 'suspense') {
-                w *= (0.5 + traits.emotionality * 0.8);
-            }
+            // Chill bots (low troll, low emotionality) use greetings more
             if (groupName === 'greeting') {
-                w *= (1.0 - traits.trollLevel * 0.5);
+                w *= (1.5 - traits.trollLevel - traits.emotionality);
             }
 
             // --- Mood modifiers ---
-            // Tilted bots (negative mood) lean toward sad/angry
-            if (mood < -0.3 && (groupName === 'sad' || groupName === 'angry')) {
-                w *= (1.0 + Math.abs(mood) * 0.8);
+            // Tilted bots (negative mood) lean toward sad/angry/tease
+            if (mood < -0.3 && (groupName === 'sad' || groupName === 'angry' || groupName === 'tease')) {
+                w *= (1.0 + Math.abs(mood) * 1.2);
             }
-            // Hot streak bots lean toward celebrate/tease
+            // Hot streak bots (positive mood) lean toward celebrate/tease
             if (mood > 0.3 && (groupName === 'celebrate' || groupName === 'tease')) {
-                w *= (1.0 + mood * 0.8);
+                w *= (1.0 + mood * 1.2);
             }
 
-            // --- Favorite emoji bonus (2x more likely) ---
+            // --- Favorite emoji bonus (2.5x more likely) ---
             if (favorites.includes(emoji)) {
-                w *= 2.0;
+                w *= 2.5;
+            }
+
+            // --- Specific Emoji Nuances (making them extra smart!) ---
+            // Money emojis when winning/losing
+            if ((emoji === '🤑' || emoji === '💸') && mood !== 0) {
+                w *= 1.5;
+            }
+            // Troll face heavily boosted for high troll bots
+            if ((emoji === '😝' || emoji === '😎') && traits.trollLevel > 0.4) {
+                w *= 1.8;
+            }
+            // Pleading/Crossing fingers for high suspense/drawing
+            if ((emoji === '🥺' || emoji === '🤞') && groupName === 'suspense') {
+                w *= 1.3;
             }
 
             // --- Mood jitter: ±35% random noise ---
             w *= (0.65 + Math.random() * 0.7);
 
-            if (w > 0.01) {
+            if (w > 0.05) {
                 pool.push({ emoji, weight: w });
             }
         }
@@ -222,40 +254,62 @@ export type EmojiContext =
     | 'round_win'     // bot won the round
     | 'round_loss'    // bot lost the round
     | 'round_ok'      // neutral result
-    | 'react_human';  // responding to something the human did
+    | 'react_human'   // responding to something the human did
+    | 'react_bot'     // responding to another bot (herd mentality)
+    | 'join_room'     // bot just joined the table
+    | 'leave_win'     // bot leaves the room with profit
+    | 'leave_lose';   // bot leaves the room bankrupt
 
 function getBaseWeights(context: EmojiContext): Record<string, number> {
     switch (context) {
+        // --- Pre-Game & Dealing ---
         case 'waiting':
-            return { greeting: 6, tease: 2, suspense: 1 };
+            return { greeting: 7, tease: 2, suspense: 1 };
         case 'dealing':
-            return { suspense: 6, greeting: 2 };
+            return { suspense: 8, tease: 1, greeting: 1 };
+
+        // --- During the Round (Hand Evaluation) ---
         case 'my_pok':
-            return { celebrate: 8, tease: 3, greeting: 2 };
+            return { celebrate: 6, tease: 3, greeting: 1 }; // 🎉🤩😎
         case 'my_bad_hand':
-            return { sad: 5, angry: 3, suspense: 3, tease: 1 };
+            return { sad: 5, angry: 3, suspense: 2 }; // 😭😓😡🫣
         case 'my_ok_hand':
-            return { suspense: 4, greeting: 2, tease: 1 };
+            return { suspense: 5, tease: 3, greeting: 2 }; // 🤞😏💯
         case 'drawing':
-            return { suspense: 7, sad: 2, greeting: 2 };
+            return { suspense: 7, sad: 2, angry: 1 }; // 🥺🥶
         case 'staying':
-            return { tease: 4, celebrate: 3, suspense: 2 };
+            return { tease: 5, celebrate: 3, suspense: 2 }; // 😎😏
+
+        // --- Social/Round End ---
         case 'see_pok':
-            return { suspense: 4, sad: 3, angry: 2, celebrate: 1 };
-        case 'dealer_strong':
-            return { celebrate: 4, tease: 5, greeting: 1 };
-        case 'dealer_weak':
-            return { suspense: 5, sad: 3, angry: 2, tease: 1 };
+            return { suspense: 4, sad: 4, angry: 2 }; // 😱😵🤬
         case 'round_win':
-            return { celebrate: 7, tease: 3, greeting: 2 };
+            return { celebrate: 6, tease: 3, greeting: 1 }; // 🤑🎉😝
         case 'round_loss':
-            return { sad: 5, angry: 4, suspense: 2 };
+            return { sad: 6, angry: 3, tease: 1 }; // 💸😭😤
         case 'round_ok':
-            return { greeting: 3, tease: 2, suspense: 2, celebrate: 1 };
+            return { greeting: 6, suspense: 3, tease: 1 }; // 🙏🤝
+
+        // --- Default / Fallbacks ---
+        case 'dealer_strong':
+            return { sad: 4, suspense: 4, angry: 2 };
+        case 'dealer_weak':
+            return { celebrate: 5, tease: 4, suspense: 1 };
         case 'react_human':
-            return { greeting: 3, celebrate: 2, tease: 3, suspense: 1, angry: 1 };
+            return { greeting: 3, tease: 3, celebrate: 2, suspense: 1, angry: 1 };
+        case 'react_bot':
+            return { tease: 3, celebrate: 2, angry: 2, sad: 1, suspense: 1 };
+
+        // --- Room Events ---
+        case 'join_room':
+            return { greeting: 8, tease: 1, celebrate: 1 }; // 👋🙏
+        case 'leave_win':
+            return { celebrate: 5, tease: 4, greeting: 1 }; // 🤑😎👋
+        case 'leave_lose':
+            return { sad: 6, angry: 3, suspense: 1 };       // 😭🤬💸
+
         default:
-            return { greeting: 2, tease: 1 };
+            return { greeting: 1 };
     }
 }
 

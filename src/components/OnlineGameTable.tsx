@@ -124,7 +124,7 @@ function getChipPosition(playerPos: SeatPosition): SeatPosition {
 
 // === Custom hook: emoji logic for online mode ===
 export function useOnlineEmoji() {
-    const { players, gamePhase, activePlayerIndex, localPlayerId, sendEmoji, onEmojiReceived, offEmojiReceived } = useOnlineStore();
+    const { players, gamePhase, activePlayerIndex, localPlayerId, sendEmoji, onEmojiReceived, offEmojiReceived, latestAiEvents } = useOnlineStore();
     const activePlayers = players.filter(p => !p.isSpectating);
 
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -150,23 +150,25 @@ export function useOnlineEmoji() {
 
         // Simulated bots replying if any bots present
         const aiPlayers = activePlayers.filter(p => !p.isHuman);
-        if (aiPlayers.length > 0 && Math.random() > 0.4) {
-            setTimeout(() => {
-                const randomAi = aiPlayers[Math.floor(Math.random() * aiPlayers.length)];
-                const aiEmoji = getContextualEmojiResponse(emoji, randomAi.id);
-                if (aiEmoji) {
-                    const aiEvent: FloatingEmojiEvent = {
-                        id: `emoji-ai-${Date.now()}`,
-                        playerId: randomAi.id,
-                        emoji: aiEmoji,
-                        timestamp: Date.now()
-                    };
-                    setEmojiEvents(prev => [...prev, aiEvent]);
-                    setTimeout(() => {
-                        setEmojiEvents(prev => prev.filter(e => e.id !== aiEvent.id));
-                    }, 2000);
-                }
-            }, 800 + Math.random() * 1500);
+        if (aiPlayers.length > 0) {
+            aiPlayers.forEach((ai) => {
+                const delay = 600 + Math.random() * 2500;
+                setTimeout(() => {
+                    const aiEmoji = getContextualEmojiResponse(emoji, ai.id);
+                    if (aiEmoji) {
+                        const aiEvent: FloatingEmojiEvent = {
+                            id: `emoji-ai-${Date.now()}-${ai.id}`,
+                            playerId: ai.id,
+                            emoji: aiEmoji,
+                            timestamp: Date.now()
+                        };
+                        setEmojiEvents(prev => [...prev, aiEvent]);
+                        setTimeout(() => {
+                            setEmojiEvents(prev => prev.filter(e => e.id !== aiEvent.id));
+                        }, 2000);
+                    }
+                }, delay);
+            });
         }
 
     }, [localPlayerId, activePlayers, sendEmoji]);
@@ -190,6 +192,44 @@ export function useOnlineEmoji() {
         onEmojiReceived(handleRemoteEmoji);
         return () => offEmojiReceived(handleRemoteEmoji);
     }, [localPlayerId, onEmojiReceived, offEmojiReceived]);
+
+    // --- Listen to Join/Leave Events ---
+    useEffect(() => {
+        if (!latestAiEvents || latestAiEvents.length === 0) return;
+
+        latestAiEvents.forEach(event => {
+            const delay = 400 + Math.random() * 800; // Quick reaction
+
+            setTimeout(() => {
+                let context: EmojiContext | null = null;
+                if (event.type === 'join') {
+                    context = 'join_room';
+                } else if (event.type === 'leave') {
+                    if (event.player.result === 'win' || event.player.result === 'draw') {
+                        context = 'leave_win';
+                    } else {
+                        context = 'leave_lose';
+                    }
+                }
+
+                if (context) {
+                    const emoji = tryBotEmoji(event.player.id, context);
+                    if (emoji) {
+                        const newEvent: FloatingEmojiEvent = {
+                            id: `ai-event-${Date.now()}-${event.player.id}`,
+                            playerId: event.player.id,
+                            emoji,
+                            timestamp: Date.now()
+                        };
+                        setEmojiEvents(prev => [...prev, newEvent]);
+                        setTimeout(() => {
+                            setEmojiEvents(prev => prev.filter(e => e.id !== newEvent.id));
+                        }, 2500);
+                    }
+                }
+            }, delay);
+        });
+    }, [latestAiEvents]);
 
     // --- Autonomous AI Emojis (Organic Engine v2) ---
     useEffect(() => {

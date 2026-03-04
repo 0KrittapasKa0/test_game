@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Volume2, VolumeX, Settings as SettingsIcon, Mic, MicOff, Check, X, Download, Upload, Save } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Settings as SettingsIcon, Mic, MicOff, Check, X, Download, Upload, Save, Bug, Facebook } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { loadSettings, saveSettings, exportGameData, importGameData } from '../utils/storage';
 import { SFX, speakPhrase } from '../utils/sound';
@@ -164,29 +164,49 @@ export default function SettingsScreen() {
                                 </div>
                             </div>
 
-                            {/* Account Transfer Section */}
+                            {/* Developer & Support Section */}
                             <div className="mt-8 pt-6 border-t border-white/10">
+                                <h3 className="text-white/80 font-bold mb-4 text-sm tracking-widest flex items-center gap-2">
+                                    <Bug size={16} className="text-red-400" /> แจ้งปัญหา / ติดต่อผู้พัฒนา
+                                </h3>
+
+                                <div className="space-y-3">
+                                    <a
+                                        href="#"
+                                        onClick={(e) => { e.preventDefault(); SFX.click(); window.open('https://www.facebook.com/krittapas.kaewsinchai.2025', '_blank'); }}
+                                        className="w-full py-3 bg-white/5 hover:bg-[#1877F2]/10 border border-white/10 hover:border-[#1877F2]/50 rounded-xl flex items-center justify-center gap-2 text-white/70 hover:text-[#1877F2] transition-colors"
+                                    >
+                                        <Facebook size={18} />
+                                        <span>ติดต่อผ่าน Facebook</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Account Transfer Section */}
+                            <div className="pt-6 border-t border-white/10 mt-6">
                                 <h3 className="text-white/80 font-bold mb-4 text-sm tracking-widest flex items-center gap-2">
                                     <Save size={16} /> โอนย้ายข้อมูลบัญชี
                                 </h3>
 
                                 <div className="space-y-3">
-                                    <button
-                                        onClick={handleExport}
-                                        className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-yellow-400 transition-colors"
-                                    >
-                                        <Upload size={18} />
-                                        <span>ส่งออกข้อมูล (คัดลอกโค้ด)</span>
-                                    </button>
-
                                     {!showImport ? (
-                                        <button
-                                            onClick={() => { SFX.click(); setShowImport(true); }}
-                                            className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-emerald-400 transition-colors"
-                                        >
-                                            <Download size={18} />
-                                            <span>นำเข้าข้อมูล (ใส่โค้ด)</span>
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={handleExport}
+                                                className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex flex-col items-center justify-center gap-1.5 text-yellow-400 transition-colors"
+                                            >
+                                                <Upload size={20} />
+                                                <span className="text-xs font-bold w-full text-center px-1">ส่งออกข้อมูล</span>
+                                            </button>
+
+                                            <button
+                                                onClick={() => { SFX.click(); setShowImport(true); }}
+                                                className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex flex-col items-center justify-center gap-1.5 text-emerald-400 transition-colors"
+                                            >
+                                                <Download size={20} />
+                                                <span className="text-xs font-bold w-full text-center px-1">นำเข้าข้อมูล</span>
+                                            </button>
+                                        </div>
                                     ) : (
                                         <motion.div
                                             initial={{ opacity: 0, height: 0 }}

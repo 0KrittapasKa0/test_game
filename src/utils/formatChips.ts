@@ -52,31 +52,37 @@ export function numberToThaiVoice(amount: number): string {
     const abs = Math.abs(amount);
     const sign = amount < 0 ? "ลบ" : "";
 
+    // Helper to format the number string for TTS: e.g. 4.5 -> "4.5", 4.0 -> "4"
+    const formatNumStr = (num: number) => {
+        const str = num.toFixed(1);
+        return str.endsWith('.0') ? str.slice(0, -2) : str;
+    };
+
     // For extremely large numbers, use shorthand decimals so TTS reads it faster
     // e.g. "1.5 ล้าน" instead of "หนึ่งล้านห้าแสน"
     if (abs >= 1_000_000_000_000_000) {
         const num = abs / 1_000_000_000_000_000;
-        return sign + (num % 1 === 0 ? `${num}` : `${num.toFixed(1)}`) + " ล้านล้านล้าน"; // Q scale
+        return sign + formatNumStr(num) + " ล้านล้านล้าน"; // Q scale
     }
 
     if (abs >= 1_000_000_000_000) {
         const num = abs / 1_000_000_000_000;
-        return sign + (num % 1 === 0 ? `${num}` : `${num.toFixed(1)}`) + " ล้านล้าน";
+        return sign + formatNumStr(num) + " ล้านล้าน";
     }
 
     if (abs >= 1_000_000_000) {
         const num = abs / 1_000_000_000;
-        return sign + (num % 1 === 0 ? `${num}` : `${num.toFixed(1)}`) + " พันล้าน";
+        return sign + formatNumStr(num) + " พันล้าน";
     }
 
     if (abs >= 1_000_000) {
         const num = abs / 1_000_000;
-        return sign + (num % 1 === 0 ? `${num}` : `${num.toFixed(1)}`) + " ล้าน";
+        return sign + formatNumStr(num) + " ล้าน";
     }
 
     if (abs >= 100_000) {
         const num = abs / 100_000;
-        return sign + (num % 1 === 0 ? `${num}` : `${num.toFixed(1)}`) + " แสน";
+        return sign + formatNumStr(num) + " แสน";
     }
 
     // For amounts below 100,000, explicitly build the Thai phonetic string to ensure 

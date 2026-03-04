@@ -7,7 +7,7 @@ import { useGameStore } from '../store/useGameStore';
 import { VALID_REWARD_CODES } from '../types/game';
 import { formatChips } from '../utils/formatChips';
 import { loadUsedCodes, saveUsedCode, loadDailyState, claimDailyReward, type DailyRewardState, loadMathGameState, saveMathGameState } from '../utils/storage';
-import { SFX } from '../utils/sound';
+import { SFX, speakPhrase } from '../utils/sound';
 
 type ActivityTab = 'daily' | 'math' | 'code';
 
@@ -68,7 +68,7 @@ export default function RewardCodeScreen() {
                                 return (
                                     <button
                                         key={item.id}
-                                        onClick={() => { setActiveTab(item.id); SFX.click(); }}
+                                        onClick={() => { setActiveTab(item.id); SFX.click(); speakPhrase(item.label); }}
                                         className={`flex items-center gap-2 md:gap-3 px-3 py-3 md:py-4 rounded-xl text-[11px] sm:text-xs md:text-sm font-bold transition-all text-left whitespace-nowrap md:whitespace-normal flex-1 md:flex-none justify-center md:justify-start relative overflow-hidden group tracking-wider z-10
                                             ${isActive
                                                 ? 'bg-gradient-to-r from-yellow-600/30 to-amber-600/10 text-yellow-400 border border-yellow-500/40 shadow-[0_0_15px_rgba(250,204,21,0.15)]'
@@ -129,8 +129,9 @@ function DailyLoginView({ addChips }: { addChips: (amount: number) => void }) {
     const handleClaim = () => {
         const result = claimDailyReward();
         if (result.success) {
-            addChips(result.reward);
             SFX.win();
+            SFX.chipCollect();
+            addChips(result.reward);
             refreshState(); // Update UI
         }
     };
@@ -329,6 +330,7 @@ function MathGameView({ addChips }: { addChips: (amount: number) => void }) {
 
         if (parseInt(mathAnswer) === correct) {
             SFX.win();
+            setTimeout(() => SFX.chipCollect(), 500); // เล่นเสียงชิปตามหลังเสียงชนะเล็กน้อย
             const reward = 2000 + (winStreak * 500);
             addChips(reward);
             setMessage(`ถูกต้อง! +${formatChips(reward)}`);
@@ -483,6 +485,7 @@ function RedeemCodeView({ addChips }: { addChips: (amount: number) => void }) {
         }
 
         SFX.win();
+        setTimeout(() => SFX.chipCollect(), 500); // เล่นเสียงชิป
         saveUsedCode(trimmed);
         addChips(reward.chips);
         setMessage(`สำเร็จ! ได้รับ ${formatChips(reward.chips)}`);
