@@ -586,8 +586,27 @@ export const useGameStore = create<GameState>((set, get) => ({
                 if (p.hasPok) return { ...p, hasActed: true }; // ป๊อก → จบ
                 return p;
             });
-            set({ isDealing: false, players: updatedPlayers, activePlayerIndex: -1 });
-            setGameTimeout(() => get().startActionPhase(), 600);
+
+            // Check if all active non-dealer players got Pok
+            // If so, there is no point in having the dealer draw a card, go straight to SHOWDOWN
+            const activeOpponents = updatedPlayers.filter((p, i) => !p.isSpectating && i !== dealerIndex);
+            const allOpponentsPok = activeOpponents.length > 0 && activeOpponents.every(p => p.hasPok);
+
+            if (allOpponentsPok) {
+                // Mark dealer as acted
+                updatedPlayers[dealerIndex] = { ...updatedPlayers[dealerIndex], hasActed: true };
+                set({
+                    players: updatedPlayers,
+                    isDealing: false,
+                    showCards: true,
+                    gamePhase: 'SHOWDOWN',
+                    activePlayerIndex: -1,
+                });
+                setGameTimeout(() => get().showdown(), 2000);
+            } else {
+                set({ isDealing: false, players: updatedPlayers, activePlayerIndex: -1 });
+                setGameTimeout(() => get().startActionPhase(), 600);
+            }
         }
     },
 

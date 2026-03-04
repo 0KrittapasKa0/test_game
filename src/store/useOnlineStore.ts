@@ -758,7 +758,6 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             }
         }
 
-        // Deal cards one by one with a delay
         dealSequence.forEach((dealAction, index) => {
             setGameTimeout(() => {
                 SFX.cardDeal(); // Play card deal sound
@@ -812,22 +811,45 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                                     payload: { players: evaluatedPlayers, gamePhase: 'SHOWDOWN', isDealing: false, showCards: true, activePlayerIndex: -1, dealerIndex: dIdx }
                                 } as NetworkMessage);
                             });
-                            setGameTimeout(() => get().showdown(), 2000);
+                            setGameTimeout(() => get().showdown(), 1600);
                         } else {
                             // Anyone who got Pok gets a sound effect
                             const anyPok = evaluatedPlayers.some((p, i) => i !== dIdx && p.hasPok);
                             if (anyPok) SFX.pok();
 
-                            set({ players: evaluatedPlayers, gamePhase: 'PLAYER_ACTION', isDealing: false });
+                            // Check if all active non-dealer opponents have Pok
+                            // If they do, there is no reason for the dealer to play a turn because Pok always wins
+                            const activeOpponents = evaluatedPlayers.filter((p, i) => !p.isSpectating && i !== dIdx);
+                            const allOpponentsPok = activeOpponents.length > 0 && activeOpponents.every(p => p.hasPok);
 
-                            // Delay before first action to match offline
-                            setGameTimeout(() => {
-                                get().processNextTurn();
-                            }, 600);
+                            if (allOpponentsPok) {
+                                // Mark dealer as acted to skip to showdown
+                                if (dIdx >= 0) {
+                                    evaluatedPlayers[dIdx] = { ...evaluatedPlayers[dIdx], hasActed: true };
+                                }
+
+                                set({ players: evaluatedPlayers, gamePhase: 'SHOWDOWN', isDealing: false, showCards: true });
+
+                                connections.forEach(conn => {
+                                    conn.send({
+                                        type: 'GAME_STATE_UPDATE',
+                                        payload: { players: evaluatedPlayers, gamePhase: 'SHOWDOWN', isDealing: false, showCards: true, activePlayerIndex: -1, dealerIndex: dIdx }
+                                    } as NetworkMessage);
+                                });
+
+                                setGameTimeout(() => get().showdown(), 1600);
+                            } else {
+                                set({ players: evaluatedPlayers, gamePhase: 'PLAYER_ACTION', isDealing: false });
+
+                                // Delay before first action to match offline but faster
+                                setGameTimeout(() => {
+                                    get().processNextTurn();
+                                }, 400);
+                            }
                         }
-                    }, 1000);
+                    }, 800);
                 }
-            }, index * 350 + 400); // Stagger deal by 350ms, initial delay 400ms to match offline
+            }, index * 250 + 250); // Stagger deal by 250ms, initial delay 250ms to compensate for network latency
         });
     },
 
@@ -861,7 +883,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                     payload: { players: showState.players, gamePhase: 'SHOWDOWN', isDealing: false, showCards: true, activePlayerIndex: -1, dealerIndex }
                 } as NetworkMessage);
             });
-            setGameTimeout(() => get().showdown(), 1800);
+            setGameTimeout(() => get().showdown(), 1500);
             return;
         }
 
@@ -882,8 +904,8 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                 } as NetworkMessage);
             });
 
-            // Wait 500ms to show their turn visually, then process the next one
-            setGameTimeout(() => get().processNextTurn(), 500);
+            // Wait 350ms to show their turn visually, then process the next one (faster than offline 500ms)
+            setGameTimeout(() => get().processNextTurn(), 350);
             return;
         }
 
@@ -959,11 +981,10 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
 
         set({ players: updatedPlayers });
 
-        // Go to next turn
-        // Small delay to allow clients to render the draw if it happened
+        // Small delay to allow clients to render the draw if it happened (faster than offline 800/500ms)
         setGameTimeout(() => {
             get().processNextTurn();
-        }, action === 'draw' ? 800 : 200);
+        }, action === 'draw' ? 600 : 150);
     },
 
     showdown: () => {
@@ -1149,6 +1170,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                 hasActed: p.isDealer ? false : (spectating ? true : false), // Spectators auto-act
                 result: 'pending' as const,
                 score: 0,
+                hasPok: false,
                 dengMultiplier: 1,
                 bet: 0, // no more auto-bet, let UI handle it
                 previousChips: p.chips,

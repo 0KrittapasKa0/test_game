@@ -290,7 +290,7 @@ export default function ChipSelector({
                                             ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-black border-amber-700'
                                             : 'bg-gray-700 text-gray-400 border-gray-800 cursor-not-allowed'}`}
                                 >
-                                    {currentBet >= minBet ? '✅ ยืนยัน' : `ขั้นต่ำ ${formatChips(minBet)}`}
+                                    {currentBet >= minBet ? '✅ ยืนยัน' : 'รอวางเดิมพัน'}
                                 </motion.button>
 
                                 {/* Raise Button */}

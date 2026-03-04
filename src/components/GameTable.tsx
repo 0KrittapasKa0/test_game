@@ -735,6 +735,7 @@ export default function GameTable() {
                         <div className="pointer-events-auto max-w-md w-full relative">
                             <ChipSelector
                                 maxBet={Math.min(humanPlayer.chips + humanPlayer.bet, config.room.maxBet)}
+                                minBet={config.room.minBet}
                                 totalChips={humanPlayer.chips + humanPlayer.bet}
                                 currentBet={humanPlayer.bet}
                                 lastBet={humanPlayer.lastBet}
