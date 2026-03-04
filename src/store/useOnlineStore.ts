@@ -60,6 +60,18 @@ interface OnlineGameState {
     playerAction: (action: 'draw' | 'stay') => void;
     placeBet: (amount: number) => void;
     confirmBet: () => void;
+
+    // Emoji networking
+    sendEmoji: (emoji: string) => void;
+    onEmojiReceived: (cb: (playerId: string, emoji: string, eventId: string) => void) => void;
+    offEmojiReceived: (cb: (playerId: string, emoji: string, eventId: string) => void) => void;
+}
+
+// ─── Emoji Event Listener System ──────────────────────────────────────────────
+type EmojiCallback = (playerId: string, emoji: string, eventId: string) => void;
+const emojiListeners: Set<EmojiCallback> = new Set();
+function emitEmojiEvent(playerId: string, emoji: string, eventId: string) {
+    emojiListeners.forEach(cb => cb(playerId, emoji, eventId));
 }
 
 // ─── Timeout Tracking System ──────────────────────────────────────────────────
@@ -253,6 +265,15 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                     if (dealerPlayer && dealerPlayer.id === playerId) {
                         get().dealCards();
                     }
+                } else if (message.type === 'EMOJI') {
+                    // Broadcast emoji to all OTHER clients (sender already shows it locally)
+                    get().connections.forEach(clientConn => {
+                        if (clientConn.peer !== conn.peer) {
+                            clientConn.send(message);
+                        }
+                    });
+                    // Also show it on host's own screen
+                    emitEmojiEvent(message.payload.playerId, message.payload.emoji, message.payload.eventId);
                 }
             });
 
@@ -553,9 +574,11 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                                     }
                                 }
                             } else if (updateMsg.type === 'PLAYER_LEFT') {
-                                // For good measure, we can just log or show a toast, but GAME_STATE_UPDATE usually handles the UI
                                 const { playerId } = updateMsg.payload;
                                 console.log(`Player ${playerId} left the room`);
+                            } else if (updateMsg.type === 'EMOJI') {
+                                // Received emoji from another player via host relay
+                                emitEmojiEvent(updateMsg.payload.playerId, updateMsg.payload.emoji, updateMsg.payload.eventId);
                             }
                         });
 
@@ -1329,6 +1352,33 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             // Need to set local player to acted nicely on UI before update
             set({ players: players.map(p => p.id === localPlayerId ? { ...p, hasActed: true } : p) });
         }
+    },
+
+    // ─── Emoji Networking ─────────────────────────────────────────────────
+    sendEmoji: (emoji: string) => {
+        const { localPlayerId, isHost, hostConnection, connections } = get();
+        if (!localPlayerId) return;
+
+        const eventId = `net-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        const msg: NetworkMessage = {
+            type: 'EMOJI',
+            payload: { playerId: localPlayerId, emoji, eventId }
+        };
+
+        if (isHost) {
+            // Host: broadcast to all clients directly
+            connections.forEach(conn => conn.send(msg));
+        } else if (hostConnection) {
+            // Client: send to host for relay
+            hostConnection.send(msg);
+        }
+    },
+
+    onEmojiReceived: (cb) => {
+        emojiListeners.add(cb);
+    },
+    offEmojiReceived: (cb) => {
+        emojiListeners.delete(cb);
     },
 }));
 

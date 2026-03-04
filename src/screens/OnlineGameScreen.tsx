@@ -3,15 +3,17 @@ import { useOnlineStore } from '../store/useOnlineStore';
 import { useGameStore } from '../store/useGameStore';
 import { RoomEnvironment } from '../components/RoomEnvironment';
 import PlayerAvatar from '../components/PlayerAvatar';
-import OnlineGameTable from '../components/OnlineGameTable';
+import OnlineGameTable, { useOnlineEmoji } from '../components/OnlineGameTable';
 import OnlineRoundResultSummary from '../components/OnlineRoundResultSummary';
 import { AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { SFX, speakPhrase } from '../utils/sound';
 import { formatChips } from '../utils/formatChips';
 import { loadProfile, saveProfile } from '../utils/storage';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, Smile } from 'lucide-react';
 import ChipSelector from '../components/ChipSelector';
+import EmojiPicker from '../components/EmojiPicker';
+import FloatingEmoji from '../components/FloatingEmoji';
 export default function OnlineGameScreen() {
     const {
         config, players, roomId, localPlayerId, leaveRoom, isHost, startGame,
@@ -21,6 +23,9 @@ export default function OnlineGameScreen() {
 
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
+
+    // Emoji system (hook manages state, networking, AI reactions)
+    const { emojiEvents, showEmojiPicker, setShowEmojiPicker, handleSendEmoji } = useOnlineEmoji();
 
     const playerDraw = () => playerAction('draw');
     const playerStay = () => playerAction('stay');
@@ -263,23 +268,29 @@ export default function OnlineGameScreen() {
                                     transition: 'top 0.5s ease-out, left 0.5s ease-out'
                                 }}
                             >
-                                <PlayerAvatar
-                                    name={player.name}
-                                    color={player.avatarColor}
-                                    avatarUrl={player.avatarUrl}
-                                    chips={player.chips}
-                                    isDealer={player.isDealer}
-                                    isActive={false}
-                                    result={'pending'}
-                                    size={60}
-                                />
+                                <div className="relative">
+                                    <PlayerAvatar
+                                        name={player.name}
+                                        color={player.avatarColor}
+                                        avatarUrl={player.avatarUrl}
+                                        chips={player.chips}
+                                        isDealer={player.isDealer}
+                                        isActive={false}
+                                        result={'pending'}
+                                        size={60}
+                                    />
+                                    {/* Show emojis in waiting room */}
+                                    <div className="absolute inset-0 z-[120] pointer-events-none">
+                                        <FloatingEmoji events={emojiEvents} playerId={player.id} />
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>
 
                     {/* Active Game Table */}
                     {gamePhase !== 'WAITING' && (
-                        <OnlineGameTable />
+                        <OnlineGameTable emojiEvents={emojiEvents} />
                     )}
 
                 </div>
@@ -429,6 +440,25 @@ export default function OnlineGameScreen() {
                     <OnlineRoundResultSummary />
                 )}
             </AnimatePresence>
+
+            {/* Emoji Trigger Button - same as offline GameTable */}
+            {!isSpectating && localPlayer && (
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowEmojiPicker(true)}
+                    className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 pointer-events-auto p-3 sm:p-3.5 rounded-full bg-black/40 hover:bg-black/60 transition-all backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg shadow-black/50"
+                    title="ส่งอีโมจิ"
+                >
+                    <Smile className="w-6 h-6 sm:w-7 sm:h-7 text-white/90" />
+                </motion.button>
+            )}
+
+            <EmojiPicker
+                isOpen={showEmojiPicker}
+                onClose={() => setShowEmojiPicker(false)}
+                onSelect={handleSendEmoji}
+            />
 
             {/* Exit Confirmation Modal */}
             <AnimatePresence>

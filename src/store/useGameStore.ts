@@ -982,11 +982,33 @@ export const useGameStore = create<GameState>((set, get) => ({
         // ── Step 2: Remove AI using realistic leave system ──
         const leavers = getAiLeavers(updatedPlayers, config.room.minBet);
         const leaverIds = new Set(leavers.map(l => l.player.id));
+
+        // Check if the current dealer is leaving
+        const dealerIsLeaving = currentDealer && leaverIds.has(currentDealer.id);
+
         updatedPlayers = updatedPlayers.filter(p => {
             if (p.isHuman) return true; // Always keep human (for spectating)
-            if (p.isDealer) return true; // Always keep the (new) dealer
             return !leaverIds.has(p.id);
         });
+
+        // If dealer left, assign a new dealer from remaining AI players
+        if (dealerIsLeaving) {
+            const candidates = updatedPlayers.filter(
+                p => !p.isHuman && p.chips >= config.room.minBet
+            );
+
+            if (candidates.length > 0) {
+                const newDealer = candidates[Math.floor(Math.random() * candidates.length)];
+                updatedPlayers = updatedPlayers.map(p => ({
+                    ...p,
+                    isDealer: p.id === newDealer.id,
+                }));
+            } else {
+                // No valid dealer candidate left after removal → game over
+                set({ screen: 'MENU', gamePhase: 'BETTING', isSpectating: false });
+                return;
+            }
+        }
 
         // ── Spawn new AI into empty seats (~30% chance per empty seat) ──
         const occupiedSeats = new Set(updatedPlayers.map(p => p.seatIndex));

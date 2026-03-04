@@ -255,45 +255,45 @@ export default function ChipSelector({
                             })}
                         </div>
 
+                        {/* Repeat Bet Button (Moved outside Total container) */}
+                        {lastBet && lastBet > 0 && lastBet <= totalChips && currentBet === 0 && (
+                            <div className="flex justify-center w-full mb-3">
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => { SFX.repeatBet(); speakPhrase(`วางทุนเดิม ${numberToThaiVoice(lastBet)} นะคะ`); onSelect(lastBet); }}
+                                    className="px-5 py-2.5 bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/40 rounded-xl text-sm font-bold text-yellow-300 flex items-center gap-2 transition cursor-pointer shadow-md backdrop-blur-sm"
+                                >
+                                    <span className="text-lg leading-none">↺</span> วางทุนเดิม ({formatChips(lastBet)})
+                                </motion.button>
+                            </div>
+                        )}
+
                         {/* Total Display & Confirm + Raise */}
                         <motion.div
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-center w-full bg-black/20 rounded-xl p-3 border border-white/5"
+                            className="text-center w-full bg-black/30 rounded-2xl p-4 border border-white/10 shadow-inner"
                         >
-                            {/* Repeat Bet Button (Moved above Total for cleaner mobile flow) */}
-                            {lastBet && lastBet > 0 && lastBet <= totalChips && currentBet === 0 && (
-                                <div className="flex justify-center mb-3">
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => { SFX.repeatBet(); speakPhrase(`วางทุนเดิม ${numberToThaiVoice(lastBet)} นะคะ`); onSelect(lastBet); }}
-                                        className="px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-sm font-bold text-yellow-300 flex items-center gap-2 transition cursor-pointer shadow-sm"
-                                    >
-                                        <span className="text-lg leading-none">↺</span> วางทุนเดิม ({formatChips(lastBet)})
-                                    </motion.button>
-                                </div>
-                            )}
-
-                            <div className="flex justify-between items-end mb-3">
-                                <span className="text-gray-400 text-xs">ยอดรวม</span>
+                            <div className="flex justify-between items-end mb-4">
+                                <span className="text-gray-400 text-sm font-medium">ยอดรวมเดิมพัน</span>
                                 <div>
-                                    <span className="text-yellow-300 font-bold text-2xl">{formatChips(currentBet)}</span>
-                                    <span className="text-xs text-gray-500 ml-1">/{formatChips(totalChips)}</span>
+                                    <span className="text-yellow-300 font-bold text-3xl">{formatChips(currentBet)}</span>
+                                    <span className="text-xs text-gray-500 ml-1 font-medium">/ {formatChips(totalChips)}</span>
                                 </div>
                             </div>
 
-                            <div className="flex gap-2">
+                            <div className="flex gap-3">
                                 {/* Confirm Button */}
                                 <motion.button
                                     whileHover={currentBet >= minBet ? { scale: 1.02 } : {}}
                                     whileTap={currentBet >= minBet ? { scale: 0.98 } : {}}
                                     onClick={onConfirm}
                                     disabled={currentBet < minBet}
-                                    className={`flex-1 py-3 rounded-lg font-bold text-base shadow-lg border-b-4 transition-all cursor-pointer
+                                    className={`flex-1 py-3.5 rounded-xl font-bold text-lg shadow-lg border-b-[5px] transition-all cursor-pointer
                                         ${currentBet >= minBet
-                                            ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-black border-amber-700'
-                                            : 'bg-gray-700 text-gray-400 border-gray-800 cursor-not-allowed'}`}
+                                            ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-black border-amber-800'
+                                            : 'bg-gray-800 text-gray-500 border-gray-900 cursor-not-allowed'}`}
                                 >
                                     {currentBet >= minBet ? '✅ ยืนยัน' : 'รอวางเดิมพัน'}
                                 </motion.button>
@@ -303,8 +303,8 @@ export default function ChipSelector({
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={handleOpenRaise}
-                                    className="px-4 py-3 rounded-lg font-bold text-base shadow-lg border-b-4 transition-all cursor-pointer
-                                        bg-gradient-to-r from-red-500 to-red-700 text-white border-red-800 hover:shadow-red-500/30"
+                                    className="px-5 py-3.5 rounded-xl font-bold text-lg shadow-lg border-b-[5px] transition-all cursor-pointer
+                                        bg-gradient-to-r from-red-500 to-red-700 text-white border-red-900 hover:shadow-red-500/30 flex items-center gap-1"
                                 >
                                     🔥 เกทับ
                                 </motion.button>

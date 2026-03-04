@@ -20,5 +20,6 @@ export type NetworkMessage =
     }
     | { type: 'PLAYER_ACTION'; payload: { action: 'draw' | 'stay'; playerId: string } }
     | { type: 'GAME_START'; payload: {} }
-    | { type: 'PLAYER_LEFT'; payload: { playerId: string } };
+    | { type: 'PLAYER_LEFT'; payload: { playerId: string } }
+    | { type: 'EMOJI'; payload: { playerId: string; emoji: string; eventId: string } };
 

@@ -19,10 +19,11 @@ export function shouldAiLeave(
     minBet: number,
     totalPlayers: number, // จำนวนผู้เล่นปัจจุบัน (รวม human)
 ): LeaveReason {
-    // Dealer ไม่ออก
-    if (player.isDealer) return null;
     // Human ไม่ออก
     if (player.isHuman) return null;
+
+    // Dealer ออกได้ แต่ลดโอกาสลงครึ่งหนึ่งเพื่อไม่ให้เกมเปลี่ยนเจ้ามือบ่อยเกินไป
+    const dealerMultiplier = player.isDealer ? 0.5 : 1.0;
 
     const roundsPlayed = player.roundsPlayed ?? 0;
     const consecutiveLosses = player.consecutiveLosses ?? 0;
@@ -39,30 +40,30 @@ export function shouldAiLeave(
     // 2. แพ้ติดต่อกัน ≥4 รอบ → เหมือนคนโมโหลุกจากโต๊ะ
     if (consecutiveLosses >= 4) {
         // ยิ่งแพ้ติดมาก ยิ่งน่าจะออก (25% base → สูงสุด 40%)
-        const chance = Math.min(0.25 + (consecutiveLosses - 4) * 0.05, 0.40) * scarcityMultiplier;
+        const chance = Math.min(0.25 + (consecutiveLosses - 4) * 0.05, 0.40) * scarcityMultiplier * dealerMultiplier;
         if (Math.random() < chance) return 'losing_streak';
     }
 
     // 3. ได้กำไรมากกว่า 2x ของชิปตอนเริ่ม → เก็บกำไร
     if (peakChips > 0 && player.chips >= peakChips * 2) {
-        const chance = 0.15 * scarcityMultiplier;
+        const chance = 0.15 * scarcityMultiplier * dealerMultiplier;
         if (Math.random() < chance) return 'big_profit';
     } else if (peakChips > 0 && player.chips >= peakChips * 1.5 && roundsPlayed >= 5) {
         // กำไร 1.5x + เล่นมาพอสมควร → น้อยกว่า 2x หน่อย
-        const chance = 0.10 * scarcityMultiplier;
+        const chance = 0.10 * scarcityMultiplier * dealerMultiplier;
         if (Math.random() < chance) return 'big_profit';
     }
 
     // 4. เล่นนานมาก ≥8 รอบ → เหมือนคนที่ต้องไปทำอย่างอื่น
     if (roundsPlayed >= 8) {
         // ยิ่งเล่นนานยิ่งน่าจะออก (8% base → สูงสุด 15%)
-        const chance = Math.min(0.08 + (roundsPlayed - 8) * 0.015, 0.15) * scarcityMultiplier;
+        const chance = Math.min(0.08 + (roundsPlayed - 8) * 0.015, 0.15) * scarcityMultiplier * dealerMultiplier;
         if (Math.random() < chance) return 'played_long';
     }
 
     // 5. สุ่มออกเฉยๆ → เบื่อ / มีนัด
     if (roundsPlayed >= 2) { // ต้องเล่นอย่างน้อย 2 รอบก่อน
-        const chance = 0.03 * scarcityMultiplier;
+        const chance = 0.03 * scarcityMultiplier * dealerMultiplier;
         if (Math.random() < chance) return 'random';
     }
 

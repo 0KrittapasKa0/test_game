@@ -1,7 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-kanit: 'Noto Sans Thai', sans-serif;
+  --font-emoji: 'Noto Color Emoji', sans-serif;
   --color-table-green: #1a5c2e;
   --color-table-dark: #0f3d1d;
   --color-table-felt: #2d7a46;
@@ -303,4 +305,40 @@ input[type="range"]::-moz-range-thumb {
   border: 2px solid #d97706;
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
   cursor: pointer;
+}
+
+/* --- Floating Emoji Animation (GPU-accelerated) --- */
+@keyframes emoji-float {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.5);
+  }
+
+  15% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1.15);
+  }
+
+  30% {
+    transform: translateY(-25px) scale(1);
+  }
+
+  80% {
+    opacity: 1;
+    transform: translateY(-55px) scale(1.05);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-70px) scale(0.9);
+  }
+}
+
+.emoji-float-start {
+  opacity: 0;
+  transform: translateY(8px) scale(0.5);
+}
+
+.emoji-float-active {
+  animation: emoji-float 2.2s ease-out forwards;
 }

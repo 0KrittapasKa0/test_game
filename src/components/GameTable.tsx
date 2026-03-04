@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Smile } from 'lucide-react';
 import Card from './Card';
 import PlayerAvatar from './PlayerAvatar';
 import ChipSelector from './ChipSelector';
@@ -10,6 +11,10 @@ import { SFX, speakPhrase } from '../utils/sound';
 import { evaluateHand } from '../utils/deck';
 import { formatChips } from '../utils/formatChips';
 import { RoomEnvironment } from './RoomEnvironment';
+import EmojiPicker from './EmojiPicker';
+import FloatingEmoji, { type FloatingEmojiEvent } from './FloatingEmoji';
+import { tryBotEmoji, trySocialReaction, getContextualEmojiResponse, resetEmojiCooldowns, updateMood } from '../utils/aiEmojiLogic';
+import type { EmojiContext } from '../utils/aiEmojiLogic';
 
 interface SeatPosition {
     x: number;
@@ -192,6 +197,8 @@ export default function GameTable() {
     } = useGameStore();
 
     const [showExitConfirm, setShowExitConfirm] = useState(false);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [emojiEvents, setEmojiEvents] = useState<FloatingEmojiEvent[]>([]);
 
     const humanPlayer = players.find(p => p.isHuman);
     const humanIndex = players.findIndex(p => p.isHuman);
@@ -282,6 +289,148 @@ export default function GameTable() {
         }
     }, [activePlayers, isDealing, gamePhase, seatPositions]);
 
+    const handleSendEmoji = useCallback((emoji: string) => {
+        if (!humanPlayer) return;
+
+        const newEvent: FloatingEmojiEvent = {
+            id: `emoji-${Date.now()}`,
+            playerId: humanPlayer.id,
+            emoji,
+            timestamp: Date.now()
+        };
+
+        setEmojiEvents(prev => [...prev, newEvent]);
+
+        // Remove emoji after 2 seconds
+        setTimeout(() => {
+            setEmojiEvents(prev => prev.filter(e => e.id !== newEvent.id));
+        }, 2000);
+
+        const aiPlayers = activePlayers.filter(p => !p.isHuman);
+        if (aiPlayers.length === 0) return;
+
+        // Smart contextual response based on what the human sent:
+        const randomAi = aiPlayers[Math.floor(Math.random() * aiPlayers.length)];
+        setTimeout(() => {
+            const aiEmoji = getContextualEmojiResponse(emoji, randomAi.id);
+
+            if (aiEmoji) {
+                const aiEvent: FloatingEmojiEvent = {
+                    id: `emoji-ai-${Date.now()}`,
+                    playerId: randomAi.id,
+                    emoji: aiEmoji,
+                    timestamp: Date.now()
+                };
+
+                setEmojiEvents(prev => [...prev, aiEvent]);
+                setTimeout(() => {
+                    setEmojiEvents(prev => prev.filter(e => e.id !== aiEvent.id));
+                }, 2000);
+            }
+        }, 800 + Math.random() * 1500);
+    }, [humanPlayer, activePlayers]);
+
+    // --- Autonomous AI Emojis (Organic Engine v2) ---
+    useEffect(() => {
+        const aiPlayers = activePlayers.filter(p => !p.isHuman);
+        if (aiPlayers.length === 0) return;
+
+        // Reset budgets + cooldowns at round start
+        if (gamePhase === 'BETTING') {
+            resetEmojiCooldowns();
+        }
+
+        // Schedule an emoji with a delay
+        const schedule = (playerId: string, emoji: string, delayMs: number) => {
+            setTimeout(() => {
+                const event: FloatingEmojiEvent = {
+                    id: `ai-${Date.now()}-${Math.random()}`,
+                    playerId,
+                    emoji,
+                    timestamp: Date.now()
+                };
+                setEmojiEvents(prev => [...prev, event]);
+                setTimeout(() => {
+                    setEmojiEvents(prev => prev.filter(e => e.id !== event.id));
+                }, 2500);
+            }, delayMs);
+        };
+
+        const dealer = activePlayers.find(p => p.isDealer);
+
+        // === BETTING: maybe one bot greets or yawns ===
+        if (gamePhase === 'BETTING') {
+            const bot = aiPlayers[Math.floor(Math.random() * aiPlayers.length)];
+            const emoji = tryBotEmoji(bot.id, 'waiting');
+            if (emoji) schedule(bot.id, emoji, 1500 + Math.random() * 3000);
+        }
+        // === DEALING: one random bot reacts to suspense ===
+        else if (gamePhase === 'DEALING') {
+            const bot = aiPlayers[Math.floor(Math.random() * aiPlayers.length)];
+            const emoji = tryBotEmoji(bot.id, 'dealing');
+            if (emoji) schedule(bot.id, emoji, 800 + Math.random() * 2000);
+        }
+        // === PLAYER_ACTION: bots react to own hand + social ===
+        else if (gamePhase === 'PLAYER_ACTION') {
+            // Each bot reacts to their OWN hand
+            aiPlayers.forEach(bot => {
+                if (bot.hasActed) return;
+                let ctx: EmojiContext;
+                if (bot.hasPok) ctx = 'my_pok';
+                else if (bot.score < 4) ctx = 'my_bad_hand';
+                else if (bot.score <= 7) ctx = 'my_ok_hand';
+                else ctx = 'staying';
+
+                const emoji = tryBotEmoji(bot.id, ctx);
+                if (emoji) schedule(bot.id, emoji, 300 + Math.random() * 1000);
+            });
+
+            // Social: other bots react to someone getting Pok
+            const pokPlayers = activePlayers.filter(p => p.hasPok);
+            if (pokPlayers.length > 0) {
+                aiPlayers.forEach(bot => {
+                    if (bot.hasPok) return; // skip the one who got it
+                    const emoji = trySocialReaction(bot.id, 'see_pok');
+                    if (emoji) schedule(bot.id, emoji, 800 + Math.random() * 1500);
+                });
+            }
+
+            // Active bot reacts to drawing/staying decision
+            const currentBot = activePlayers[activePlayerIndex];
+            if (currentBot && !currentBot.isHuman && !currentBot.hasActed) {
+                const ctx: EmojiContext = currentBot.score <= 5 ? 'drawing' : 'staying';
+                const emoji = tryBotEmoji(currentBot.id, ctx);
+                if (emoji) schedule(currentBot.id, emoji, 400 + Math.random() * 600);
+            }
+        }
+        // === AI_ACTION: dealer reacts ===
+        else if (gamePhase === 'AI_ACTION') {
+            if (dealer && !dealer.isHuman) {
+                const ctx: EmojiContext = dealer.score >= 7 ? 'dealer_strong' : 'dealer_weak';
+                const emoji = tryBotEmoji(dealer.id, ctx);
+                if (emoji) schedule(dealer.id, emoji, 800 + Math.random() * 1000);
+            }
+        }
+        // === ROUND_END: bots react + mood update ===
+        else if (gamePhase === 'ROUND_END') {
+            aiPlayers.forEach(bot => {
+                // Update mood memory for next round
+                const result = bot.result === 'win' ? 'win' : bot.result === 'lose' ? 'lose' : 'draw';
+                updateMood(bot.id, result as 'win' | 'lose' | 'draw');
+
+                // React to outcome
+                const delay = 1000 + Math.random() * 2500;
+                let ctx: EmojiContext;
+                if (bot.result === 'win') ctx = 'round_win';
+                else if (bot.result === 'lose') ctx = 'round_loss';
+                else ctx = 'round_ok';
+
+                const emoji = tryBotEmoji(bot.id, ctx);
+                if (emoji) schedule(bot.id, emoji, delay);
+            });
+        }
+    }, [gamePhase, activePlayerIndex, activePlayers]);
+
     return (
         <div className="w-full h-full flex flex-col overflow-hidden font-sans"
             style={{ background: 'radial-gradient(ellipse at 50% 40%, #151d15 0%, #0d1210 40%, #080c0a 100%)' }}
@@ -296,8 +445,6 @@ export default function GameTable() {
                 >
                     ← ออก
                 </motion.button>
-
-
 
                 {/* Human chip display */}
                 {humanPlayer && (
@@ -546,6 +693,11 @@ export default function GameTable() {
                                                 result={gamePhase === 'ROUND_END' ? player.result : 'pending'}
                                                 size={isHuman ? 60 : 48}
                                             />
+
+                                            {/* Floating Emoji component placed over avatar */}
+                                            <div className="absolute inset-0 z-[120] pointer-events-none">
+                                                <FloatingEmoji events={emojiEvents} playerId={player.id} />
+                                            </div>
 
                                             {/* Score Badge (for AI when cards revealed) */}
                                             {isPanel && (showCards || player.hasPok) && player.score >= 0 && (
@@ -797,6 +949,25 @@ export default function GameTable() {
                     <RoundResultSummary />
                 )}
             </AnimatePresence>
+
+            {/* Emoji Trigger Button */}
+            {!isSpectating && humanPlayer && (
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowEmojiPicker(true)}
+                    className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 pointer-events-auto p-3 sm:p-3.5 rounded-full bg-black/40 hover:bg-black/60 transition-all backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg shadow-black/50"
+                    title="ส่งอีโมจิ"
+                >
+                    <Smile className="w-6 h-6 sm:w-7 sm:h-7 text-white/90" />
+                </motion.button>
+            )}
+
+            <EmojiPicker
+                isOpen={showEmojiPicker}
+                onClose={() => setShowEmojiPicker(false)}
+                onSelect={handleSendEmoji}
+            />
 
             {/* ===== Exit Confirmation Modal ===== */}
             <AnimatePresence>

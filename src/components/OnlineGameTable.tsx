@@ -4,10 +4,11 @@ import Card from './Card';
 import { motion } from 'framer-motion';
 import { evaluateHand } from '../utils/deck';
 import { RoomEnvironment } from './RoomEnvironment';
-// Removed unused imports
 import ChipStack from './ChipStack';
+import FloatingEmoji, { type FloatingEmojiEvent } from './FloatingEmoji';
+import { tryBotEmoji, trySocialReaction, getContextualEmojiResponse, resetEmojiCooldowns, updateMood } from '../utils/aiEmojiLogic';
+import type { EmojiContext } from '../utils/aiEmojiLogic';
 import { useState, useCallback, useRef, useEffect } from 'react';
-
 
 // This is a simplified version of GameTable for the online mode.
 // We reuse the basic rendering but hook it into useOnlineStore.
@@ -121,7 +122,151 @@ function getChipPosition(playerPos: SeatPosition): SeatPosition {
     };
 }
 
-export default function OnlineGameTable() {
+// === Custom hook: emoji logic for online mode ===
+export function useOnlineEmoji() {
+    const { players, gamePhase, activePlayerIndex, localPlayerId, sendEmoji, onEmojiReceived, offEmojiReceived } = useOnlineStore();
+    const activePlayers = players.filter(p => !p.isSpectating);
+
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [emojiEvents, setEmojiEvents] = useState<FloatingEmojiEvent[]>([]);
+
+    const handleSendEmoji = useCallback((emoji: string) => {
+        if (!localPlayerId) return;
+
+        const newEvent: FloatingEmojiEvent = {
+            id: `emoji-${Date.now()}`,
+            playerId: localPlayerId,
+            emoji,
+            timestamp: Date.now()
+        };
+
+        setEmojiEvents(prev => [...prev, newEvent]);
+        setTimeout(() => {
+            setEmojiEvents(prev => prev.filter(e => e.id !== newEvent.id));
+        }, 2000);
+
+        // Broadcast to other players via PeerJS
+        sendEmoji(emoji);
+
+        // Simulated bots replying if any bots present
+        const aiPlayers = activePlayers.filter(p => !p.isHuman);
+        if (aiPlayers.length > 0 && Math.random() > 0.4) {
+            setTimeout(() => {
+                const randomAi = aiPlayers[Math.floor(Math.random() * aiPlayers.length)];
+                const aiEmoji = getContextualEmojiResponse(emoji, randomAi.id);
+                if (aiEmoji) {
+                    const aiEvent: FloatingEmojiEvent = {
+                        id: `emoji-ai-${Date.now()}`,
+                        playerId: randomAi.id,
+                        emoji: aiEmoji,
+                        timestamp: Date.now()
+                    };
+                    setEmojiEvents(prev => [...prev, aiEvent]);
+                    setTimeout(() => {
+                        setEmojiEvents(prev => prev.filter(e => e.id !== aiEvent.id));
+                    }, 2000);
+                }
+            }, 800 + Math.random() * 1500);
+        }
+
+    }, [localPlayerId, activePlayers, sendEmoji]);
+
+    // --- Listen for emojis from other players over the network ---
+    useEffect(() => {
+        const handleRemoteEmoji = (playerId: string, emoji: string, eventId: string) => {
+            if (playerId === localPlayerId) return;
+
+            const event: FloatingEmojiEvent = {
+                id: eventId,
+                playerId,
+                emoji,
+                timestamp: Date.now()
+            };
+            setEmojiEvents(prev => [...prev, event]);
+            setTimeout(() => {
+                setEmojiEvents(prev => prev.filter(e => e.id !== eventId));
+            }, 2500);
+        };
+        onEmojiReceived(handleRemoteEmoji);
+        return () => offEmojiReceived(handleRemoteEmoji);
+    }, [localPlayerId, onEmojiReceived, offEmojiReceived]);
+
+    // --- Autonomous AI Emojis (Organic Engine v2) ---
+    useEffect(() => {
+        const aiPlayers = activePlayers.filter(p => !p.isHuman);
+        if (aiPlayers.length === 0) return;
+
+        if (gamePhase === 'BETTING') {
+            resetEmojiCooldowns();
+        }
+
+        const schedule = (playerId: string, emoji: string, delayMs: number) => {
+            setTimeout(() => {
+                const event: FloatingEmojiEvent = {
+                    id: `ai-${Date.now()}-${Math.random()}`,
+                    playerId,
+                    emoji,
+                    timestamp: Date.now()
+                };
+                setEmojiEvents(prev => [...prev, event]);
+                setTimeout(() => {
+                    setEmojiEvents(prev => prev.filter(e => e.id !== event.id));
+                }, 2500);
+            }, delayMs);
+        };
+
+        if (gamePhase === 'BETTING') {
+            const bot = aiPlayers[Math.floor(Math.random() * aiPlayers.length)];
+            const emoji = tryBotEmoji(bot.id, 'waiting');
+            if (emoji) schedule(bot.id, emoji, 1500 + Math.random() * 3000);
+        } else if (gamePhase === 'PLAYER_ACTION') {
+            aiPlayers.forEach(bot => {
+                if (bot.hasActed) return;
+                let ctx: EmojiContext;
+                if (bot.hasPok) ctx = 'my_pok';
+                else if (bot.score < 4) ctx = 'my_bad_hand';
+                else if (bot.score <= 7) ctx = 'my_ok_hand';
+                else ctx = 'staying';
+                const emoji = tryBotEmoji(bot.id, ctx);
+                if (emoji) schedule(bot.id, emoji, 300 + Math.random() * 1000);
+            });
+
+            // Social: react to someone else's Pok
+            const pokPlayers = activePlayers.filter(p => p.hasPok);
+            if (pokPlayers.length > 0) {
+                aiPlayers.forEach(bot => {
+                    if (bot.hasPok) return;
+                    const emoji = trySocialReaction(bot.id, 'see_pok');
+                    if (emoji) schedule(bot.id, emoji, 800 + Math.random() * 1500);
+                });
+            }
+
+            const currentBot = activePlayers[activePlayerIndex];
+            if (currentBot && !currentBot.isHuman && !currentBot.hasActed) {
+                const ctx: EmojiContext = currentBot.score <= 5 ? 'drawing' : 'staying';
+                const emoji = tryBotEmoji(currentBot.id, ctx);
+                if (emoji) schedule(currentBot.id, emoji, 400 + Math.random() * 600);
+            }
+        } else if (gamePhase === 'ROUND_END') {
+            aiPlayers.forEach(bot => {
+                const result = bot.result === 'win' ? 'win' : bot.result === 'lose' ? 'lose' : 'draw';
+                updateMood(bot.id, result as 'win' | 'lose' | 'draw');
+
+                const delay = 1000 + Math.random() * 2500;
+                let ctx: EmojiContext;
+                if (bot.result === 'win') ctx = 'round_win';
+                else if (bot.result === 'lose') ctx = 'round_loss';
+                else ctx = 'round_ok';
+                const emoji = tryBotEmoji(bot.id, ctx);
+                if (emoji) schedule(bot.id, emoji, delay);
+            });
+        }
+    }, [gamePhase, activePlayers, activePlayerIndex]);
+
+    return { emojiEvents, showEmojiPicker, setShowEmojiPicker, handleSendEmoji };
+}
+
+export default function OnlineGameTable({ emojiEvents }: { emojiEvents: FloatingEmojiEvent[] }) {
     const { players, gamePhase, activePlayerIndex, isDealing, showCards, localPlayerId, config } = useOnlineStore();
 
     const activePlayers = players.filter(p => !p.isSpectating);
@@ -266,6 +411,11 @@ export default function OnlineGameTable() {
                                         size={isHuman ? 60 : 48}
                                         isSpectating={player.isSpectating}
                                     />
+
+                                    {/* Floating Emoji component placed over avatar */}
+                                    <div className="absolute inset-0 z-[120] pointer-events-none">
+                                        <FloatingEmoji events={emojiEvents} playerId={player.id} />
+                                    </div>
 
                                     {/* Score Badge (for opponents when cards revealed) */}
                                     {isPanel && (showCards || player.hasPok) && player.score >= 0 && (
