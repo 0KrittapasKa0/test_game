@@ -26,7 +26,12 @@ export default function GameSetupScreen() {
     useEffect(() => {
         if (screen !== 'GAME_SETUP') {
             // Add a tiny delay so the fade-out animation finishes before the layout snaps back
-            const timer = setTimeout(() => setStep('room'), 300);
+            const timer = setTimeout(() => {
+                setStep('room');
+                setShowSearchModal(false);
+                setSearchRoomId('');
+                setSearchError('');
+            }, 300);
             return () => clearTimeout(timer);
         }
     }, [screen]);
@@ -241,20 +246,22 @@ export default function GameSetupScreen() {
                                                     </div>
                                                 </div>
 
-                                                {/* Voice Announcer Button */}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation(); // prevent triggering the room selection
-                                                        const minBetVoice = numberToThaiVoice(room.minBet);
-                                                        const maxBetVoice = numberToThaiVoice(room.maxBet);
-                                                        const dealerCapVoice = numberToThaiVoice(room.dealerMinCapital);
-                                                        const text = `โต๊ะ ${room.name} เดิมพันขั้นต่ำ ${minBetVoice} สูงสุด ${maxBetVoice} ต้องการทุนสำหรับเป็นเจ้ามืออย่างน้อย ${dealerCapVoice} ค่ะ`;
-                                                        speakPhrase(text);
-                                                    }}
-                                                    className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400/70 hover:text-blue-300 hover:bg-blue-500/20 hover:border-blue-500/40 transition-colors z-10 mr-1"
-                                                >
-                                                    <Volume2 size={14} />
-                                                </button>
+                                                {/* Voice Announcer Button (Only show if sound is enabled) */}
+                                                {settings.voiceEnabled && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(); // prevent triggering the room selection
+                                                            const minBetVoice = numberToThaiVoice(room.minBet);
+                                                            const maxBetVoice = numberToThaiVoice(room.maxBet);
+                                                            const dealerCapVoice = numberToThaiVoice(room.dealerMinCapital);
+                                                            const text = `โต๊ะ ${room.name} เดิมพันขั้นต่ำ ${minBetVoice} สูงสุด ${maxBetVoice} ต้องการทุนสำหรับเป็นเจ้ามืออย่างน้อย ${dealerCapVoice} ค่ะ`;
+                                                            speakPhrase(text);
+                                                        }}
+                                                        className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400/70 hover:text-blue-300 hover:bg-blue-500/20 hover:border-blue-500/40 transition-colors z-10 mr-1"
+                                                    >
+                                                        <Volume2 size={14} />
+                                                    </button>
+                                                )}
 
                                                 {/* Status Icon */}
                                                 <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-black/40 border border-white/5 group-hover:bg-yellow-500/20 group-hover:border-yellow-500/30 transition-colors">
@@ -522,7 +529,7 @@ export default function GameSetupScreen() {
                                 <div className="relative mb-6">
                                     <input
                                         type="text"
-                                        placeholder="รหัสห้อง 6 หลัก"
+                                        placeholder="XXXXXX"
                                         value={searchRoomId}
                                         onChange={(e) => {
                                             setSearchRoomId(e.target.value.toUpperCase().slice(0, 6));

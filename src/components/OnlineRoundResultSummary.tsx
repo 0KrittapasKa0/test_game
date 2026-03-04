@@ -52,12 +52,15 @@ export default function OnlineRoundResultSummary() {
                 initial={{ scale: 0.95, y: 10 }}
                 animate={{ scale: 1, y: 0 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className="w-full max-w-4xl bg-[#111] border border-gray-800 rounded-xl sm:rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh] z-10"
+                className="w-full max-w-4xl bg-black/80 border border-yellow-500/20 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10 relative"
                 style={{ willChange: 'transform' }}
             >
+                {/* Top Glow Decor */}
+                <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent z-20 pointer-events-none" />
+
                 {/* Header */}
-                <div className="h-14 sm:h-16 px-4 border-b border-gray-800 flex items-center justify-between bg-[#1a1a1a]">
-                    <h2 className="text-xl sm:text-2xl font-bold text-yellow-400 py-1">
+                <div className="h-14 sm:h-16 px-4 border-b border-white/10 flex items-center justify-between bg-black/40 relative z-20">
+                    <h2 className="text-xl sm:text-2xl font-bold text-yellow-400 py-1 drop-shadow-md">
                         สรุปผล
                     </h2>
                     {isSpectating && (
@@ -84,10 +87,10 @@ export default function OnlineRoundResultSummary() {
                         const colorClass = isWin ? 'text-emerald-400' : isLoss ? 'text-red-400' : 'text-gray-400';
                         const isHumanOwner = p.id === localPlayerId;
                         const bgClass = isHumanOwner
-                            ? 'bg-[#222] border-yellow-600/50'
+                            ? 'bg-gradient-to-r from-yellow-900/40 to-black/60 border-yellow-500/30'
                             : p.isDealer
-                                ? 'bg-[#000] border-gray-800'
-                                : 'bg-[#151515] border-transparent';
+                                ? 'bg-gradient-to-r from-red-900/30 to-black/60 border-red-500/20'
+                                : 'bg-black/40 border-white/5';
 
                         const nameText = `${p.name}${isHumanOwner ? ' (คุณ)' : ''}`;
                         const subText = p.isDealer ? 'เจ้ามือ' : `เดิมพัน: ${formatChips(p.bet)}`;
@@ -158,13 +161,13 @@ export default function OnlineRoundResultSummary() {
                 </div>
 
                 {/* Footer */}
-                <div className="h-16 sm:h-20 border-t border-gray-800 bg-[#0f0f0f] flex items-center justify-center shrink-0">
+                <div className="h-16 sm:h-20 border-t border-white/10 bg-black/60 flex items-center justify-center shrink-0 backdrop-blur-md relative z-20">
                     {!isHost ? (
                         <span className="text-gray-400 text-sm">รอโฮสต์เริ่มรอบใหม่...</span>
                     ) : (
                         <button
                             onClick={nextRound}
-                            className="bg-yellow-600 hover:bg-yellow-500 active:bg-yellow-700 active:scale-95 transition-all w-48 py-2.5 sm:py-3 text-lg sm:text-xl font-bold rounded-lg text-[#111] shadow-md touch-manipulation"
+                            className="bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-600 border border-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.3)] hover:shadow-[0_0_25px_rgba(250,204,21,0.5)] active:scale-95 transition-all w-48 py-2.5 sm:py-3 text-lg sm:text-xl font-bold text-black uppercase tracking-widest rounded-xl touch-manipulation"
                         >
                             เริ่มรอบต่อไป →
                         </button>

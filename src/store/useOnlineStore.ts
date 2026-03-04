@@ -646,6 +646,8 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
         const { isHost, connections, players, config } = get();
         if (!isHost || !config) return;
 
+        SFX.roundStart();
+
         // Ensure dealerIndex is correctly mapped
         const dealerIdx = players.findIndex(p => p.isDealer);
 
@@ -847,9 +849,9 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                                 }, 400);
                             }
                         }
-                    }, 800);
+                    }, 1000);
                 }
-            }, index * 250 + 250); // Stagger deal by 250ms, initial delay 250ms to compensate for network latency
+            }, index * 350 + 400); // Stagger deal by 350ms, initial delay 400ms to match offline
         });
     },
 
@@ -982,6 +984,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
         set({ players: updatedPlayers });
 
         // Small delay to allow clients to render the draw if it happened (faster than offline 800/500ms)
+        if (action === 'draw') SFX.cardSlide();
         setGameTimeout(() => {
             get().processNextTurn();
         }, action === 'draw' ? 600 : 150);
@@ -1091,6 +1094,23 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
 
         set({ players: results, gamePhase: 'ROUND_END', activePlayerIndex: -1 });
 
+        // Play local showdown sound
+        const myResult = results.find(p => p.id === localPlayerId);
+        if (myResult && !isSpectating) {
+            if (myResult.result === 'win') {
+                if (myResult.dengMultiplier >= 2) SFX.bigWin();
+                else SFX.win();
+                setGameTimeout(() => SFX.chipCollect(), 400);
+            } else if (myResult.result === 'lose') {
+                SFX.lose();
+            } else {
+                SFX.draw();
+            }
+        } else {
+            // Spectators hear general game over
+            SFX.gameOver();
+        }
+
         // Broadcast ROUND_END
         connections.forEach(conn => {
             conn.send({
@@ -1177,6 +1197,37 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             };
         });
 
+        // ── Check if there are any active players left to challenge the dealer ──
+        const activeChallengers = resetPlayers.filter(p => !p.isDealer && !p.isSpectating);
+        if (activeChallengers.length === 0) {
+            // No one left to play against the dealer, reset to WAITING
+            const waitingPlayers = resetPlayers.map(p => ({
+                ...p,
+                isDealer: false, // Clear dealer status since game is essentially over
+                hasActed: false,
+            }));
+
+            // If the host is the dealer, or there are no other active players, the host technically spectates the waiting room
+            if (activeChallengers.length === 0 && localPlayerId === currentPlayers[dealerIdx]?.id) {
+                // Keep the host in the room but not as dealer
+            }
+
+            set({
+                players: waitingPlayers,
+                gamePhase: 'WAITING',
+                isDealing: false,
+                showCards: false,
+                dealerIndex: -1,
+            });
+            connections.forEach(conn => {
+                conn.send({
+                    type: 'GAME_STATE_UPDATE',
+                    payload: { players: waitingPlayers, gamePhase: 'WAITING', isDealing: false, showCards: false, activePlayerIndex: -1, dealerIndex: -1 }
+                } as NetworkMessage);
+            });
+            return;
+        }
+
         set({
             players: resetPlayers,
             gamePhase: 'BETTING',
@@ -1208,6 +1259,8 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
     placeBet: (amount: number) => {
         const { players, config, localPlayerId, isHost, hostConnection } = get();
         if (!config || !localPlayerId) return;
+
+        SFX.chipPlace();
 
         const updated = players.map(p => {
             if (p.id !== localPlayerId) return p;
@@ -1249,7 +1302,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
 
         if (isHost) {
             // Also set hasActed for the host so UI knows
-            const newPlayers = players.map(p => p.id === localPlayerId ? { ...p, hasActed: true } : p);
+            const newPlayers = players.map(p => p.id === localPlayerId ? { ...p, hasActed: true, lastBet: p.bet } : p);
             set({ players: newPlayers });
 
             const dealerPlayer = newPlayers.find(p => p.isDealer);
@@ -1272,7 +1325,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                 } as any);
             }
             // Need to set local player to acted nicely on UI before update
-            set({ players: players.map(p => p.id === localPlayerId ? { ...p, hasActed: true } : p) });
+            set({ players: players.map(p => p.id === localPlayerId ? { ...p, hasActed: true, lastBet: p.bet } : p) });
         }
     },
 }));

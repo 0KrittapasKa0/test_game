@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { unlockSpeech } from '../utils/sound';
+import { loadProfile, saveProfile, loadStats, saveStats } from '../utils/storage';
 
 export default function SplashScreen() {
     const completeSplash = useGameStore(s => s.completeSplash);
@@ -14,6 +15,34 @@ export default function SplashScreen() {
 
     // รอให้อนิเมชันโลโก้และชื่อเสร็จก่อน (2.5 วิ) ค่อยอนุญาตให้กดหน้าจอได้
     useEffect(() => {
+        // --- One-time Rebalance Script ---
+        const profile = loadProfile();
+        if (profile && profile.chips >= 1_000_000_000_000) {
+            let newChips = profile.chips;
+            // 1T+ becomes 100B (or maintaining the trillion value but scaled to billions, e.g., 362T -> 362B)
+            if (profile.chips >= 1_000_000_000_000 && profile.chips < 2_000_000_000_000) {
+                // e.g. 1T -> 100B
+                newChips = 100_000_000_000;
+            } else if (profile.chips >= 1_000_000_000_000_000) {
+                // e.g. 1Q -> 100B
+                newChips = 100_000_000_000;
+            } else {
+                // e.g. 362T -> 362B
+                const trillions = Math.floor(profile.chips / 1_000_000_000_000);
+                newChips = trillions * 1_000_000_000;
+            }
+            profile.chips = newChips;
+            saveProfile(profile);
+        }
+
+        // Always reset max chips won
+        const stats = loadStats();
+        if (stats.maxChipsWon !== 0) {
+            stats.maxChipsWon = 0;
+            saveStats(stats);
+        }
+        // ---------------------------------
+
         const timer = setTimeout(() => {
             setShowPrompt(true);
         }, 2500);

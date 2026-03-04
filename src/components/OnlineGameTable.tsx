@@ -3,10 +3,10 @@ import PlayerAvatar from './PlayerAvatar';
 import Card from './Card';
 import { motion } from 'framer-motion';
 import { evaluateHand } from '../utils/deck';
+import { RoomEnvironment } from './RoomEnvironment';
 // Removed unused imports
 import ChipStack from './ChipStack';
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { formatChips } from '../utils/formatChips';
 
 // This is a simplified version of GameTable for the online mode.
 // We reuse the basic rendering but hook it into useOnlineStore.
@@ -172,9 +172,26 @@ export default function OnlineGameTable() {
 
     return (
         <div className="absolute inset-0 z-30 pointer-events-none">
-            {/* Center Deck Area (Placeholder) */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[72px] h-[96px] rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm flex items-center justify-center pointer-events-auto">
-                <span className="text-white/30 font-bold tracking-widest text-xs uppercase">DECK</span>
+            {/* Center Area (Room Info) */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
+                {config && <RoomEnvironment category={config.room.category} />}
+            </div>
+
+            {/* Room Info Display - Mirrored from GameTable.tsx */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10">
+                <div className="flex flex-col items-center opacity-[0.07]">
+                    <span className="text-3xl sm:text-5xl md:text-6xl font-bold text-yellow-300 tracking-[0.2em] font-serif"
+                        style={{ textShadow: '0 0 40px rgba(255,215,100,0.3)' }}
+                    >
+                        ป๊อกเด้ง
+                    </span>
+                    <div className="w-28 sm:w-40 h-px bg-linear-to-r from-transparent via-yellow-400/40 to-transparent mt-2 mb-2" />
+                    {config && (
+                        <span className="text-sm sm:text-base font-light text-yellow-200/80 tracking-widest uppercase">
+                            {config.room.name}
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Flying Card Animations */}
@@ -342,14 +359,7 @@ export default function OnlineGameTable() {
                                 </div>
                             )}
 
-                            {/* Bet Amount */}
-                            {player.bet > 0 && (
-                                <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none">
-                                    <span className="bg-black/60 text-yellow-400 font-bold px-3 py-1 rounded-full text-xs font-mono shadow-md border border-yellow-500/30">
-                                        {formatChips(player.bet)}
-                                    </span>
-                                </div>
-                            )}
+                            {/* Bet Amount (Removed as requested by user since chips on the table are enough) */}
                         </div>
                     );
                 })}

@@ -13,14 +13,15 @@ export default function OnlineJoinScreen() {
     const [selectedRole, setSelectedRole] = useState<'player' | 'dealer' | 'spectator'>('player');
     const [isJoining, setIsJoining] = useState(false);
     const [joinError, setJoinError] = useState<string | null>(null);
-    const [userChips, setUserChips] = useState(0);
     const [isCopied, setIsCopied] = useState(false);
 
+    const profile = loadProfile();
+    const userChips = profile?.chips || 0;
+
     useEffect(() => {
-        const profile = loadProfile();
-        if (profile) setUserChips(profile.chips);
-        setIsJoining(false); // Reset on mount
-    }, []);
+        setIsJoining(false);
+        setJoinError(null);
+    }, [roomId]);
 
     const minCapital = hostRoomInfo?.config.room.dealerMinCapital || 0;
     const minBet = hostRoomInfo?.config.room.minBet || 0;

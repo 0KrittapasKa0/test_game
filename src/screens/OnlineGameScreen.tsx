@@ -222,23 +222,27 @@ export default function OnlineGameScreen() {
                                             {/* If game is waiting to start */}
                                             {isHost && players.filter(p => !p.isSpectating).length > 1 && players.some(p => p.isDealer) ? (
                                                 <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
+                                                    animate={{ opacity: [0.8, 1, 0.8], scale: [1, 1.02, 1] }}
+                                                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                                                     onClick={() => {
                                                         startGame();
                                                     }}
-                                                    className="px-8 py-4 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-bold tracking-widest text-xl shadow-[0_0_30px_rgba(250,204,21,0.5)] border-2 border-yellow-300 pointer-events-auto cursor-pointer"
+                                                    className="px-10 py-4 rounded-full bg-gradient-to-r from-yellow-500/80 to-yellow-600/80 text-white font-bold tracking-widest text-xl shadow-[0_0_20px_rgba(250,204,21,0.3)] border-2 border-yellow-400/50 pointer-events-auto cursor-pointer backdrop-blur-md hover:from-yellow-400 hover:to-yellow-500 hover:text-black hover:border-yellow-300 transition-all duration-300"
                                                 >
                                                     เริ่มเกม
                                                 </motion.button>
                                             ) : (
-                                                <div className="px-6 py-3 rounded-full bg-black/50 border border-cyan-500/30 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-                                                    <span className="text-cyan-300 font-bold tracking-widest text-lg animate-pulse uppercase">
+                                                <motion.div
+                                                    animate={{ opacity: [0.7, 1, 0.7] }}
+                                                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                                                    className="px-6 py-3 rounded-full bg-black/60 border border-white/20 backdrop-blur-md shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+                                                >
+                                                    <span className="text-white/80 font-bold tracking-widest text-lg uppercase transition-colors duration-300">
                                                         {(players.filter(p => !p.isSpectating).length < 2 || !players.some(p => p.isDealer))
-                                                            ? 'รอผู้เล่นท่านอื่น หรือ เจ้ามือ...'
-                                                            : 'รอเจ้ามือเริ่มเกม...'}
+                                                            ? 'รอผู้เล่นท่านอื่น...'
+                                                            : 'รอโฮสต์เริ่มเกม...'}
                                                     </span>
-                                                </div>
+                                                </motion.div>
                                             )}
                                         </div>
                                     )}
