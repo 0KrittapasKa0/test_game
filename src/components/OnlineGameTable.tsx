@@ -8,6 +8,7 @@ import { RoomEnvironment } from './RoomEnvironment';
 import ChipStack from './ChipStack';
 import { useState, useCallback, useRef, useEffect } from 'react';
 
+
 // This is a simplified version of GameTable for the online mode.
 // We reuse the basic rendering but hook it into useOnlineStore.
 
@@ -359,7 +360,7 @@ export default function OnlineGameTable() {
                                 </div>
                             )}
 
-                            {/* Bet Amount (Removed as requested by user since chips on the table are enough) */}
+
                         </div>
                     );
                 })}

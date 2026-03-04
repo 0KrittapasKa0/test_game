@@ -8,20 +8,21 @@ import { formatChips } from '../utils/formatChips';
 
 export default function OnlineJoinScreen() {
     const { joinRoom, leaveRoom, roomId, connectionStatus, hostRoomInfo } = useOnlineStore();
-    const { setScreen } = useGameStore();
+    const { setScreen, screen } = useGameStore();
+    const profile = loadProfile()!;
 
     const [selectedRole, setSelectedRole] = useState<'player' | 'dealer' | 'spectator'>('player');
     const [isJoining, setIsJoining] = useState(false);
     const [joinError, setJoinError] = useState<string | null>(null);
+    const userChips = profile?.chips || 0;
     const [isCopied, setIsCopied] = useState(false);
 
-    const profile = loadProfile();
-    const userChips = profile?.chips || 0;
-
     useEffect(() => {
-        setIsJoining(false);
-        setJoinError(null);
-    }, [roomId]);
+        if (screen === 'ONLINE_JOIN') {
+            setIsJoining(false); // Reset when entering screen
+            setJoinError(null);
+        }
+    }, [screen]);
 
     const minCapital = hostRoomInfo?.config.room.dealerMinCapital || 0;
     const minBet = hostRoomInfo?.config.room.minBet || 0;

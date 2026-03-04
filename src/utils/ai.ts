@@ -25,6 +25,34 @@ export function aiSelectBet(totalChips: number, room: RoomConfig): number {
     // If AI can't afford minimum bet, bet all chips
     if (totalChips < room.minBet) return totalChips;
 
+    // ── Raise decision (เกทับ) ──
+    // Chance to raise beyond room maxBet, based on chip stack
+    const chipRatio = totalChips / room.maxBet; // how many maxBets AI has
+    let raiseChance = 0;
+    if (chipRatio > 5) raiseChance = 0.25;       // very wealthy → 25%
+    else if (chipRatio > 3) raiseChance = 0.15;  // comfortable → 15%
+    else if (chipRatio > 1.5) raiseChance = 0.07; // slight edge → 7%
+    // else: can't comfortably raise — stays at 0%
+
+    const willRaise = raiseChance > 0 && Math.random() < raiseChance;
+
+    if (willRaise) {
+        // ── Raise: pick an amount between maxBet and all chips ──
+        // Vary the aggression: 50-100% raise over maxBet
+        const minRaise = room.maxBet;
+        const maxRaise = totalChips;
+        if (minRaise >= maxRaise) return maxRaise; // all-in if can't exceed nicely
+
+        // Pick from: 110-200% of maxBet (or all-in occasionally)
+        const allInChance = 0.08; // 8% chance of full all-in during a raise
+        if (Math.random() < allInChance) return maxRaise;
+
+        // Random between maxBet*1.1 and maxBet*2 (capped at all chips)
+        const raiseFactor = 1.1 + Math.random() * 0.9; // 1.1x to 2.0x
+        const raiseAmt = Math.round(room.maxBet * raiseFactor);
+        return Math.min(raiseAmt, maxRaise);
+    }
+
     // ── Normal bet: pick from chipPresets (mixed chips style) ──
     const cappedMax = Math.min(totalChips, room.maxBet);
     const options = room.chipPresets.filter(b => b >= room.minBet && b <= cappedMax);

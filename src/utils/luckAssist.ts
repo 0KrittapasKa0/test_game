@@ -68,16 +68,17 @@ function getWinRateThrottle(): number {
  * Base: 25%. Scales up with losses and low chips.
  */
 export function getGoodStartChance(streak: number, chipRatio: number): number {
-    let chance = 0.25; // เพิ่มจาก 0.18
+    let chance = 0.15; // ลดจาก 0.25 เริ่มต้นที่ 15%
 
-    // Lose Streak Adaptation
-    if (streak >= 5) chance = 0.50;       // เพิ่มจาก 0.35
-    else if (streak >= 3) chance = 0.35;  // เพิ่มจาก 0.26
+    // Lose Streak Adaptation (ค่อยๆ เพิ่มทีละนิด)
+    if (streak >= 7) chance = 0.35;       // แพ้ยับ 7 ตาติด ค่อยให้ 35%
+    else if (streak >= 5) chance = 0.25;  // แพ้ 5 ตาติด ให้ 25%
+    else if (streak >= 3) chance = 0.20;  // แพ้ 3 ตาติด ให้ 20%
 
-    // Low Chip Protection (+15% if below 30% of starting)
-    if (chipRatio < 0.3) chance += 0.15;  // เพิ่มจาก 0.10
+    // Low Chip Protection (+10% if below 25% of starting)
+    if (chipRatio < 0.25) chance += 0.10; // ลดโบนัสช่วยคนจนลงมาเหลือ +10%
 
-    return Math.min(chance, 0.60); // Hard cap 60% (เพิ่มจาก 0.50)
+    return Math.min(chance, 0.45); // Hard cap ลดจาก 60% เหลือ 45%
 }
 
 /**
@@ -187,11 +188,11 @@ export function pickAssistedOpeningCards(
 export function shouldAssistThirdCard(currentChips: number): boolean {
     if (openingAssistActivatedThisRound) return false;
 
-    let chance = 0.40; // เพิ่มจาก 0.30
+    let chance = 0.25; // ลดจาก 0.40 เหลือ 25%
 
-    // Low Chip Protection (+15%)
+    // Low Chip Protection (+10%)
     const chipRatio = startingChips > 0 ? currentChips / startingChips : 1;
-    if (chipRatio < 0.3) chance += 0.15; // เพิ่มจาก 0.10
+    if (chipRatio < 0.25) chance += 0.10; // ลดจาก 0.15 เหลือ 0.10
 
     // Win Rate Cap
     chance *= getWinRateThrottle();
@@ -384,11 +385,12 @@ export function pickAssistedThirdCard(
 export function shouldNerfAiOpening(): boolean {
     if (aiNerfedThisRound) return false; // จำกัด 1 คนต่อรอบ
 
-    let chance = 0.12;
+    let chance = 0.08; // ลดจาก 0.12
 
     // เพิ่มโอกาส nerf เมื่อผู้เล่นแพ้ต่อเนื่อง
-    if (loseStreak >= 5) chance = 0.25;
-    else if (loseStreak >= 3) chance = 0.18;
+    if (loseStreak >= 7) chance = 0.20;
+    else if (loseStreak >= 5) chance = 0.15;
+    else if (loseStreak >= 3) chance = 0.12;
 
     // Win Rate Cap
     chance *= getWinRateThrottle();

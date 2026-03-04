@@ -49,39 +49,54 @@ export function formatChips(amount: number): string {
 export function numberToThaiVoice(amount: number): string {
     if (amount === 0) return "ศูนย์";
 
-    const digits = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
-    const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+    const abs = Math.abs(amount);
+    const sign = amount < 0 ? "ลบ" : "";
 
-    let numStr = Math.abs(amount).toString();
-    if (numStr.length > 7) {
-        // Handle values > 1 Million by taking the million part and adding 'ล้าน', then process the rest
-        const millionsStr = numStr.substring(0, numStr.length - 6);
-        const restStr = numStr.substring(numStr.length - 6);
-
-        // Simple recursion for the millions part (since million in Thai is just a prefix read as a normal number + ล้าน)
-        const millionsText = numberToThaiVoice(parseInt(millionsStr, 10)) + "ล้าน";
-        const restText = parseInt(restStr, 10) === 0 ? "" : numberToThaiVoice(parseInt(restStr, 10));
-        return millionsText + restText;
+    // For extremely large numbers, use shorthand decimals so TTS reads it faster
+    // e.g. "1.5 ล้าน" instead of "หนึ่งล้านห้าแสน"
+    if (abs >= 1_000_000_000_000_000) {
+        const num = abs / 1_000_000_000_000_000;
+        return sign + (num % 1 === 0 ? `${num}` : `${num.toFixed(1)}`) + " ล้านล้านล้าน"; // Q scale
     }
 
+    if (abs >= 1_000_000_000_000) {
+        const num = abs / 1_000_000_000_000;
+        return sign + (num % 1 === 0 ? `${num}` : `${num.toFixed(1)}`) + " ล้านล้าน";
+    }
+
+    if (abs >= 1_000_000_000) {
+        const num = abs / 1_000_000_000;
+        return sign + (num % 1 === 0 ? `${num}` : `${num.toFixed(1)}`) + " พันล้าน";
+    }
+
+    if (abs >= 1_000_000) {
+        const num = abs / 1_000_000;
+        return sign + (num % 1 === 0 ? `${num}` : `${num.toFixed(1)}`) + " ล้าน";
+    }
+
+    if (abs >= 100_000) {
+        const num = abs / 100_000;
+        return sign + (num % 1 === 0 ? `${num}` : `${num.toFixed(1)}`) + " แสน";
+    }
+
+    // For amounts below 100,000, explicitly build the Thai phonetic string to ensure 
+    // all TTS engines (especially older ones) read it correctly instead of digit-by-digit.
     let result = '';
+    const numStr = abs.toString();
     const length = numStr.length;
+    const digits = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+    const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
 
     for (let i = 0; i < length; i++) {
         const digit = parseInt(numStr.charAt(i), 10);
         const position = length - i - 1;
 
         if (digit !== 0) {
-            // Special rules for Thai numbers
             if (position === 1 && digit === 1) {
-                // "สิบ" instead of "หนึ่งสิบ"
                 result += positions[position];
             } else if (position === 1 && digit === 2) {
-                // "ยี่สิบ" instead of "สองสิบ"
                 result += 'ยี่' + positions[position];
             } else if (position === 0 && digit === 1 && length > 1) {
-                // "เอ็ด" instead of "หนึ่ง" as the last digit
-                // But only if the tens digit is not 0 (e.g. 101 => ร้อยเอ็ด)
                 if (numStr.charAt(length - 2) === '0') {
                     result += digits[digit] + positions[position];
                 } else {
@@ -93,5 +108,5 @@ export function numberToThaiVoice(amount: number): string {
         }
     }
 
-    return amount < 0 ? "ลบ" + result : result;
+    return sign + result;
 }

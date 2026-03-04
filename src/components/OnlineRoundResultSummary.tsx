@@ -77,7 +77,7 @@ export default function OnlineRoundResultSummary() {
                     )}
                 </div>
 
-                {/* List */}
+                {/* List - Using CSS Grid for better layout calculation */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 space-y-1.5 scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
                     {sortedPlayers.map((p: any, index: number) => {
                         const handResult = evaluateHand(p.cards);
@@ -163,7 +163,7 @@ export default function OnlineRoundResultSummary() {
                 {/* Footer */}
                 <div className="h-16 sm:h-20 border-t border-white/10 bg-black/60 flex items-center justify-center shrink-0 backdrop-blur-md relative z-20">
                     {!isHost ? (
-                        <span className="text-gray-400 text-sm">รอโฮสต์เริ่มรอบใหม่...</span>
+                        <span className="text-gray-400 text-sm font-bold tracking-widest uppercase">รอโฮสต์เริ่มรอบใหม่...</span>
                     ) : (
                         <button
                             onClick={nextRound}

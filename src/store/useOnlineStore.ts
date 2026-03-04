@@ -655,6 +655,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
         const resetPlayers = players.map((p) => ({
             ...p,
             cards: [],
+            lastBet: p.bet > 0 ? p.bet : p.lastBet,
             hasActed: !p.isHuman, // AI players auto-confirm their bet to not block the host
             result: 'pending' as const,
             score: 0,
@@ -1187,6 +1188,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                 ...p,
                 isSpectating: p.isDealer ? false : spectating,
                 cards: [],
+                lastBet: p.bet > 0 ? p.bet : p.lastBet,
                 hasActed: p.isDealer ? false : (spectating ? true : false), // Spectators auto-act
                 result: 'pending' as const,
                 score: 0,
@@ -1302,7 +1304,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
 
         if (isHost) {
             // Also set hasActed for the host so UI knows
-            const newPlayers = players.map(p => p.id === localPlayerId ? { ...p, hasActed: true, lastBet: p.bet } : p);
+            const newPlayers = players.map(p => p.id === localPlayerId ? { ...p, hasActed: true } : p);
             set({ players: newPlayers });
 
             const dealerPlayer = newPlayers.find(p => p.isDealer);
@@ -1325,7 +1327,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                 } as any);
             }
             // Need to set local player to acted nicely on UI before update
-            set({ players: players.map(p => p.id === localPlayerId ? { ...p, hasActed: true, lastBet: p.bet } : p) });
+            set({ players: players.map(p => p.id === localPlayerId ? { ...p, hasActed: true } : p) });
         }
     },
 }));

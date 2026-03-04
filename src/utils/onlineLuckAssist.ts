@@ -70,16 +70,17 @@ function getWinRateThrottle(state: PlayerState): number {
  * Calculate the Good Start Assist chance based on lose streak and chip ratio.
  */
 function getGoodStartChance(streak: number, chipRatio: number): number {
-    let chance = 0.25;
+    let chance = 0.15; // ลดจาก 0.25 เริ่มต้นที่ 15%
 
-    // Lose Streak Adaptation
-    if (streak >= 5) chance = 0.50;
-    else if (streak >= 3) chance = 0.35;
+    // Lose Streak Adaptation (ค่อยๆ เพิ่มทีละนิด)
+    if (streak >= 7) chance = 0.35;       // แพ้ยับ 7 ตาติด ค่อยให้ 35%
+    else if (streak >= 5) chance = 0.25;  // แพ้ 5 ตาติด ให้ 25%
+    else if (streak >= 3) chance = 0.20;  // แพ้ 3 ตาติด ให้ 20%
 
-    // Low Chip Protection (+15% if below 30% of starting)
-    if (chipRatio < 0.3) chance += 0.15;
+    // Low Chip Protection (+10% if below 25% of starting)
+    if (chipRatio < 0.25) chance += 0.10; // ลดโบนัสช่วยคนจนลงมาเหลือ +10%
 
-    return Math.min(chance, 0.60); // Hard cap 60%
+    return Math.min(chance, 0.45); // Hard cap ลดจาก 60% เหลือ 45%
 }
 
 /**
@@ -177,10 +178,11 @@ export function shouldAssistOnlineThirdCard(playerId: string, currentChips: numb
     const state = playerStates.get(playerId);
     if (!state || state.openingAssistActivatedThisRound) return false;
 
-    let chance = 0.40;
+    let chance = 0.25; // ลดจาก 0.40 เหลือ 25%
 
+    // Low Chip Protection (+10%)
     const chipRatio = state.startingChips > 0 ? currentChips / state.startingChips : 1;
-    if (chipRatio < 0.3) chance += 0.15;
+    if (chipRatio < 0.25) chance += 0.10; // ลดจาก 0.15 เหลือ 0.10
 
     chance *= getWinRateThrottle(state);
     return Math.random() < chance;

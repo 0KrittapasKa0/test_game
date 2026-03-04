@@ -246,8 +246,8 @@ export default function GameSetupScreen() {
                                                     </div>
                                                 </div>
 
-                                                {/* Voice Announcer Button (Only show if sound is enabled) */}
-                                                {settings.voiceEnabled && (
+                                                {/* Voice Announcer Button */}
+                                                {settings.voiceEnabled !== false && (
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation(); // prevent triggering the room selection
