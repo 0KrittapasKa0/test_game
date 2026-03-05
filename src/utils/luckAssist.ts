@@ -56,8 +56,8 @@ export function initLuckState(chips: number): void {
 function getWinRateThrottle(): number {
     if (totalRounds < 5) return 1.0;
     const winRate = winCount / totalRounds;
-    if (winRate > 0.60) return 0.5;
-    if (winRate > 0.55) return 0.75;
+    if (winRate > 0.55) return 0.5;
+    if (winRate > 0.50) return 0.8;
     return 1.0;
 }
 
@@ -68,17 +68,17 @@ function getWinRateThrottle(): number {
  * Base: 25%. Scales up with losses and low chips.
  */
 export function getGoodStartChance(streak: number, chipRatio: number): number {
-    let chance = 0.15; // ลดจาก 0.25 เริ่มต้นที่ 15%
+    let chance = 0.05; // ลดจาก 0.15 เริ่มต้นที่ 5%
 
     // Lose Streak Adaptation (ค่อยๆ เพิ่มทีละนิด)
-    if (streak >= 7) chance = 0.35;       // แพ้ยับ 7 ตาติด ค่อยให้ 35%
-    else if (streak >= 5) chance = 0.25;  // แพ้ 5 ตาติด ให้ 25%
-    else if (streak >= 3) chance = 0.20;  // แพ้ 3 ตาติด ให้ 20%
+    if (streak >= 7) chance = 0.30;       // แพ้ยับ 7 ตาติด ค่อยให้ 30%
+    else if (streak >= 5) chance = 0.20;  // แพ้ 5 ตาติด ให้ 20%
+    else if (streak >= 3) chance = 0.10;  // แพ้ 3 ตาติด ให้ 10%
 
-    // Low Chip Protection (+10% if below 25% of starting)
-    if (chipRatio < 0.25) chance += 0.10; // ลดโบนัสช่วยคนจนลงมาเหลือ +10%
+    // Low Chip Protection (+15% if below 25% of starting)
+    if (chipRatio < 0.25) chance += 0.15; // เพิ่มโบนัสช่วยคนจนเป็น +15%
 
-    return Math.min(chance, 0.45); // Hard cap ลดจาก 60% เหลือ 45%
+    return Math.min(chance, 0.40); // Hard cap ลดจาก 45% เหลือ 40%
 }
 
 /**
@@ -105,25 +105,27 @@ export function shouldAssistOpening(_roundNumber: number, currentChips: number):
  * With Pok cooldown: if Pok occurred in last 1 round, skip Pok targets.
  */
 function pickTargetScore(roundNumber: number): number {
-    const pokOnCooldown = lastPokRounds.some(r => roundNumber - r <= 1); // ลดจาก 2 เหลือ 1
+    const pokOnCooldown = lastPokRounds.some(r => roundNumber - r <= 3); // ลดจาก 1 เหลือ 3
 
     const roll = Math.random();
 
     if (!pokOnCooldown) {
-        if (roll < 0.08) {       // เพิ่มจาก 0.05
+        if (roll < 0.05) {       // ลดจาก 0.08
             lastPokRounds.push(roundNumber);
             return 9; // Pok 9
         }
-        if (roll < 0.23) {       // เพิ่มจาก 0.15 (0.08 + 0.15 = 0.23)
+        if (roll < 0.15) {       // ลดจาก 0.23 (0.05 + 0.10 = 0.15)
             lastPokRounds.push(roundNumber);
             return 8; // Pok 8
         }
     }
 
-    // Non-Pok targets
-    if (roll < 0.63) return 7; // 40% → score 7
-    // Remaining 37% → score 6 or 8 (not Pok since it's 2-card score)
-    return Math.random() < 0.5 ? 6 : 8;
+    // Non-Pok targets (remaining 85% or 100% if Pok on cooldown)
+    if (roll < 0.50) return 7; // 35% → score 7 (0.15 + 0.35 = 0.50)
+    if (roll < 0.80) return 6; // 30% → score 6 (0.50 + 0.30 = 0.80)
+
+    // Remaining 20% → score 5 (Mediocre assist)
+    return 5;
 }
 
 /**
@@ -188,11 +190,11 @@ export function pickAssistedOpeningCards(
 export function shouldAssistThirdCard(currentChips: number): boolean {
     if (openingAssistActivatedThisRound) return false;
 
-    let chance = 0.25; // ลดจาก 0.40 เหลือ 25%
+    let chance = 0.10; // ลดจาก 0.25 เหลือ 10%
 
-    // Low Chip Protection (+10%)
+    // Low Chip Protection (+15%)
     const chipRatio = startingChips > 0 ? currentChips / startingChips : 1;
-    if (chipRatio < 0.25) chance += 0.10; // ลดจาก 0.15 เหลือ 0.10
+    if (chipRatio < 0.25) chance += 0.15; // เพิ่มจาก 0.10 เหลือ 0.15
 
     // Win Rate Cap
     chance *= getWinRateThrottle();
@@ -211,11 +213,11 @@ const FACE_RANKS: Rank[] = ['J', 'Q', 'K'];
 type SpecialType = 'tong' | 'straight_flush' | 'straight' | 'sam_leung' | 'same_suit';
 
 const SPECIAL_CHANCES: Record<SpecialType, number> = {
-    tong: 0.05,            // 5% — หายากมาก ตื่นเต้น
-    straight_flush: 0.05,  // 5% — หายากมาก ตื่นเต้น
-    straight: 0.15,        // 15% — เจอบ้าง
-    sam_leung: 0.12,       // 12% — เจอบ้าง
-    same_suit: 0.20,       // 20% — เจอบ่อยสุด เนียนที่สุด
+    tong: 0.015,           // 1.5% — หายากมาก ตื่นเต้น
+    straight_flush: 0.015, // 1.5% — หายากมาก ตื่นเต้น
+    straight: 0.05,        // 5% — เจอบ้าง
+    sam_leung: 0.05,       // 5% — เจอบ้าง
+    same_suit: 0.15,       // 15% — เจอบ่อยสุด เนียนที่สุด
 };
 
 /**
@@ -278,7 +280,7 @@ export function pickAssistedThirdCard(
     const targetScores = [7, 8, 6];
 
     // เช็ค Special Hand Cooldown
-    const specialOnCooldown = (currentRoundNumber - lastSpecialHandRound) <= 3;
+    const specialOnCooldown = (currentRoundNumber - lastSpecialHandRound) <= 6;
 
     // จัดกลุ่ม candidates
     interface Candidate {
@@ -385,12 +387,12 @@ export function pickAssistedThirdCard(
 export function shouldNerfAiOpening(): boolean {
     if (aiNerfedThisRound) return false; // จำกัด 1 คนต่อรอบ
 
-    let chance = 0.08; // ลดจาก 0.12
+    let chance = 0.03; // ลดจาก 0.08 เหลือ 3%
 
     // เพิ่มโอกาส nerf เมื่อผู้เล่นแพ้ต่อเนื่อง
-    if (loseStreak >= 7) chance = 0.20;
-    else if (loseStreak >= 5) chance = 0.15;
-    else if (loseStreak >= 3) chance = 0.12;
+    if (loseStreak >= 7) chance = 0.15;
+    else if (loseStreak >= 5) chance = 0.10;
+    else if (loseStreak >= 3) chance = 0.06;
 
     // Win Rate Cap
     chance *= getWinRateThrottle();
@@ -441,10 +443,10 @@ export function pickNerfedAiCards(
  * โอกาส ~15% — ทำให้ AI เสี่ยงแต้มลดลง
  */
 export function shouldNerfAiDraw(): boolean {
-    let chance = 0.15;
+    let chance = 0.05; // ลดจาก 0.15 เหลือ 5%
 
     // เพิ่มเมื่อผู้เล่นแพ้ต่อเนื่อง
-    if (loseStreak >= 3) chance = 0.22;
+    if (loseStreak >= 3) chance = 0.10; // ลดจาก 0.22 เหลือ 10%
 
     // Win Rate Cap
     chance *= getWinRateThrottle();
