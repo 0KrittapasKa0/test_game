@@ -8,7 +8,7 @@ import ChipStack from './ChipStack';
 import FloatingEmoji, { type FloatingEmojiEvent } from './FloatingEmoji';
 import { tryBotEmoji, trySocialReaction, getContextualEmojiResponse, resetEmojiCooldowns, updateMood } from '../utils/aiEmojiLogic';
 import type { EmojiContext } from '../utils/aiEmojiLogic';
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 // This is a simplified version of GameTable for the online mode.
 // We reuse the basic rendering but hook it into useOnlineStore.
@@ -16,50 +16,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 interface SeatPosition {
     x: number;
     y: number;
-}
-
-/** Animated card that flies from the deck center to a player's seat */
-function FlyingCardElement({ targetX, targetY, onComplete }: {
-    targetX: number;
-    targetY: number;
-    onComplete: () => void;
-}) {
-    return (
-        <motion.div
-            className="absolute top-0 left-0 w-full h-full pointer-events-none"
-            style={{ zIndex: 60, willChange: 'transform' }}
-            initial={{ x: '50%', y: '50%' }}
-            animate={{ x: `${targetX}%`, y: `${targetY}%` }}
-            transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
-            onAnimationComplete={onComplete}
-        >
-            <motion.div
-                className="absolute top-0 left-0"
-                style={{ width: '48px', height: '68px', willChange: 'transform, opacity' }}
-                initial={{ x: '-50%', y: '-50%', scale: 1, opacity: 1 }}
-                animate={{ x: '-50%', y: '-50%', scale: 0.65, opacity: [1, 1, 0.3] }}
-                transition={{
-                    duration: 0.28,
-                    ease: [0.25, 0.46, 0.45, 0.94],
-                    opacity: { times: [0, 0.6, 1] },
-                }}
-            >
-                <div
-                    className="w-full h-full rounded-md bg-white p-[3px] sm:p-[4px]"
-                    style={{
-                        border: '1px solid #e5e7eb',
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-                    }}
-                >
-                    <div className="w-full h-full rounded-[4px] border-[1.5px] border-[#e5e7eb] flex items-center justify-center">
-                        <span className="text-[#e5e7eb] text-sm drop-shadow-none leading-none">
-                            ♠
-                        </span>
-                    </div>
-                </div>
-            </motion.div>
-        </motion.div>
-    );
 }
 
 function computeSeatPositions(
@@ -307,7 +263,7 @@ export function useOnlineEmoji() {
 }
 
 export default function OnlineGameTable({ emojiEvents }: { emojiEvents: FloatingEmojiEvent[] }) {
-    const { players, gamePhase, activePlayerIndex, isDealing, showCards, localPlayerId, config } = useOnlineStore();
+    const { players, gamePhase, activePlayerIndex, showCards, localPlayerId, config } = useOnlineStore();
 
     const activePlayers = players.filter(p => !p.isSpectating);
     const activeHumanIndex = activePlayers.findIndex(p => p.id === localPlayerId);
@@ -317,44 +273,9 @@ export default function OnlineGameTable({ emojiEvents }: { emojiEvents: Floating
         ? computeSeatPositions(activePlayers.length, activeDealerIndex >= 0 ? activeDealerIndex : 0, activeHumanIndex >= 0 ? activeHumanIndex : -1)
         : [];
 
-    // Animation tracking
-    const [flyingCards, setFlyingCards] = useState<{ id: string; targetX: number; targetY: number }[]>([]);
-    const prevCardCountsRef = useRef<Record<string, number>>({});
 
-    const removeFlyingCard = useCallback((id: string) => {
-        setFlyingCards(prev => prev.filter(fc => fc.id !== id));
-    }, []);
 
-    // Detect new cards and trigger flying animation
-    useEffect(() => {
-        if (!isDealing && gamePhase !== 'DEALING') return;
 
-        activePlayers.forEach((p, idx) => {
-            const currentCount = p.cards.length;
-            const prevCount = prevCardCountsRef.current[p.id] || 0;
-
-            if (currentCount > prevCount) {
-                const pos = seatPositions[idx];
-                if (pos) {
-                    for (let i = prevCount; i < currentCount; i++) {
-                        setFlyingCards(prev => [
-                            ...prev,
-                            { id: `${p.id}-card-${i}-${Date.now()}`, targetX: pos.x, targetY: pos.y }
-                        ]);
-                    }
-                }
-            }
-            prevCardCountsRef.current[p.id] = currentCount;
-        });
-    }, [players, isDealing, gamePhase, seatPositions]);
-
-    // Reset card counts on new round
-    useEffect(() => {
-        if (gamePhase === 'WAITING' || gamePhase === 'BETTING') {
-            prevCardCountsRef.current = {};
-            setFlyingCards([]);
-        }
-    }, [gamePhase]);
 
     return (
         <div className="absolute inset-0 z-30 pointer-events-none">
@@ -380,15 +301,7 @@ export default function OnlineGameTable({ emojiEvents }: { emojiEvents: Floating
                 </div>
             </div>
 
-            {/* Flying Card Animations */}
-            {flyingCards.map(fc => (
-                <FlyingCardElement
-                    key={fc.id}
-                    targetX={fc.targetX}
-                    targetY={fc.targetY}
-                    onComplete={() => removeFlyingCard(fc.id)}
-                />
-            ))}
+
 
             {/* ===== Render Chips on Table ===== */}
             {activePlayers.map((player, idx) => {

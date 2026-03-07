@@ -141,53 +141,6 @@ function getChipPosition(playerPos: SeatPosition): SeatPosition {
     };
 }
 
-/** Animated card that flies from the deck center to a player's seat */
-function FlyingCardElement({ targetX, targetY, onComplete }: {
-    targetX: number;
-    targetY: number;
-    onComplete: () => void;
-}) {
-    // We use a 2-layer approach to ensure 100% 60fps hardware acceleration on iOS.
-    // Animating 'left' and 'top' causes layout reflows (lag).
-    // Instead, we use a 100% width/height wrapper. Animating 'x: 50%' on it moves it 50% of parent width.
-    return (
-        <motion.div
-            className="absolute top-0 left-0 w-full h-full pointer-events-none"
-            style={{ zIndex: 60, willChange: 'transform' }}
-            initial={{ x: '50%', y: '50%' }}
-            animate={{ x: `${targetX}%`, y: `${targetY}%` }}
-            transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
-            onAnimationComplete={onComplete}
-        >
-            <motion.div
-                className="absolute top-0 left-0"
-                style={{ width: '48px', height: '68px', willChange: 'transform, opacity' }}
-                initial={{ x: '-50%', y: '-50%', scale: 1, opacity: 1 }}
-                animate={{ x: '-50%', y: '-50%', scale: 0.65, opacity: [1, 1, 0.3] }}
-                transition={{
-                    duration: 0.28,
-                    ease: [0.25, 0.46, 0.45, 0.94],
-                    opacity: { times: [0, 0.6, 1] },
-                }}
-            >
-                <div
-                    className="w-full h-full rounded-md bg-white p-[3px] sm:p-[4px]"
-                    style={{
-                        border: '1px solid #e5e7eb',
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-                    }}
-                >
-                    <div className="w-full h-full rounded-[4px] border-[1.5px] border-[#e5e7eb] flex items-center justify-center">
-                        <span className="text-[#e5e7eb] text-sm drop-shadow-none leading-none">
-                            ♠
-                        </span>
-                    </div>
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-}
-
 export default function GameTable() {
     const {
         players, gamePhase,
@@ -244,19 +197,9 @@ export default function GameTable() {
         confirmBet();
     };
 
-    // ── Flying card animation tracking ──
-    interface FlyingCard {
-        id: string;
-        targetX: number; // percentage
-        targetY: number; // percentage
-    }
-    const [flyingCards, setFlyingCards] = useState<FlyingCard[]>([]);
-    const prevCardCountsRef = useRef<Record<string, number>>({});
     const tableRef = useRef<HTMLDivElement>(null);
 
-    const removeFlyingCard = useCallback((id: string) => {
-        setFlyingCards(prev => prev.filter(fc => fc.id !== id));
-    }, []);
+
 
     // --- Listen to Join/Leave Events ---
     useEffect(() => {
@@ -297,37 +240,7 @@ export default function GameTable() {
         });
     }, [latestAiEvents]);
 
-    // Detect new cards being dealt and spawn flying card animations
-    useEffect(() => {
-        if (!isDealing && gamePhase !== 'PLAYER_ACTION') {
-            // Snapshot current counts so we don't re-detect existing cards later
-            const snapshot: Record<string, number> = {};
-            activePlayers.forEach(p => { snapshot[p.id] = p.cards.length; });
-            prevCardCountsRef.current = snapshot;
-            return;
-        }
 
-        const newFlyers: FlyingCard[] = [];
-        activePlayers.forEach((player, idx) => {
-            const prevCount = prevCardCountsRef.current[player.id] ?? 0;
-            const currCount = player.cards.length;
-            if (currCount > prevCount && seatPositions[idx]) {
-                // New card added to this player
-                for (let c = prevCount; c < currCount; c++) {
-                    newFlyers.push({
-                        id: `fly-${player.id}-${c}-${Date.now()}`,
-                        targetX: seatPositions[idx].x,
-                        targetY: seatPositions[idx].y,
-                    });
-                }
-            }
-            prevCardCountsRef.current[player.id] = currCount;
-        });
-
-        if (newFlyers.length > 0) {
-            setFlyingCards(prev => [...prev, ...newFlyers]);
-        }
-    }, [activePlayers, isDealing, gamePhase, seatPositions]);
 
     const handleSendEmoji = useCallback((emoji: string) => {
         if (!humanPlayer) return;
@@ -501,9 +414,8 @@ export default function GameTable() {
             <div className="relative flex items-center justify-between px-3 sm:px-5 py-2.5 z-50 shrink-0">
                 <motion.button
                     whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
                     onClick={handleExit}
-                    className="text-white/70 hover:text-white text-xs sm:text-sm px-3 py-1.5 rounded-xl bg-white/6 hover:bg-white/10 transition-all backdrop-blur-sm border border-white/6"
+                    className="text-white/70 hover:text-white text-xs sm:text-sm px-3 py-1.5 rounded-xl bg-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.15)] transition-all border border-white/6"
                 >
                     ← ออก
                 </motion.button>
@@ -511,7 +423,7 @@ export default function GameTable() {
                 {/* Human chip display */}
                 {humanPlayer && (
                     <div
-                        className="bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/6 flex items-center gap-1.5 cursor-pointer pointer-events-auto hover:bg-black/50 transition-colors active:scale-95"
+                        className="bg-[rgba(0,0,0,0.65)] px-3 py-1.5 rounded-xl border border-white/6 flex items-center gap-1.5 cursor-pointer pointer-events-auto hover:bg-[rgba(0,0,0,0.8)] transition-colors active:scale-95"
                         onClick={() => { SFX.click(); speakPhrase(`มี ${numberToThaiVoice(humanPlayer.chips)} ชิปค่ะ`); }}
                     >
                         <span className="inline-block w-2.5 h-2.5 rounded-full bg-linear-to-br from-yellow-300 to-amber-500 shadow-[0_0_6px_rgba(250,204,21,0.6)]" />
@@ -706,15 +618,7 @@ export default function GameTable() {
                                         );
                                     })}
 
-                                    {/* ===== Flying Card Animations ===== */}
-                                    {flyingCards.map(fc => (
-                                        <FlyingCardElement
-                                            key={fc.id}
-                                            targetX={fc.targetX}
-                                            targetY={fc.targetY}
-                                            onComplete={() => removeFlyingCard(fc.id)}
-                                        />
-                                    ))}
+
                                 </div>
                             </div>
                         </div>
@@ -1021,7 +925,7 @@ export default function GameTable() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShowEmojiPicker(true)}
-                    className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 pointer-events-auto p-3 sm:p-3.5 rounded-full bg-black/40 hover:bg-black/60 transition-all backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg shadow-black/50"
+                    className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 pointer-events-auto p-3 sm:p-3.5 rounded-full bg-[rgba(0,0,0,0.7)] hover:bg-[rgba(0,0,0,0.85)] transition-all border border-white/20 flex items-center justify-center shadow-lg shadow-black/50"
                     title="ส่งอีโมจิ"
                 >
                     <Smile className="w-6 h-6 sm:w-7 sm:h-7 text-white/90" />
@@ -1041,7 +945,7 @@ export default function GameTable() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                        className="absolute inset-0 z-[200] flex items-center justify-center bg-[rgba(0,0,0,0.85)]"
                     >
                         <motion.div
                             initial={{ scale: 0.85, opacity: 0, y: 20 }}

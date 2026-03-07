@@ -307,38 +307,46 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
 }
 
-/* --- Floating Emoji Animation (GPU-accelerated) --- */
-@keyframes emoji-float {
+/* --- Stationary Pop Emoji Animation (GPU-accelerated, Zero Layout Shift) --- */
+@keyframes emoji-pop {
   0% {
     opacity: 0;
-    transform: translateY(8px) scale(0.5);
+    transform: scale(0.2);
   }
 
-  15% {
+  12% {
     opacity: 1;
-    transform: translateY(-10px) scale(1.15);
+    transform: scale(1.4);
   }
 
-  30% {
-    transform: translateY(-25px) scale(1);
+  22% {
+    transform: scale(1.1);
   }
 
-  80% {
+  32% {
+    transform: scale(1.25);
+  }
+
+  42% {
+    transform: scale(1.15);
+  }
+
+  85% {
     opacity: 1;
-    transform: translateY(-55px) scale(1.05);
+    transform: scale(1.15);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(-70px) scale(0.9);
+    transform: scale(0.6);
   }
 }
 
-.emoji-float-start {
+.emoji-pop-start {
   opacity: 0;
-  transform: translateY(8px) scale(0.5);
+  transform: scale(0.2);
 }
 
-.emoji-float-active {
-  animation: emoji-float 2.2s ease-out forwards;
+.emoji-pop-active {
+  animation: emoji-pop 2.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }

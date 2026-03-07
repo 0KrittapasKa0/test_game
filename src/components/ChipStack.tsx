@@ -76,9 +76,9 @@ export default function ChipStack({ amount, delay = 0, chipPresets, category = '
                     {/* Dashed Stripe Pattern (Outer Ring) */}
                     <div className="absolute inset-0 rounded-full border-[4px] border-dashed border-white/40 opacity-80" />
 
-                    {/* Inner Circle (Solid) */}
-                    <div className={`absolute w-[65%] h-[65%] rounded-full border border-white/30 shadow-inner ${chip.style.border} bg-white/10 backdrop-brightness-110 flex items-center justify-center`}>
-                        <div className="w-[80%] h-[80%] rounded-full border border-white/10 bg-white/5 flex items-center justify-center">
+                    {/* Inner Circle (Solid) - OPTIMIZED: Removed backdrop-brightness */}
+                    <div className={`absolute w-[65%] h-[65%] rounded-full border border-white/30 shadow-inner ${chip.style.border} bg-[rgba(255,255,255,0.15)] flex items-center justify-center`}>
+                        <div className="w-[80%] h-[80%] rounded-full border border-white/10 bg-[rgba(255,255,255,0.05)] flex items-center justify-center">
                             <span className={`text-[6px] sm:text-[8px] font-bold ${chip.style.textColor} drop-shadow-sm`}>
                                 {formatChips(chip.value)}
                             </span>
@@ -97,7 +97,7 @@ export default function ChipStack({ amount, delay = 0, chipPresets, category = '
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
             >
-                <span className="bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded text-[9px] text-white font-bold shadow-sm border border-white/10">
+                <span className="bg-[rgba(0,0,0,0.85)] px-1.5 py-0.5 rounded text-[9px] text-white font-bold shadow-sm border border-white/10">
                     {formatChips(amount)}
                 </span>
             </motion.div>

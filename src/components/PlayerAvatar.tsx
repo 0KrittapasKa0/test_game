@@ -1,3 +1,4 @@
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { formatChips } from '../utils/formatChips';
 
@@ -14,7 +15,7 @@ interface PlayerAvatarProps {
     isSpectating?: boolean;
 }
 
-export default function PlayerAvatar({
+function PlayerAvatar({
     name,
     color,
     avatarUrl,
@@ -131,7 +132,7 @@ export default function PlayerAvatar({
                     <span className={`text-white ${s.font} font-medium ${isSpectating ? 'opacity-50' : ''} truncate max-w-[70px] leading-tight drop-shadow-md`}>
                         {name}
                     </span>
-                    <div className={`flex items-center gap-1 bg-black/40 px-1.5 rounded-full ${isSpectating ? 'opacity-50 grayscale' : ''}`}>
+                    <div className={`flex items-center gap-1 bg-[rgba(0,0,0,0.6)] px-1.5 rounded-full ${isSpectating ? 'opacity-50 grayscale' : ''}`}>
                         <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.8)]" />
                         <span className={`text-yellow-300 ${s.chipFont} font-bold`}>{formatChips(chips)}</span>
                     </div>
@@ -140,3 +141,5 @@ export default function PlayerAvatar({
         </div>
     );
 }
+
+export default memo(PlayerAvatar);

@@ -104,12 +104,26 @@ let aiIdCounter = 0;
 
 /**
  * Weighted random AI chip amount — creates variety at the table
- * 50% normal, 25% moderate, 15% low/broke, 8% rich, 2% mega-rich
+ * If human is 'rich' (humanChips > baseChips * 3), there's a 25% chance
+ * the AI becomes a "Challenger" matching human wealth.
+ * Otherwise: 50% normal, 25% moderate, 15% low/broke, 8% rich, 2% mega-rich
  */
-function randomizeAiChips(baseChips: number, minBet: number): number {
+function randomizeAiChips(baseChips: number, minBet: number, humanChips?: number): number {
     const roll = Math.random();
-    let multiplier: number;
+    let finalChips: number;
 
+    // Challenger logic: human is very rich compared to the room
+    if (humanChips && humanChips >= baseChips * 3) {
+        if (roll < 0.25) { // 25% chance to be a Challenger
+            // Challenger matches 50% to 150% of human's wealth
+            const challengerMult = 0.5 + Math.random() * 1.0;
+            finalChips = Math.round(humanChips * challengerMult);
+            return Math.max(minBet * 2, finalChips);
+        }
+    }
+
+    // Normal logic
+    let multiplier: number;
     if (roll < 0.02) {
         // 2% — มหาเศรษฐี (5–10x)
         multiplier = 5 + Math.random() * 5;
@@ -127,9 +141,9 @@ function randomizeAiChips(baseChips: number, minBet: number): number {
         multiplier = 0.8 + Math.random() * 0.6;
     }
 
-    const chips = Math.round(baseChips * multiplier);
+    finalChips = Math.round(baseChips * multiplier);
     // Ensure at least 2x minBet so they can play at least a couple rounds
-    return Math.max(minBet * 2, chips);
+    return Math.max(minBet * 2, finalChips);
 }
 
 function createAiPlayers(
@@ -139,12 +153,14 @@ function createAiPlayers(
     randomUsers: RandomUserResult[] = [],
     seatStartIndex: number = 1,
     minBet: number = 10,
+    humanChips?: number,
+
 ): Player[] {
     const shuffledNames = [...AI_NAMES].sort(() => Math.random() - 0.5);
     const shuffledColors = [...AVATAR_COLORS].sort(() => Math.random() - 0.5);
 
     return Array.from({ length: count }, (_, i) => {
-        const chips = randomizeAiChips(aiChips, minBet);
+        const chips = randomizeAiChips(aiChips, minBet, humanChips);
         return {
             id: `ai-${aiIdCounter++}`,
             name: randomUsers[i]?.name || shuffledNames[i % shuffledNames.length],
@@ -168,11 +184,11 @@ function createAiPlayers(
     });
 }
 
-async function createSingleAi(aiChips: number, seatIndex: number, minBet: number = 10): Promise<Player> {
+async function createSingleAi(aiChips: number, seatIndex: number, minBet: number = 10, humanChips?: number): Promise<Player> {
     const randomUsers = await fetchRandomUsers(1);
     const shuffledNames = [...AI_NAMES].sort(() => Math.random() - 0.5);
     const shuffledColors = [...AVATAR_COLORS].sort(() => Math.random() - 0.5);
-    const chips = randomizeAiChips(aiChips, minBet);
+    const chips = randomizeAiChips(aiChips, minBet, humanChips);
     return {
         id: `ai-${aiIdCounter++}`,
         name: randomUsers[0]?.name || shuffledNames[0],
@@ -276,7 +292,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         // Fetch random user data (with fallback to AI_NAMES)
         const randomUsers = await fetchRandomUsers(aiCount);
-        const aiPlayers = createAiPlayers(aiCount, config.room.aiChips, 0, randomUsers, 1, config.room.minBet);
+        const aiPlayers = createAiPlayers(aiCount, config.room.aiChips, 0, randomUsers, 1, config.room.minBet, profile.chips);
 
         const allPlayers = [humanPlayer, ...aiPlayers];
         const dealerIndex = config.humanIsDealer ? 0 : 1;
@@ -1030,7 +1046,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         for (const seatIdx of availableSeats) {
             if (Math.random() < 0.3) {
                 try {
-                    const newAi = await createSingleAi(config.room.aiChips, seatIdx, config.room.minBet);
+                    const newAi = await createSingleAi(config.room.aiChips, seatIdx, config.room.minBet, humanPlayer?.chips);
                     updatedPlayers.push(newAi);
                     aiEvents.push({ type: 'join', player: { id: newAi.id, result: 'draw', chips: newAi.chips } });
                 } catch {

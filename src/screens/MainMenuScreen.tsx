@@ -69,7 +69,7 @@ export default function MainMenuScreen() {
     return (
         <div className="w-full h-full bg-casino-table flex items-center justify-center p-4 sm:p-6 overflow-hidden relative">
             {/* Ambient Lighting & Particles */}
-            <div className="absolute inset-0 pointer-events-none mix-blend-screen">
+            <div className="absolute inset-0 pointer-events-none opacity-60">
                 <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full opacity-20"
                     style={{ background: 'radial-gradient(circle, #fbbf24, transparent 60%)', filter: 'blur(80px)', transform: 'translate(-50%, -50%)' }} />
                 <div className="absolute bottom-0 right-1/4 w-[800px] h-[800px] rounded-full opacity-10"
@@ -205,7 +205,7 @@ export default function MainMenuScreen() {
                 </div>
 
                 <motion.button
-                    onClick={() => { speakPhrase('กิจกรรมรับชิป'); nav('REWARD_CODE'); }}
+                    onClick={() => { speakPhrase('กิจกรรมรับชิป'); nav('ACTIVITIES'); }}
                     className="mt-6 flex items-center justify-center gap-2 text-yellow-500/80 hover:text-yellow-400 text-sm font-normal transition-colors px-6 py-2.5 rounded-full border border-yellow-500/10 hover:bg-yellow-500/10"
                     style={{ background: 'rgba(0,0,0,0.2)' }}
                     whileHover={{ scale: 1.05 }}

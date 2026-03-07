@@ -21,6 +21,17 @@ export function getAnimatedEmojiUrl(emoji: string, size: number = 512): string {
     return `https://fonts.gstatic.com/s/e/notoemoji/latest/${code}/${size}.webp`;
 }
 
+// Noto CDN Fallback for Static image (using smaller size or default PNG route)
+export function getStaticEmojiUrl(emoji: string): string {
+    const code = Array.from(emoji)
+        .map(char => char.codePointAt(0)?.toString(16))
+        .filter(c => c !== 'fe0f') // remove variation selector
+        .join('_');
+    // 128px is often static or we can just rely on the static .png endpoint if it exists.
+    // However, the most reliable static Noto emoji endpoint is the standard image endpoint:
+    return `https://fonts.gstatic.com/s/e/notoemoji/latest/${code}/128.webp`;
+}
+
 // ============================================================
 // Persistent Emoji Cache (Cache API + Object URL)
 // ============================================================
@@ -113,15 +124,15 @@ const FloatingEmojiItem = memo(function FloatingEmojiItem({ event }: { event: Fl
 
     return (
         <div
-            className={`absolute flex items-center justify-center transition-none ${visible ? 'emoji-float-active' : 'emoji-float-start'}`}
+            className={`absolute flex items-center justify-center transition-none ${visible ? 'emoji-pop-active' : 'emoji-pop-start'}`}
             style={{ willChange: 'transform, opacity' }}
         >
             <img
                 src={imgSrc}
                 alt={event.emoji}
-                className="w-14 h-14 sm:w-18 sm:h-18 object-contain"
-                width={56}
-                height={56}
+                className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-lg"
+                width={64}
+                height={64}
                 decoding="async"
             />
         </div>

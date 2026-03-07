@@ -52,7 +52,7 @@ export default function OnlineRoundResultSummary() {
                 initial={{ scale: 0.95, y: 10 }}
                 animate={{ scale: 1, y: 0 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className="w-full max-w-4xl bg-black/80 border border-yellow-500/20 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10 relative"
+                className="w-full max-w-4xl bg-[rgba(10,10,10,0.95)] border border-yellow-500/20 rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10 relative"
                 style={{ willChange: 'transform' }}
             >
                 {/* Top Glow Decor */}
@@ -101,10 +101,10 @@ export default function OnlineRoundResultSummary() {
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: Math.min(index * 0.05, 0.5), duration: 0.2 }}
-                                className={`grid grid-cols-3 items-center p-3 sm:p-4 rounded-xl border ${bgClass}`}
+                                className={`grid grid-cols-[1fr_auto_1fr] items-center p-3 sm:p-4 rounded-xl border ${bgClass}`}
                             >
                                 {/* Left Column: Avatar & Name */}
-                                <div className="flex items-center gap-3 min-w-0">
+                                <div className="flex items-center gap-3 min-w-0 justify-self-start w-full">
                                     <div className="shrink-0">
                                         <PlayerAvatar
                                             name={p.name}
@@ -129,7 +129,7 @@ export default function OnlineRoundResultSummary() {
                                 </div>
 
                                 {/* Center Column: Cards & Hand Name (Stacked & Centered) */}
-                                <div className="flex flex-col items-center justify-center">
+                                <div className="flex flex-col items-center justify-center justify-self-center">
                                     <div className="flex -space-x-2">
                                         {p.cards.map((c: any) => (
                                             <div key={c.id} className="relative z-0">
@@ -150,7 +150,7 @@ export default function OnlineRoundResultSummary() {
                                 </div>
 
                                 {/* Right Column: Net Result */}
-                                <div className="flex justify-end pr-2 sm:pr-4">
+                                <div className="flex justify-end pr-2 sm:pr-4 justify-self-end">
                                     <span className={`font-mono font-bold text-base sm:text-xl ${colorClass}`}>
                                         {profit > 0 ? '+' : ''}{formatChips(profit)}
                                     </span>
@@ -161,7 +161,7 @@ export default function OnlineRoundResultSummary() {
                 </div>
 
                 {/* Footer */}
-                <div className="h-16 sm:h-20 border-t border-white/10 bg-black/60 flex items-center justify-center shrink-0 backdrop-blur-md relative z-20">
+                <div className="h-16 sm:h-20 border-t border-white/10 bg-[rgba(0,0,0,0.8)] flex items-center justify-center shrink-0 relative z-20">
                     {!isHost ? (
                         <span className="text-gray-400 text-sm font-bold tracking-widest uppercase">รอโฮสต์เริ่มรอบใหม่...</span>
                     ) : (

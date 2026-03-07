@@ -262,7 +262,7 @@ export default function ChipSelector({
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => { SFX.repeatBet(); speakPhrase(`วางทุนเดิม ${numberToThaiVoice(lastBet)} นะคะ`); onSelect(lastBet); }}
-                                    className="px-5 py-2.5 bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/40 rounded-xl text-sm font-bold text-yellow-300 flex items-center gap-2 transition cursor-pointer shadow-md backdrop-blur-sm"
+                                    className="px-5 py-2.5 bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/40 rounded-xl text-sm font-bold text-yellow-300 flex items-center gap-2 transition cursor-pointer shadow-md"
                                 >
                                     <span className="text-lg leading-none">↺</span> วางทุนเดิม ({formatChips(lastBet)})
                                 </motion.button>

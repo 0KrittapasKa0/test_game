@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getAnimatedEmojiUrl, preloadEmojis } from './FloatingEmoji';
+import { getAnimatedEmojiUrl } from './FloatingEmoji';
 
 export interface EmojiCategory {
     id: string;
@@ -50,11 +50,15 @@ interface EmojiPickerProps {
 export default function EmojiPicker({ isOpen, onClose, onSelect }: EmojiPickerProps) {
     const [activeTab, setActiveTab] = useState(EMOJI_CATEGORIES[0].id);
 
-    // Preload all emoji images on first open
+    // Preload all emoji images on first open (Animated versions)
     useEffect(() => {
         if (isOpen) {
             const allEmojis = EMOJI_CATEGORIES.flatMap(c => c.emojis);
-            preloadEmojis(allEmojis);
+            // Optionally we can still warm up the animated images in the background so they are ready when clicked
+            allEmojis.forEach(emoji => {
+                const img = new Image();
+                img.src = getAnimatedEmojiUrl(emoji);
+            });
         }
     }, [isOpen]);
 
@@ -117,15 +121,9 @@ export default function EmojiPicker({ isOpen, onClose, onSelect }: EmojiPickerPr
                                             }}
                                             className="aspect-square flex items-center justify-center p-2 rounded-xl hover:bg-white/10 transition-colors"
                                         >
-                                            <img
-                                                src={getAnimatedEmojiUrl(emoji)}
-                                                alt={emoji}
-                                                className="w-full h-full object-contain"
-                                                loading="lazy"
-                                                decoding="async"
-                                                width={48}
-                                                height={48}
-                                            />
+                                            <span className="text-4xl leading-none drop-shadow-md" style={{ fontFamily: '"Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif' }}>
+                                                {emoji}
+                                            </span>
                                         </motion.button>
                                     ))}
                                 </motion.div>

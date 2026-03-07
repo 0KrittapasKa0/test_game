@@ -6,7 +6,7 @@ import MainMenuScreen from './screens/MainMenuScreen';
 import GameSetupScreen from './screens/GameSetupScreen';
 import GameScreen from './screens/GameScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import RewardCodeScreen from './screens/RewardCodeScreen';
+import ActivitiesScreen from './screens/ActivitiesScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import OnlineGameScreen from './screens/OnlineGameScreen';
 import OnlineJoinScreen from './screens/OnlineJoinScreen';
@@ -20,7 +20,7 @@ const screenComponents = {
   ONLINE_PLAYING: OnlineGameScreen,
   ONLINE_JOIN: OnlineJoinScreen,
   SETTINGS: SettingsScreen,
-  REWARD_CODE: RewardCodeScreen,
+  ACTIVITIES: ActivitiesScreen,
   PROFILE: ProfileScreen,
 } as const;
 

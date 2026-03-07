@@ -1,3 +1,4 @@
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import type { Card as CardType } from '../types/game';
 
@@ -12,7 +13,7 @@ function isRed(suit: string): boolean {
     return suit === '♥' || suit === '♦';
 }
 
-export default function Card({ card, faceDown = false, delay = 0, small = false }: CardProps) {
+function Card({ card, faceDown = false, delay = 0, small = false }: CardProps) {
     const color = isRed(card.suit) ? '#dc2626' : '#1e293b';
     const w = small ? 'w-[46px] h-[66px]' : 'w-[70px] h-[98px] sm:w-[82px] sm:h-[115px]';
     const textBase = small ? 'text-[11px]' : 'text-sm sm:text-base';
@@ -99,3 +100,5 @@ export default function Card({ card, faceDown = false, delay = 0, small = false 
         </motion.div>
     );
 }
+
+export default memo(Card);
