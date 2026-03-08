@@ -142,7 +142,7 @@ export default function OnboardingScreen() {
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => fileInputRef.current?.click()}
-                                className="w-32 h-32 sm:w-36 sm:h-36 rounded-full cursor-pointer relative transition-all duration-300 border-[3px] border-yellow-500/40 hover:border-yellow-400 overflow-hidden shadow-[0_0_40px_rgba(250,204,21,0.2)] bg-black/50 flex items-center justify-center p-1 group/avatar"
+                                className="w-32 h-32 sm:w-36 sm:h-36 rounded-full cursor-pointer relative transition-all duration-200 border-[3px] border-yellow-500/40 hover:border-yellow-400 overflow-hidden shadow-[0_0_40px_rgba(250,204,21,0.2)] bg-black/50 flex items-center justify-center p-1 group/avatar"
                             >
                                 <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-black/40 relative">
                                     {avatarUrl ? (

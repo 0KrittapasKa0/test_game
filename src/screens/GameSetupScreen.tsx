@@ -323,7 +323,7 @@ export default function GameSetupScreen() {
 
                                 {/* Room Badge */}
                                 <div
-                                    className="flex items-center gap-3 p-3 rounded-2xl mb-6 bg-black/50 border border-yellow-500/20 shadow-inner group relative overflow-hidden"
+                                    className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-2xl mb-4 sm:mb-6 bg-black/50 border border-yellow-500/20 shadow-inner group relative overflow-hidden"
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-transparent pointer-events-none" />
                                     <div className="w-12 h-12 rounded-xl flex items-center justify-center text-3xl shrink-0 bg-black/40 shadow-inner" style={{ border: `1px solid ${selectedRoom.color}40` }}>
@@ -345,8 +345,8 @@ export default function GameSetupScreen() {
                                 </div>
 
                                 {/* Player Count */}
-                                <div className="mb-6 bg-black/40 p-4 rounded-2xl border border-white/5">
-                                    <label className="flex items-center gap-2 text-xs text-white/60 font-semibold uppercase tracking-widest mb-3">
+                                <div className="mb-4 sm:mb-6 bg-black/40 p-3 sm:p-4 rounded-2xl border border-white/5">
+                                    <label className="flex items-center gap-2 text-[10px] sm:text-xs text-white/60 font-semibold uppercase tracking-widest mb-2 sm:mb-3">
                                         <Users size={16} className="text-blue-400" />
                                         จำนวนขาไพ่ในวง
                                     </label>
@@ -356,7 +356,7 @@ export default function GameSetupScreen() {
                                                 key={n}
                                                 whileTap={{ scale: 0.9 }}
                                                 onClick={() => { SFX.click(); setPlayerCount(n); speakPhrase(`วงไพ่ ${n} ท่าน ค่ะ`); }}
-                                                className={`h-12 rounded-xl text-lg transition-all cursor-pointer border relative overflow-hidden
+                                                className={`h-10 sm:h-12 rounded-xl text-base sm:text-lg transition-all cursor-pointer border relative overflow-hidden
                                                     ${playerCount === n
                                                         ? 'bg-gradient-to-b from-yellow-500 to-amber-600 text-black border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.4)] scale-105 z-10'
                                                         : 'bg-black/50 text-white/40 border-white/10 hover:border-white/20 hover:bg-white/5 hover:text-white/80'}`}
@@ -376,8 +376,8 @@ export default function GameSetupScreen() {
                                 </div>
 
                                 {/* Dealer Position Context */}
-                                <div className="mb-8">
-                                    <label className="flex items-center gap-2 text-xs text-white/60 font-semibold uppercase tracking-widest mb-3 px-1">
+                                <div className="mb-5 sm:mb-8">
+                                    <label className="flex items-center gap-2 text-[10px] sm:text-xs text-white/60 font-semibold uppercase tracking-widest mb-2 sm:mb-3 px-1">
                                         <Crown size={16} className="text-yellow-400" />
                                         ระบุบทบาทของคุณ
                                     </label>
@@ -387,7 +387,7 @@ export default function GameSetupScreen() {
                                             whileTap={{ scale: 0.95 }}
                                             onClick={() => { if (canBeDealer) { SFX.click(); setHumanIsDealer(true); speakPhrase('คุณเป็นเจ้ามือ กินให้เรียบแล้วรวบยกโต๊ะเลยค่ะ!'); } }}
                                             disabled={!canBeDealer}
-                                            className={`p-4 rounded-2xl text-sm transition-all cursor-pointer relative flex flex-col items-center justify-center gap-2 border overflow-hidden
+                                            className={`p-2.5 sm:p-4 rounded-2xl text-xs sm:text-sm transition-all cursor-pointer relative flex flex-col items-center justify-center gap-1.5 sm:gap-2 border overflow-hidden
                                                 ${humanIsDealer
                                                     ? 'bg-gradient-to-b from-yellow-600/20 to-amber-900/40 border-yellow-500 text-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.2)]'
                                                     : canBeDealer
@@ -396,8 +396,8 @@ export default function GameSetupScreen() {
                                         >
                                             {humanIsDealer && <div className="absolute inset-x-0 top-0 h-0.5 bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,1)]" />}
                                             <div className="flex flex-col items-center">
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-1 ${humanIsDealer ? 'bg-yellow-500/20' : 'bg-black/40'}`}>
-                                                    <Crown size={20} className={humanIsDealer ? 'text-yellow-400 drop-shadow-md' : (canBeDealer ? 'text-white/50' : 'text-white/20')} />
+                                                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 ${humanIsDealer ? 'bg-yellow-500/20' : 'bg-black/40'}`}>
+                                                    <Crown size={18} className={`sm:w-5 sm:h-5 ${humanIsDealer ? 'text-yellow-400 drop-shadow-md' : (canBeDealer ? 'text-white/50' : 'text-white/20')}`} />
                                                 </div>
                                                 <span className={`font-semibold tracking-wider ${humanIsDealer ? 'text-yellow-400' : ''}`}>เป็นเจ้ามือ</span>
                                             </div>
@@ -418,15 +418,15 @@ export default function GameSetupScreen() {
                                         <motion.button
                                             whileTap={{ scale: 0.95 }}
                                             onClick={() => { SFX.click(); setHumanIsDealer(false); speakPhrase('คุณเป็นลูกขา ลุ้นไพ่แล้วขยี้เจ้ามือกันเถอะค่ะ!'); }}
-                                            className={`p-4 rounded-2xl text-sm transition-all cursor-pointer flex flex-col items-center justify-center gap-2 border overflow-hidden relative
+                                            className={`p-2.5 sm:p-4 rounded-2xl text-xs sm:text-sm transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 sm:gap-2 border overflow-hidden relative
                                                 ${!humanIsDealer
                                                     ? 'bg-gradient-to-b from-blue-600/20 to-cyan-900/40 border-blue-400 text-blue-400 shadow-[0_0_20px_rgba(56,189,248,0.2)]'
                                                     : 'bg-black/50 text-white/50 border-white/10 hover:border-white/30 hover:bg-white/5 hover:text-white'}`}
                                         >
                                             {!humanIsDealer && <div className="absolute inset-x-0 top-0 h-0.5 bg-blue-400 shadow-[0_0_8px_rgba(56,189,248,1)]" />}
                                             <div className="flex flex-col items-center">
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-1 ${!humanIsDealer ? 'bg-blue-500/20' : 'bg-black/40'}`}>
-                                                    <Users size={20} className={!humanIsDealer ? 'text-blue-400 drop-shadow-md' : 'text-white/50'} />
+                                                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1 ${!humanIsDealer ? 'bg-blue-500/20' : 'bg-black/40'}`}>
+                                                    <Users size={18} className={`sm:w-5 sm:h-5 ${!humanIsDealer ? 'text-blue-400 drop-shadow-md' : 'text-white/50'}`} />
                                                 </div>
                                                 <span className={`font-semibold tracking-wider ${!humanIsDealer ? 'text-blue-400' : ''}`}>เป็นลูกขา</span>
                                             </div>
@@ -436,10 +436,10 @@ export default function GameSetupScreen() {
                                 </div>
 
                                 {/* Action Bar */}
-                                <div className="pt-2 border-t border-white/5 mt-auto">
-                                    <div className="flex items-center justify-between mb-4 px-1 cursor-pointer hover:brightness-110 transition-all active:scale-95" onClick={() => { SFX.click(); speakPhrase(`ยอดชิปคงเหลือ ${numberToThaiVoice(profile.chips)} ชิปค่ะ`); }}>
-                                        <span className="text-white/40 text-xs font-semibold uppercase tracking-widest">ยอดชิปคงเหลือ:</span>
-                                        <span className="text-yellow-400 font-semibold text-lg drop-shadow-md">{formatChips(profile.chips)}</span>
+                                <div className="pt-3 sm:pt-4 border-t border-white/5 mt-auto">
+                                    <div className="flex items-center justify-between mb-3 sm:mb-4 px-1 cursor-pointer hover:brightness-110 transition-all active:scale-95" onClick={() => { SFX.click(); speakPhrase(`ยอดชิปคงเหลือ ${numberToThaiVoice(profile.chips)} ชิปค่ะ`); }}>
+                                        <span className="text-white/40 text-[10px] sm:text-xs font-semibold uppercase tracking-widest">ยอดชิปคงเหลือ:</span>
+                                        <span className="text-yellow-400 font-semibold text-base sm:text-lg drop-shadow-md">{formatChips(profile.chips)}</span>
                                     </div>
 
                                     {/* Button Row */}
@@ -463,14 +463,14 @@ export default function GameSetupScreen() {
                                                     setScreen('ONLINE_PLAYING');
                                                 }}
                                                 disabled={profile.chips < selectedRoom.minBet && !humanIsDealer}
-                                                className="w-full py-3 rounded-2xl flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed
+                                                className="w-full py-2.5 sm:py-3 rounded-2xl flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer relative overflow-hidden disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed
                                                     bg-gradient-to-b from-cyan-600/80 to-blue-900/80
                                                     border border-cyan-400
                                                     shadow-[0_0_15px_rgba(6,182,212,0.4)]"
                                             >
                                                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
-                                                <span className="text-lg relative z-10 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">🌐</span>
-                                                <span className="text-cyan-100 font-bold text-sm tracking-wider relative z-10">สร้างห้อง</span>
+                                                <span className="text-base sm:text-lg relative z-10 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">🌐</span>
+                                                <span className="text-cyan-100 font-bold text-xs sm:text-sm tracking-wider relative z-10">สร้างห้อง</span>
                                             </motion.button>
                                         </div>
 
@@ -480,9 +480,9 @@ export default function GameSetupScreen() {
                                             whileTap={{ scale: 0.96 }}
                                             onClick={() => { speakPhrase('ขอให้โชคดีนะคะ'); handleStart(); }}
                                             disabled={profile.chips < selectedRoom.minBet && !humanIsDealer}
-                                            className="flex-1 btn-gold text-base py-3 flex items-center justify-center gap-2 uppercase tracking-wide disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed rounded-2xl"
+                                            className="flex-1 btn-gold text-sm sm:text-base py-2.5 sm:py-3 flex items-center justify-center gap-1.5 sm:gap-2 uppercase tracking-wide disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed rounded-2xl"
                                         >
-                                            <span className="text-lg">🚪</span>
+                                            <span className="text-base sm:text-lg">🚪</span>
                                             <span className="font-bold tracking-widest">ร่วมวง</span>
                                         </motion.button>
                                     </div>

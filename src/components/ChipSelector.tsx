@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SFX, speakPhrase } from '../utils/sound';
 import { formatChips, numberToThaiVoice } from '../utils/formatChips';
@@ -25,30 +25,30 @@ export default function ChipSelector({
     const [raiseAmount, setRaiseAmount] = useState(0);
     const lastSliderTickRef = useRef(0);
 
-    const handleAddChip = (amount: number) => {
+    const handleAddChip = useCallback((amount: number) => {
         const newTotal = currentBet + amount;
         if (newTotal <= maxBet) {
             SFX.chipStack();
             speakPhrase(numberToThaiVoice(amount));
             onSelect(newTotal);
         }
-    };
+    }, [currentBet, maxBet, onSelect]);
 
-    const handleClear = () => {
+    const handleClear = useCallback(() => {
         SFX.click();
         speakPhrase('เรียกคืน');
         onSelect(0);
-    };
+    }, [onSelect]);
 
-    const handleOpenRaise = () => {
+    const handleOpenRaise = useCallback(() => {
         SFX.click();
         speakPhrase('จะเกทับเท่าไหร่ดีคะ');
         // Start slider at current bet or minBet equivalent
         setRaiseAmount(Math.max(currentBet, maxBet > 0 ? maxBet : 0));
         setShowRaise(true);
-    };
+    }, [currentBet, maxBet]);
 
-    const handleConfirmRaise = () => {
+    const handleConfirmRaise = useCallback(() => {
         if (raiseAmount === totalChips) {
             SFX.allIn();
             speakPhrase('สู้หมดหน้าตัก!');
@@ -58,20 +58,22 @@ export default function ChipSelector({
         }
         onSelect(raiseAmount);
         setShowRaise(false);
-    };
+    }, [raiseAmount, totalChips, onSelect]);
 
-    const handleCancelRaise = () => {
+    const handleCancelRaise = useCallback(() => {
         SFX.click();
         setShowRaise(false);
-    };
+    }, []);
 
     // Percentage quick picks
-    const pct25 = Math.floor(totalChips * 0.25);
-    const pct50 = Math.floor(totalChips * 0.50);
-    const pct75 = Math.floor(totalChips * 0.75);
-    const allIn = totalChips;
+    const { pct25, pct50, pct75, allIn } = useMemo(() => ({
+        pct25: Math.floor(totalChips * 0.25),
+        pct50: Math.floor(totalChips * 0.50),
+        pct75: Math.floor(totalChips * 0.75),
+        allIn: totalChips
+    }), [totalChips]);
 
-    const sortedPresets = [...chipPresets].sort((a, b) => a - b);
+    const sortedPresets = useMemo(() => [...chipPresets].sort((a, b) => a - b), [chipPresets]);
 
     // ── หลังยืนยันแล้ว: แสดงแค่ปุ่มรอ ──
     if (disabled) {

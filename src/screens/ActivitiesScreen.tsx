@@ -146,7 +146,7 @@ const DailyDayItem = memo(function DailyDayItem({ idx, reward, status, isDay7 }:
 
     return (
         <div
-            className={`relative rounded-2xl flex flex-col items-center justify-center pt-4 pb-5 px-1 sm:pt-5 sm:pb-6 transition-all duration-300 border
+            className={`relative rounded-2xl flex flex-col items-center justify-center pt-4 pb-5 px-1 sm:pt-5 sm:pb-6 transition-all duration-200 border
                 ${isDay7 ? 'col-span-2 sm:col-span-4 lg:col-span-2' : 'col-span-1 sm:col-span-2 lg:col-span-1'}
                 ${bgClass} ${borderClass}
             `}

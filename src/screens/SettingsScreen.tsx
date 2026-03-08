@@ -9,7 +9,7 @@ import { GAME_VERSION } from '../version';
 const ToggleSwitch = ({ enabled, onClick, activeColorClass }: { enabled: boolean; onClick: () => void; activeColorClass: string }) => (
     <div
         onClick={onClick}
-        className={`w-14 h-8 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 border ${enabled
+        className={`w-14 h-8 flex items-center rounded-full p-1 cursor-pointer transition-all duration-200 border ${enabled
             ? `${activeColorClass} border-transparent bg-opacity-80`
             : 'bg-black/50 border-white/10'
             }`}
@@ -124,10 +124,10 @@ export default function SettingsScreen() {
                         <div className="space-y-4">
                             {/* Sound Setting */}
                             <div className="relative group">
-                                <div className={`absolute inset-0 bg-gradient-to-r from-blue-500/10 via-transparent to-transparent opacity-0 transition-opacity duration-300 rounded-2xl blur-xl ${soundEnabled ? 'group-hover:opacity-100' : ''}`} />
+                                <div className={`absolute inset-0 bg-gradient-to-r from-blue-500/10 via-transparent to-transparent opacity-0 transition-opacity duration-200 rounded-2xl blur-xl ${soundEnabled ? 'group-hover:opacity-100' : ''}`} />
                                 <div className="relative flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-2xl hover:bg-black/50 transition-colors shadow-inner">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${soundEnabled ? 'bg-gradient-to-br from-blue-400/20 to-blue-600/20 text-blue-400 border border-blue-500/30' : 'bg-white/5 text-white/30 border border-white/5'}`}>
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${soundEnabled ? 'bg-gradient-to-br from-blue-400/20 to-blue-600/20 text-blue-400 border border-blue-500/30' : 'bg-white/5 text-white/30 border border-white/5'}`}>
                                             {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
                                         </div>
                                         <div className="flex flex-col">
@@ -145,10 +145,10 @@ export default function SettingsScreen() {
 
                             {/* Voice Setting */}
                             <div className="relative group">
-                                <div className={`absolute inset-0 bg-gradient-to-r from-pink-500/10 via-transparent to-transparent opacity-0 transition-opacity duration-300 rounded-2xl blur-xl ${voiceEnabled ? 'group-hover:opacity-100' : ''}`} />
+                                <div className={`absolute inset-0 bg-gradient-to-r from-pink-500/10 via-transparent to-transparent opacity-0 transition-opacity duration-200 rounded-2xl blur-xl ${voiceEnabled ? 'group-hover:opacity-100' : ''}`} />
                                 <div className="relative flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-2xl hover:bg-black/50 transition-colors shadow-inner">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${voiceEnabled ? 'bg-gradient-to-br from-pink-400/20 to-pink-600/20 text-pink-400 border border-pink-500/30' : 'bg-white/5 text-white/30 border border-white/5'}`}>
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${voiceEnabled ? 'bg-gradient-to-br from-pink-400/20 to-pink-600/20 text-pink-400 border border-pink-500/30' : 'bg-white/5 text-white/30 border border-white/5'}`}>
                                             {voiceEnabled ? <Mic size={20} /> : <MicOff size={20} />}
                                         </div>
                                         <div className="flex flex-col">

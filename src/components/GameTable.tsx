@@ -144,7 +144,7 @@ function getChipPosition(playerPos: SeatPosition): SeatPosition {
 export default function GameTable() {
     const {
         players, gamePhase,
-        isDealing, showCards, config,
+        showCards, config,
         activePlayerIndex, aiBettingInProgress, isSpectating, humanBetConfirmed,
         placeBet, confirmBet, playerDraw, playerStay, resetGame, addChips,
         latestAiEvents,
@@ -532,42 +532,7 @@ export default function GameTable() {
 
                                     {/* ===== Deck Area ===== */}
                                     <div className="absolute inset-0 flex items-center justify-center z-1 pointer-events-none">
-                                        {isDealing && (
-                                            <motion.div
-                                                className="relative"
-                                                initial={{ opacity: 0, scale: 0.8 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                            >
-                                                {[2, 1, 0].map((offset) => (
-                                                    <div
-                                                        key={offset}
-                                                        className="absolute top-0 left-0 w-12 h-17 sm:w-14 sm:h-20 rounded-lg bg-white p-[3px] sm:p-[4px]"
-                                                        style={{
-                                                            border: '1px solid #e5e7eb',
-                                                            transform: `translate(${-offset * 1.5}px, ${-offset * 1.5}px)`,
-                                                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                                                        }}
-                                                    >
-                                                        <div className="w-full h-full rounded-[4px] border-[1.5px] border-[#e5e7eb]" />
-                                                    </div>
-                                                ))}
-                                                <motion.div
-                                                    className="w-12 h-17 sm:w-14 sm:h-20 rounded-lg shadow-xl relative z-10 bg-white p-[3px] sm:p-[4px]"
-                                                    style={{
-                                                        border: '1px solid #e5e7eb',
-                                                        boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-                                                    }}
-                                                    animate={{ y: [0, -3, 0] }}
-                                                    transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
-                                                >
-                                                    <div className="w-full h-full rounded-[4px] border-[1.5px] border-[#e5e7eb] flex items-center justify-center">
-                                                        <span className="text-[#e5e7eb] text-lg sm:text-xl drop-shadow-none leading-none">
-                                                            ♠
-                                                        </span>
-                                                    </div>
-                                                </motion.div>
-                                            </motion.div>
-                                        )}
+                                        {/* Animation removed for performance optimization */}
                                     </div>
 
                                     {/* ===== Central Pot Display ===== */}

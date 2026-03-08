@@ -78,7 +78,7 @@ function PlayerAvatar({
                 {avatarUrl ? (
                     /* API avatar: photo image */
                     <div
-                        className={`${s.circle} rounded-full transition-all duration-300 overflow-hidden relative z-10`}
+                        className={`${s.circle} rounded-full transition-all duration-200 overflow-hidden relative z-10`}
                         style={{
                             width: pixelSize ?? undefined,
                             height: pixelSize ?? undefined,
@@ -95,7 +95,7 @@ function PlayerAvatar({
                 ) : (
                     /* Fallback: colored initial */
                     <div
-                        className={`${s.circle} rounded-full transition-all duration-300 relative z-10`}
+                        className={`${s.circle} rounded-full transition-all duration-200 relative z-10`}
                         style={{
                             background: `linear-gradient(145deg, ${color}, ${color}dd)`,
                             width: pixelSize ?? undefined,

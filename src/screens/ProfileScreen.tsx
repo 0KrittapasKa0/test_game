@@ -159,6 +159,7 @@ export default function ProfileScreen() {
     const stats = useMemo(() => loadStats(), []);
 
     const [name, setName] = useState(profile.name);
+    const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl);
     const [saved, setSaved] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -194,7 +195,7 @@ export default function ProfileScreen() {
                     ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
                     saveProfile({ ...profile, avatarUrl: dataUrl });
-                    window.location.reload();
+                    setAvatarUrl(dataUrl);
                 }
             };
             img.src = ev.target?.result as string;
@@ -256,11 +257,11 @@ export default function ProfileScreen() {
                             <div
                                 className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-4xl font-bold text-black overflow-hidden border border-white/10 group-active/avatar:scale-95 transition-transform shadow-lg"
                                 style={{
-                                    background: profile.avatarUrl ? 'transparent' : 'linear-gradient(135deg, rgba(250,204,21,0.8), rgba(217,119,6,0.8))'
+                                    background: avatarUrl ? 'transparent' : 'linear-gradient(135deg, rgba(250,204,21,0.8), rgba(217,119,6,0.8))'
                                 }}
                             >
-                                {profile.avatarUrl ? (
-                                    <img src={profile.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                                {avatarUrl ? (
+                                    <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
                                 ) : (
                                     <span className="text-black/80 drop-shadow-sm">
                                         {(name.trim() || profile.name).charAt(0).toUpperCase()}

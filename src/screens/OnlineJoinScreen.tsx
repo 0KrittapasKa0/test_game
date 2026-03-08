@@ -88,17 +88,17 @@ export default function OnlineJoinScreen() {
             <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
 
             <motion.div
-                className="w-full max-w-lg mx-auto relative z-10 flex flex-col h-full"
+                className="w-full max-w-lg mx-auto relative z-10 flex flex-col justify-center h-full"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35 }}
             >
-                <div className="bg-black/60 border border-yellow-500/20 shadow-2xl rounded-3xl p-5 sm:p-7 backdrop-blur-xl relative overflow-hidden flex flex-col flex-1">
+                <div className="bg-black/60 border border-yellow-500/20 shadow-2xl rounded-3xl p-4 sm:p-6 backdrop-blur-xl relative flex flex-col w-full my-auto max-h-full overflow-y-auto custom-scrollbar">
                     {/* Top Glow Decor */}
                     <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent" />
 
                     {/* Top Action Bar */}
-                    <div className="flex justify-between items-center mb-6 min-h-[40px] relative z-20">
+                    <div className="flex justify-between items-center mb-4 min-h-[40px] relative z-20 shrink-0">
                         <button
                             onClick={handleBack}
                             className="flex items-center justify-center w-10 h-10 rounded-full bg-black/40 border border-white/10 text-white/70 hover:text-white hover:bg-black/60 transition cursor-pointer shadow-lg shrink-0"
@@ -115,14 +115,14 @@ export default function OnlineJoinScreen() {
                         </button>
                     </div>
 
-                    <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 w-full h-full">
+                    <div className="flex flex-col items-center justify-center p-2 sm:p-4 w-full">
 
                         <h2 className="text-xl sm:text-2xl font-bold text-gold-gradient text-center tracking-widest drop-shadow-md uppercase mb-2">
                             เลือกร่วมห้อง
                         </h2>
 
                         {/* Capital Text */}
-                        <div className="text-center mb-6 w-full flex items-center justify-center gap-2">
+                        <div className="text-center mb-4 w-full flex items-center justify-center gap-2 shrink-0">
                             <span className="text-white/40 text-xs font-bold uppercase tracking-wider">ทุนของคุณ:</span>
                             <span className="text-yellow-400 font-bold tracking-wider">{formatChips(userChips)}</span>
                         </div>
@@ -172,13 +172,13 @@ export default function OnlineJoinScreen() {
                             </div>
                         </div>
 
-                        <div className={`grid gap-3 w-full mb-6 relative z-10 ${showPlayerButton && showDealerButton ? 'grid-cols-1 md:grid-cols-3' : (!showPlayerButton && !showDealerButton ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2')}`}>
+                        <div className={`grid gap-2 sm:gap-3 w-full mb-5 relative z-10 shrink-0 ${showPlayerButton && showDealerButton ? 'grid-cols-3' : (!showPlayerButton && !showDealerButton ? 'grid-cols-1' : 'grid-cols-2')}`}>
                             {/* Role: Player */}
                             {showPlayerButton && (
                                 <button
                                     onClick={() => { if (canBePlayer) setSelectedRole('player'); }}
                                     disabled={!canBePlayer}
-                                    className={`p-4 rounded-xl transition-all duration-300 border relative overflow-hidden flex flex-col items-center
+                                    className={`p-2 sm:p-3 rounded-xl transition-all duration-200 border relative overflow-hidden flex flex-col items-center
                                         ${!canBePlayer
                                             ? 'bg-black/60 border-blue-500/10 cursor-not-allowed opacity-60 grayscale'
                                             : selectedRole === 'player'
@@ -186,8 +186,8 @@ export default function OnlineJoinScreen() {
                                                 : 'bg-black/40 border-white/10 hover:border-white/30 hover:bg-black/60 grayscale cursor-pointer'}`}
                                 >
                                     <div className="flex flex-col items-center gap-2 relative z-10 w-full">
-                                        <div className={`p-2.5 rounded-full ${!canBePlayer ? 'bg-blue-500/10 text-blue-500/50' : selectedRole === 'player' ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/50'}`}>
-                                            <Users size={24} />
+                                        <div className={`p-1.5 sm:p-2.5 rounded-full ${!canBePlayer ? 'bg-blue-500/10 text-blue-500/50' : selectedRole === 'player' ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/50'}`}>
+                                            <Users size={20} className="sm:w-6 sm:h-6" />
                                         </div>
                                         <div className="text-center">
                                             <h3 className={`text-xs font-bold tracking-widest uppercase mb-0.5 ${!canBePlayer ? 'text-blue-400/50' : selectedRole === 'player' ? 'text-blue-100' : 'text-white'}`}>
@@ -206,7 +206,7 @@ export default function OnlineJoinScreen() {
                                 <button
                                     onClick={() => { if (canBeDealer) setSelectedRole('dealer'); }}
                                     disabled={!canBeDealer}
-                                    className={`p-4 rounded-xl transition-all duration-300 border relative overflow-hidden flex flex-col items-center
+                                    className={`p-2 sm:p-3 rounded-xl transition-all duration-200 border relative overflow-hidden flex flex-col items-center
                                         ${!canBeDealer
                                             ? 'bg-black/60 border-yellow-500/10 cursor-not-allowed opacity-60 grayscale'
                                             : selectedRole === 'dealer'
@@ -214,8 +214,8 @@ export default function OnlineJoinScreen() {
                                                 : 'bg-black/40 border-white/10 hover:border-white/30 hover:bg-black/60 grayscale cursor-pointer'}`}
                                 >
                                     <div className="flex flex-col items-center gap-2 relative z-10">
-                                        <div className={`p-2.5 rounded-full ${!canBeDealer ? 'bg-yellow-500/10 text-yellow-500/50' : selectedRole === 'dealer' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-white/5 text-white/50'}`}>
-                                            <Crown size={24} />
+                                        <div className={`p-1.5 sm:p-2.5 rounded-full ${!canBeDealer ? 'bg-yellow-500/10 text-yellow-500/50' : selectedRole === 'dealer' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-white/5 text-white/50'}`}>
+                                            <Crown size={20} className="sm:w-6 sm:h-6" />
                                         </div>
                                         <div className="text-center">
                                             <h3 className={`text-xs font-bold uppercase tracking-widest mb-0.5 ${!canBeDealer ? 'text-yellow-400/50' : selectedRole === 'dealer' ? 'text-yellow-100' : 'text-white'}`}>
@@ -236,14 +236,14 @@ export default function OnlineJoinScreen() {
                             {/* Role: Spectator */}
                             <button
                                 onClick={() => setSelectedRole('spectator')}
-                                className={`p-4 rounded-xl transition-all duration-300 border relative overflow-hidden flex flex-col items-center
+                                className={`p-2 sm:p-3 rounded-xl transition-all duration-200 border relative overflow-hidden flex flex-col items-center
                                     ${selectedRole === 'spectator'
                                         ? 'bg-gradient-to-b from-gray-700/60 to-black/80 border-gray-400/50 shadow-[0_0_20px_rgba(156,163,175,0.3)] ring-1 ring-gray-400/50 grayscale-0 cursor-pointer'
                                         : 'bg-black/40 border-white/10 hover:border-white/30 hover:bg-black/60 grayscale cursor-pointer'}`}
                             >
                                 <div className="flex flex-col items-center gap-2 relative z-10">
-                                    <div className={`p-2.5 rounded-full ${selectedRole === 'spectator' ? 'bg-gray-500/20 text-gray-300' : 'bg-white/5 text-white/50'}`}>
-                                        <span className="text-[20px] leading-none">👁️</span>
+                                    <div className={`p-1.5 sm:p-2.5 rounded-full ${selectedRole === 'spectator' ? 'bg-gray-500/20 text-gray-300' : 'bg-white/5 text-white/50'}`}>
+                                        <span className="text-[16px] sm:text-[20px] leading-none">👁️</span>
                                     </div>
                                     <div className="text-center">
                                         <h3 className={`text-xs font-bold uppercase tracking-widest mb-0.5 ${selectedRole === 'spectator' ? 'text-gray-100' : 'text-white'}`}>
@@ -266,7 +266,7 @@ export default function OnlineJoinScreen() {
                         <button
                             onClick={handleJoin}
                             disabled={isJoining || connectionStatus !== 'CONNECTED'}
-                            className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold tracking-widest text-sm uppercase transition-all cursor-pointer relative overflow-hidden shadow-lg border
+                            className={`w-full py-3.5 sm:py-4 mt-auto shrink-0 rounded-xl flex items-center justify-center gap-2 font-bold tracking-widest text-sm uppercase transition-all cursor-pointer relative overflow-hidden shadow-lg border
                                 ${selectedRole === 'dealer'
                                     ? 'bg-gradient-to-b from-yellow-500 to-yellow-700 text-black shadow-yellow-900/50 border-yellow-400 hover:shadow-yellow-500/40'
                                     : 'bg-gradient-to-b from-blue-600 to-blue-800 text-blue-50 shadow-blue-900/50 border-blue-400 hover:shadow-blue-500/40'}`}
