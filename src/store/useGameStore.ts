@@ -6,13 +6,6 @@ import { createDeck, shuffleDeck, compareHands, evaluateHand, HandType } from '.
 import { loadProfile, saveProfile, saveSettings, recordGameResult } from '../utils/storage';
 import { aiShouldDraw, aiSelectBet } from '../utils/ai';
 import { SFX } from '../utils/sound';
-import {
-    initLuckState, resetRoundState,
-    shouldAssistOpening, pickAssistedOpeningCards,
-    shouldAssistThirdCard, pickAssistedThirdCard,
-    recordRoundResult,
-    shouldNerfAiOpening, pickNerfedAiCards
-} from '../utils/luckAssist';
 import { getAiLeavers } from '../utils/aiLeave';
 
 interface GameState {
@@ -30,7 +23,7 @@ interface GameState {
     showCards: boolean;
     dealingPlayerIndex: number;
     dealingRound: number;
-    pendingAssistedCards: Card[] | null;
+
     aiBettingInProgress: boolean;
     aiBettingQueue: number[];
     humanBetConfirmed: boolean;
@@ -48,7 +41,7 @@ interface GameState {
     processNextAiBet: () => void;
     dealCards: () => void;
     dealNextCard: () => void;
-    afterDealingComplete: () => void;
+    afterDealingComplete: () => void;
     startActionPhase: () => void;
     advanceToNextPlayer: () => void;
     playerDraw: () => void;
@@ -235,7 +228,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     showCards: false,
     dealingPlayerIndex: 0,
     dealingRound: 0,
-    pendingAssistedCards: null,
+
     aiBettingInProgress: false,
     aiBettingQueue: [],
     humanBetConfirmed: false,
@@ -299,9 +292,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         allPlayers[dealerIndex].isDealer = true;
 
-        // Initialize Luck Assist with player's starting chips
-        initLuckState(profile.chips);
-
         set({
             players: allPlayers,
             config,
@@ -315,7 +305,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             showCards: false,
             activePlayerIndex: -1,
             dealingPlayerIndex: 0,
-            dealingRound: 0,
+            dealingRound: 0,
             aiBettingInProgress: true,
             aiBettingQueue: [],
             isSpectating: false,
@@ -342,8 +332,6 @@ export const useGameStore = create<GameState>((set, get) => ({
             result: 'pending' as const,
         }));
 
-        resetRoundState();
-
         set({
             players: resetPlayers,
             deck: shuffleDeck(createDeck()),
@@ -353,7 +341,6 @@ export const useGameStore = create<GameState>((set, get) => ({
             activePlayerIndex: -1,
             dealingPlayerIndex: 0,
             dealingRound: 0,
-            pendingAssistedCards: null,
             aiBettingInProgress: true,
             aiBettingQueue: [],
             humanBetConfirmed: false,
@@ -481,62 +468,18 @@ export const useGameStore = create<GameState>((set, get) => ({
     },
 
     dealNextCard: () => {
-        const { deck, players, dealingPlayerIndex, dealingRound, roundNumber, pendingAssistedCards } = get();
+        const { deck, players, dealingPlayerIndex, dealingRound } = get();
 
         if (dealingRound >= 2) {
             get().afterDealingComplete();
             return;
         }
 
-        let deckCopy = [...deck];
+        const deckCopy = [...deck];
         const playerIdx = dealingPlayerIndex;
-        const targetPlayer = players[playerIdx];
 
-        let card: Card;
-
-        // ── Luck Assist: Opening Hand for Human ──
-        if (targetPlayer.isHuman && dealingRound === 0 && targetPlayer.cards.length === 0) {
-            // First card to human: check if we should assist
-            const humanChips = targetPlayer.chips + targetPlayer.bet; // total chips before bet deduction
-            if (shouldAssistOpening(roundNumber, humanChips)) {
-                const assisted = pickAssistedOpeningCards(deckCopy, roundNumber);
-                if (assisted) {
-                    // Store second card for next deal round, use first card now
-                    card = assisted.cards[0];
-                    deckCopy = assisted.remainingDeck;
-                    set({ pendingAssistedCards: [assisted.cards[1]] });
-                } else {
-                    card = deckCopy.pop()!;
-                }
-            } else {
-                card = deckCopy.pop()!;
-            }
-        } else if (targetPlayer.isHuman && dealingRound === 1 && pendingAssistedCards && pendingAssistedCards.length > 0) {
-            // Second card to human: use pre-selected assisted card
-            card = pendingAssistedCards[0];
-            set({ pendingAssistedCards: null });
-            // Card was already removed from deck in round 0
-        } else if (!targetPlayer.isHuman && dealingRound === 0 && targetPlayer.cards.length === 0) {
-            // ── AI Opening Nerf: ให้ AI ได้ไพ่แย่ (Strategy 2) ──
-            if (shouldNerfAiOpening()) {
-                const nerfed = pickNerfedAiCards(deckCopy);
-                if (nerfed) {
-                    card = nerfed.cards[0];
-                    deckCopy = nerfed.remainingDeck;
-                    // ใส่ไพ่ใบที่ 2 กลับในตำแหน่งสุ่ม (ไม่ใช่ท้าย deck)
-                    // เพื่อไม่ให้ไปโดน AI คนถัดไปโดยไม่ตั้งใจ
-                    const insertAt = Math.floor(Math.random() * deckCopy.length);
-                    deckCopy.splice(insertAt, 0, nerfed.cards[1]);
-                } else {
-                    card = deckCopy.pop()!;
-                }
-            } else {
-                card = deckCopy.pop()!;
-            }
-        } else {
-            // Normal random deal (AI players or non-assisted human)
-            card = deckCopy.pop()!;
-        }
+        // 100% random deal — no assist, no nerf
+        const card = deckCopy.pop()!;
 
         const updatedPlayers = players.map((p, i) => {
             if (i !== playerIdx) return p;
@@ -722,27 +665,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     playerDraw: () => {
         SFX.cardDeal();
         const { players, deck, activePlayerIndex } = get();
-        let deckCopy = [...deck];
-        let card: Card;
+        const deckCopy = [...deck];
 
-        // ── Luck Assist: Third Card for Human ──
-        const drawingPlayer = players[activePlayerIndex];
-        if (drawingPlayer && drawingPlayer.isHuman) {
-            const humanChips = drawingPlayer.chips + drawingPlayer.bet;
-            if (shouldAssistThirdCard(humanChips)) {
-                const assisted = pickAssistedThirdCard(drawingPlayer.cards, deckCopy);
-                if (assisted) {
-                    card = assisted.card;
-                    deckCopy = assisted.remainingDeck;
-                } else {
-                    card = deckCopy.pop()!;
-                }
-            } else {
-                card = deckCopy.pop()!;
-            }
-        } else {
-            card = deckCopy.pop()!;
-        }
+        // 100% random draw — no assist
+        const card = deckCopy.pop()!;
 
         const updated = players.map((p, i) => {
             if (i !== activePlayerIndex) return p;
@@ -898,10 +824,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         const humanPlayer = results.find(p => p.isHuman);
         const { isSpectating } = get();
 
-        // ── Luck Assist: Track round result for streak adaptation ──
-        if (humanPlayer && !isSpectating) {
-            recordRoundResult(humanPlayer.result as 'win' | 'lose' | 'draw', get().roundNumber);
-        }
+
 
         const profile = loadProfile();
         if (profile && humanPlayer) {
@@ -1098,7 +1021,6 @@ export const useGameStore = create<GameState>((set, get) => ({
             showCards: false,
             dealingPlayerIndex: 0,
             dealingRound: 0,
-            pendingAssistedCards: null,
             aiBettingInProgress: false,
             aiBettingQueue: [],
             humanBetConfirmed: false,

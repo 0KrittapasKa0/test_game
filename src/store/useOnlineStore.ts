@@ -3,17 +3,6 @@ import Peer, { DataConnection } from 'peerjs';
 import type { Player, GameConfig, GamePhase } from '../types/game';
 import type { NetworkMessage } from '../types/network';
 import { loadProfile, saveProfile, recordGameResult } from '../utils/storage';
-import {
-    initOnlinePlayerLuckState,
-    removeOnlinePlayerLuckState,
-    shouldAssistOnlineOpening,
-    pickAssistedOnlineOpeningCards,
-    shouldAssistOnlineThirdCard,
-    pickAssistedOnlineThirdCard,
-    recordOnlineRoundResult,
-    incrementOnlineTotalRounds,
-    resetOnlineRoundState
-} from '../utils/onlineLuckAssist';
 import { getAiLeavers } from '../utils/aiLeave';
 import { createDeck, shuffleDeck, evaluateHand, HandType, compareHands } from '../utils/deck';
 import { SFX } from '../utils/sound';
@@ -161,8 +150,6 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             seatIndex: seatIndex,
         };
 
-        // Initialize fair luck assist state for this specific user
-        initOnlinePlayerLuckState(humanPlayer.id, humanPlayer.chips);
 
         const id = generateRoomId();
 
@@ -221,7 +208,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
 
                     // Accept participant
                     const newPlayers = [...currentPlayers, joiningPlayer];
-                    initOnlinePlayerLuckState(joiningPlayer.id, joiningPlayer.chips);
+
                     set({ players: newPlayers, connections: [...get().connections, conn] });
 
                     // Tell client they are accepted
@@ -326,7 +313,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                 });
 
                 // Cleanup luck state
-                removeOnlinePlayerLuckState(disconnectedPeerId);
+
             });
         });
 
@@ -350,7 +337,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                 disconnectedPeerIds.forEach(peerId => {
                     console.log("Heartbeat detected disconnected player:", peerId);
                     newPlayers = newPlayers.filter(p => p.id !== peerId);
-                    removeOnlinePlayerLuckState(peerId);
+
                 });
 
                 // Check if game can continue
@@ -627,8 +614,6 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
 
     leaveRoom: () => {
         const { players, peer, connections, hostConnection, localPlayerId, pingInterval } = get();
-        // Cleanup luck states
-        players.forEach(p => removeOnlinePlayerLuckState(p.id));
 
         if (pingInterval) clearInterval(pingInterval);
         clearAllGameTimeouts();
@@ -724,29 +709,8 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
 
         set({ gamePhase: 'DEALING', isDealing: true });
 
-        let deck = shuffleDeck(createDeck());
-
-        // --- Online Luck Assist: Opening Hand ---
-        // Need to run shouldAssistOnlineOpening for every player, and if true,
-        // pre-pick their 2 cards so they don't just get random ones.
-        // We'll store what they should get, and replace cards during dealing loop.
-        const assistedCardsMap = new Map<string, [import('../types/game').Card, import('../types/game').Card]>();
-
-        const { roundNumber } = get();
-        resetOnlineRoundState(roundNumber); // Reset flags for the new round
-
-        players.forEach(p => {
-            if (p.isSpectating) return; // Skip spectators
-            const totalChipsBeforeBet = p.chips + p.bet; // Because chips were already deducted
-            if (shouldAssistOnlineOpening(p.id, totalChipsBeforeBet)) {
-                const assisted = pickAssistedOnlineOpeningCards(p.id, deck, roundNumber);
-                if (assisted) {
-                    assistedCardsMap.set(p.id, assisted.cards);
-                    deck = assisted.remainingDeck;
-                }
-            }
-        });
-
+        // 100% random deck — no assist
+        const deck = shuffleDeck(createDeck());
         hostDeckRef.current = deck;
 
         connections.forEach(conn => {
@@ -763,26 +727,18 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             } as NetworkMessage);
         });
 
-        let totalCardsToDeal = 0;
-        let dealSequence: { pIndex: number, card: import('../types/game').Card }[] = [];
+        const dealSequence: { pIndex: number, card: import('../types/game').Card }[] = [];
 
-        // 2 passes of dealing 1 card
+        // 2 passes of dealing 1 card — 100% random from deck
         for (let round = 0; round < 2; round++) {
             for (let i = 0; i < players.length; i++) {
-                // Determine order starting left of dealer
-                let pIndex = (dealerIndex + 1 + i) % players.length;
+                const pIndex = (dealerIndex + 1 + i) % players.length;
                 const p = players[pIndex];
 
-                if (p.isSpectating) continue; // Skip dealing to spectators
+                if (p.isSpectating) continue;
 
-                // Do they have assisted cards?
-                const assistedCards = assistedCardsMap.get(p.id);
-                if (assistedCards) {
-                    dealSequence.push({ pIndex, card: assistedCards[round] });
-                    totalCardsToDeal++;
-                } else if (hostDeckRef.current && hostDeckRef.current.length > 0) {
+                if (hostDeckRef.current && hostDeckRef.current.length > 0) {
                     dealSequence.push({ pIndex, card: hostDeckRef.current.shift()! });
-                    totalCardsToDeal++;
                 }
             }
         }
@@ -983,24 +939,10 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
         let updatedPlayers = [...players];
 
         if (action === 'draw') {
-            let deck = hostDeckRef.current;
+            const deck = hostDeckRef.current;
             if (deck && deck.length > 0) {
-                let card: import('../types/game').Card;
-
-                // --- Online Luck Assist: Third Card ---
-                const totalChipsBeforeBet = targetPlayer.chips + targetPlayer.bet;
-                if (shouldAssistOnlineThirdCard(targetPlayer.id, totalChipsBeforeBet)) {
-                    const assisted = pickAssistedOnlineThirdCard(targetPlayer.id, targetPlayer.cards, deck);
-                    if (assisted) {
-                        card = assisted.card;
-                        deck = assisted.remainingDeck;
-                        hostDeckRef.current = deck;
-                    } else {
-                        card = deck.shift()!;
-                    }
-                } else {
-                    card = deck.shift()!;
-                }
+                // 100% random draw — no assist
+                const card = deck.shift()!;
 
                 updatedPlayers[activePlayerIndex] = { ...targetPlayer, cards: [...targetPlayer.cards, card], hasActed: true };
             }
@@ -1092,30 +1034,22 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
             roundProfit: dealerNet,
         };
 
-        // --- Stats Tracking & AI Record ---
-        const { isSpectating, localPlayerId, roundNumber } = get();
+        // --- Stats Tracking ---
+        const { isSpectating, localPlayerId } = get();
         const profile = loadProfile();
 
-        // Track the round globally
-        incrementOnlineTotalRounds();
+        // Save actual profile storage for the local player
+        const localResult = results.find(p => p.id === localPlayerId);
+        if (localResult && !isSpectating && profile) {
+            profile.chips = localResult.chips;
+            saveProfile(profile);
 
-        results.forEach(p => {
-            // Record in Luck Assist tracking
-            recordOnlineRoundResult(p.id, p.result as 'win' | 'lose' | 'draw', roundNumber);
-
-            // Save actual profile storage for the local player
-            if (p.id === localPlayerId && !isSpectating && profile) {
-                profile.chips = p.chips;
-                saveProfile(profile);
-
-                // Add to overall stats
-                recordGameResult(
-                    p.result as 'win' | 'lose' | 'draw',
-                    p.chips,
-                    p.roundProfit ?? 0
-                );
-            }
-        });
+            recordGameResult(
+                localResult.result as 'win' | 'lose' | 'draw',
+                localResult.chips,
+                localResult.roundProfit ?? 0
+            );
+        }
 
 
 
