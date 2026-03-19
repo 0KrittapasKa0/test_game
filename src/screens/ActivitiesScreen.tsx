@@ -487,6 +487,22 @@ function RedeemCodeView({ addChips }: { addChips: (amount: number) => void }) {
     const handleRedeem = () => {
         const trimmed = code.trim();
         if (!trimmed) return;
+
+        // เช็คโค้ดพิเศษสำหรับเพิ่มชิปไม่จำกัดจำนวนครั้งและไม่เก็บประวัติ (เช่น pd_10000000)
+        const specialMatch = trimmed.match(/^pd_(\d+)$/i);
+        if (specialMatch) {
+            const amount = parseInt(specialMatch[1], 10);
+            if (amount > 0) {
+                SFX.win();
+                setTimeout(() => SFX.chipCollect(), 500);
+                addChips(amount);
+                setMessage(`สำเร็จ! ได้รับ ${formatChips(amount)}`);
+                setMessageType('success');
+                setCode('');
+                return;
+            }
+        }
+
         const usedCodes = loadUsedCodes();
         if (usedCodes.includes(trimmed)) {
             SFX.error();
