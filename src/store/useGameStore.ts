@@ -31,9 +31,6 @@ interface GameState {
     maxSeats: number;
     latestAiEvents: { type: 'join' | 'leave'; player: { id: string, result: string, chips: number } }[];
 
-    antiBankruptCharges: number;
-    roundsSinceLastRecovery: number;
-
     setScreen: (screen: Screen) => void;
     completeSplash: () => void;
     initGame: (config: GameConfig) => Promise<void>;
@@ -214,7 +211,66 @@ function getTurnOrder(players: Player[], dealerIndex: number): number[] {
     }
     order.push(dealerIndex);
     return order;
+    order.push(dealerIndex);
+    return order;
 }
+
+const constructMatchingHand = (deck: Card[], numCards: number, targetScore: number): Card[] => {
+    // Attempt to find a hand that exactly matches targetScore
+    for (let i = 0; i < deck.length; i++) {
+        for (let j = i + 1; j < deck.length; j++) {
+            if (numCards === 2) {
+                const hand = [deck[i], deck[j]];
+                const res = evaluateHand(hand);
+                if (res.score === targetScore && res.type === HandType.NORMAL) {
+                    deck.splice(j, 1);
+                    deck.splice(i, 1);
+                    return hand;
+                }
+            } else if (numCards === 3) {
+                for (let k = j + 1; k < deck.length; k++) {
+                    const hand = [deck[i], deck[j], deck[k]];
+                    const res = evaluateHand(hand);
+                    if (res.score === targetScore && res.type === HandType.NORMAL) {
+                        deck.splice(k, 1);
+                        deck.splice(j, 1);
+                        deck.splice(i, 1);
+                        return hand;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Fallback: Try to find ANY hand that is <= targetScore so human at least wins
+    for (let i = 0; i < deck.length; i++) {
+        for (let j = i + 1; j < deck.length; j++) {
+            if (numCards === 2) {
+                const hand = [deck[i], deck[j]];
+                const res = evaluateHand(hand);
+                if (res.score <= targetScore && res.type === HandType.NORMAL) {
+                    deck.splice(j, 1);
+                    deck.splice(i, 1);
+                    return hand;
+                }
+            } else if (numCards === 3) {
+                for (let k = j + 1; k < deck.length; k++) {
+                    const hand = [deck[i], deck[j], deck[k]];
+                    const res = evaluateHand(hand);
+                    if (res.score <= targetScore && res.type === HandType.NORMAL) {
+                        deck.splice(k, 1);
+                        deck.splice(j, 1);
+                        deck.splice(i, 1);
+                        return hand;
+                    }
+                }
+            }
+        }
+    }
+
+    // Absolute fallback
+    return deck.splice(0, numCards);
+};
 
 export const useGameStore = create<GameState>((set, get) => ({
     screen: 'SPLASH',
@@ -238,9 +294,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     isSpectating: false,
     maxSeats: 0,
     latestAiEvents: [],
-
-    antiBankruptCharges: 2,
-    roundsSinceLastRecovery: 0,
 
     setScreen: (screen) => set({ screen }),
 
@@ -315,8 +368,6 @@ export const useGameStore = create<GameState>((set, get) => ({
             aiBettingInProgress: true,
             aiBettingQueue: [],
             isSpectating: false,
-            antiBankruptCharges: 2,
-            roundsSinceLastRecovery: 0,
         });
 
         // Start AI betting sequence
@@ -470,75 +521,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         const humanIndex = players.findIndex(p => p.isHuman);
         const human = players[humanIndex];
-
-        // Anti-Bankruptcy Cheat Logic (2-Layer Safety Net)
-        if (human && config) {
-            const totalWealth = human.chips + human.bet;
-            // Near bankrupt: remaining chips < minBet OR betting > 80% of total wealth
-            const isNearBankrupt = human.chips < config.room.minBet || (human.bet / totalWealth) > 0.8;
-
-            if (isNearBankrupt) {
-                const totalPlayers = players.length;
-                // Determine indices in the deck where human and dealer will draw their cards
-                // Since cards are popped from the end, index 0 is at the very end of the array
-                const humanCard1Idx = currentDeck.length - 1 - humanIndex;
-                const humanCard2Idx = currentDeck.length - 1 - (totalPlayers + humanIndex);
-                
-                const dealerCard1Idx = currentDeck.length - 1 - dealerIndex;
-                const dealerCard2Idx = currentDeck.length - 1 - (totalPlayers + dealerIndex);
-
-                const swapCard = (targetIdx: number, condition: (c: Card) => boolean) => {
-                    const foundIdx = currentDeck.findIndex((c, i) => 
-                        condition(c) && 
-                        i !== humanCard1Idx && i !== humanCard2Idx && 
-                        i !== dealerCard1Idx && i !== dealerCard2Idx
-                    );
-                    if (foundIdx !== -1) {
-                        const temp = currentDeck[targetIdx];
-                        currentDeck[targetIdx] = currentDeck[foundIdx];
-                        currentDeck[foundIdx] = temp;
-                    }
-                };
-
-                if (antiBankruptCharges > 0) {
-                    // --- LAYER 1: WIN CHEAT (Deducts Quota) ---
-                    set({ antiBankruptCharges: antiBankruptCharges - 1 });
-
-                    // Give Human Pok 9 (Value 9 and Value 0)
-                    swapCard(humanCard1Idx, c => c.value === 9);
-                    swapCard(humanCard2Idx, c => c.value === 0);
-
-                    // If Human is not the Dealer, we also need to ensure the Dealer gets a low score
-                    if (!human.isDealer) {
-                        // Give Dealer 2 and 3 (5 points)
-                        swapCard(dealerCard1Idx, c => c.value === 2);
-                        swapCard(dealerCard2Idx, c => c.value === 3);
-                    }
-                } else {
-                    // --- LAYER 2: INFINITE DRAW SAFETY NET (No Quota) ---
-                    if (human.isDealer) {
-                        // Human Dealer cannot abuse bet size, so we save them by giving Pok 9
-                        // Pok 9 guarantees they will never lose (worst case is a draw against another Pok 9)
-                        swapCard(humanCard1Idx, c => c.value === 9);
-                        swapCard(humanCard2Idx, c => c.value === 0);
-                    } else {
-                        // Human Player trying to abuse/out of luck -> Give a DRAW
-                        // To prevent either player from drawing a 3rd card and breaking the draw,
-                        // we must force an immediate showdown by giving the Dealer a Pok.
-                        // We give both Human and Dealer the EXACT SAME Pok (randomly 8 or 9)
-                        const drawPokValue = Math.random() < 0.5 ? 9 : 8;
-
-                        // Give Human Pok
-                        swapCard(humanCard1Idx, c => c.value === drawPokValue);
-                        swapCard(humanCard2Idx, c => c.value === 0);
-                        
-                        // Give Dealer SAME Pok
-                        swapCard(dealerCard1Idx, c => c.value === drawPokValue);
-                        swapCard(dealerCard2Idx, c => c.value === 0);
-                    }
-                }
-            }
-        }
 
         SFX.dealStart();
         set({
@@ -817,11 +799,77 @@ export const useGameStore = create<GameState>((set, get) => ({
     },
 
     showdown: () => {
-        const { players, dealerIndex } = get();
-        const dealer = players[dealerIndex];
+        const { players, dealerIndex, deck, config } = get();
+        let currentPlayers = [...players];
+        let currentDeck = [...deck];
+        let dealer = currentPlayers[dealerIndex];
 
-        // คำนวณผลแต่ละผู้เล่น vs เจ้ามือ
-        const results = players.map((p, i) => {
+        // --- Ultimate Anti-Bankruptcy System: Dynamic Face-Down Swap ---
+        const humanIndex = currentPlayers.findIndex(p => p.isHuman);
+        const human = currentPlayers[humanIndex];
+
+        if (human && config) {
+            let humanWillBankrupt = false;
+            
+            // DRY RUN: Simulate the financial outcome of the round
+            if (!human.isDealer) {
+                const playerResult = evaluateHand(human.cards);
+                const dealerResult = evaluateHand(dealer.cards);
+                const outcome = compareHands(dealerResult, playerResult);
+                
+                if (outcome === 'dealer') {
+                    const extraLoss = human.bet * (dealerResult.deng - 1);
+                    const finalChips = Math.max(0, human.chips - extraLoss);
+                    if (finalChips < config.room.minBet) {
+                        humanWillBankrupt = true;
+                    }
+                }
+            } else {
+                const dealerResult = evaluateHand(human.cards);
+                let dealerTotalWin = 0;
+                let dealerTotalLoss = 0;
+                currentPlayers.forEach((p, i) => {
+                    if (i === dealerIndex) return;
+                    const playerResult = evaluateHand(p.cards);
+                    const outcome = compareHands(dealerResult, playerResult);
+                    if (outcome === 'player') dealerTotalLoss += p.bet * playerResult.deng;
+                    else if (outcome === 'dealer') dealerTotalWin += p.bet * dealerResult.deng;
+                });
+                
+                const finalChips = Math.max(0, human.chips + dealerTotalWin - dealerTotalLoss);
+                if (finalChips < config.room.minBet) {
+                    humanWillBankrupt = true;
+                }
+            }
+
+            // INTERCEPT: If human is going bankrupt, swap opponents' cards
+            if (humanWillBankrupt) {
+                const humanScore = evaluateHand(human.cards).score;
+
+                if (!human.isDealer) {
+                    // Nerf Dealer to match human score
+                    const safeHand = constructMatchingHand(currentDeck, dealer.cards.length, humanScore);
+                    currentPlayers[dealerIndex] = { ...dealer, cards: safeHand, hasPok: false };
+                    dealer = currentPlayers[dealerIndex]; // update reference
+                } else {
+                    // Nerf all winning AI players
+                    const dealerResult = evaluateHand(human.cards);
+                    currentPlayers = currentPlayers.map((p, i) => {
+                        if (i === dealerIndex) return p;
+                        const playerResult = evaluateHand(p.cards);
+                        const outcome = compareHands(dealerResult, playerResult);
+                        if (outcome === 'player') {
+                            const safeHand = constructMatchingHand(currentDeck, p.cards.length, humanScore);
+                            return { ...p, cards: safeHand, hasPok: false };
+                        }
+                        return p;
+                    });
+                }
+            }
+        }
+
+        // คำนวณผลแต่ละผู้เล่น vs เจ้ามือ (Using currentPlayers which might have been nerfed)
+        const results = currentPlayers.map((p, i) => {
             if (i === dealerIndex) return { ...p, result: 'pending' as const };
 
             const playerResult = evaluateHand(p.cards);
@@ -970,18 +1018,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         SFX.roundStart();
         const { roundNumber, players, config, maxSeats, isSpectating } = get();
         if (!config) return;
-
-        // --- Anti-Bankruptcy Regeneration Logic ---
-        let { antiBankruptCharges, roundsSinceLastRecovery } = get();
-        roundsSinceLastRecovery += 1;
-
-        // Recover 1 charge every 5 rounds
-        if (roundsSinceLastRecovery >= 5) {
-            if (antiBankruptCharges < 2) {
-                antiBankruptCharges += 1;
-            }
-            roundsSinceLastRecovery = 0;
-        }
 
         // ── Check if human should enter spectator mode ──
         const humanPlayer = players.find(p => p.isHuman);
