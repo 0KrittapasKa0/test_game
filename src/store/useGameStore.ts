@@ -514,7 +514,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         // Guard: ป้องกันแจกไพ่ซ้ำจาก race condition
         if (get().gamePhase !== 'BETTING') return;
 
-        const { players, config, deck, dealerIndex } = get();
+        const { players, config, deck } = get();
         let currentDeck = [...deck];
 
         // --- Anti-Bankruptcy: Pre-deal Pok Prevention ---
