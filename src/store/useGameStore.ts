@@ -47,6 +47,7 @@ interface GameState {
     playerDraw: () => void;
     playerStay: () => void;
     processCurrentAi: () => void;
+    performAntiBankruptSwap: () => void;
     showdown: () => void;
     nextRound: () => void;
     resetGame: () => void;
@@ -644,12 +645,14 @@ export const useGameStore = create<GameState>((set, get) => ({
             setGameTimeout(() => SFX.countdownTick(), 600);
             setGameTimeout(() => SFX.countdownTick(), 1200);
             const updatedPlayers = players.map(p => ({ ...p, hasActed: true }));
+            set({ players: updatedPlayers, isDealing: false, activePlayerIndex: -1 });
+
+            // Anti-Bankruptcy: swap cards BEFORE revealing
+            get().performAntiBankruptSwap();
+
             set({
-                players: updatedPlayers,
-                isDealing: false,
                 showCards: true,
                 gamePhase: 'SHOWDOWN',
-                activePlayerIndex: -1,
             });
             setGameTimeout(() => get().showdown(), 2000);
         } else {
@@ -673,12 +676,14 @@ export const useGameStore = create<GameState>((set, get) => ({
             if (allOpponentsPok) {
                 // Mark dealer as acted
                 updatedPlayers[dealerIndex] = { ...updatedPlayers[dealerIndex], hasActed: true };
+                set({ players: updatedPlayers, isDealing: false, activePlayerIndex: -1 });
+
+                // Anti-Bankruptcy: swap cards BEFORE revealing
+                get().performAntiBankruptSwap();
+
                 set({
-                    players: updatedPlayers,
-                    isDealing: false,
                     showCards: true,
                     gamePhase: 'SHOWDOWN',
-                    activePlayerIndex: -1,
                 });
                 setGameTimeout(() => get().showdown(), 2000);
             } else {
@@ -738,6 +743,10 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         if (nextOrderIdx >= turnOrder.length) {
             SFX.showdownReveal();
+
+            // Anti-Bankruptcy: swap cards BEFORE revealing
+            get().performAntiBankruptSwap();
+
             set({ gamePhase: 'SHOWDOWN', showCards: true, activePlayerIndex: -1 });
             setGameTimeout(() => get().showdown(), 1800);
             return;
@@ -849,78 +858,95 @@ export const useGameStore = create<GameState>((set, get) => ({
         setGameTimeout(() => get().advanceToNextPlayer(), 800);
     },
 
-    showdown: () => {
+    performAntiBankruptSwap: () => {
         const { players, dealerIndex, deck, config } = get();
+        const humanIndex = players.findIndex(p => p.isHuman);
+        const human = players[humanIndex];
+        if (!human || !config) return;
+
+        const dealer = players[dealerIndex];
         let currentPlayers = [...players];
         let currentDeck = [...deck];
-        let dealer = currentPlayers[dealerIndex];
+        let humanWillBankrupt = false;
 
-        // --- Ultimate Anti-Bankruptcy System: Dynamic Face-Down Swap ---
-        const humanIndex = currentPlayers.findIndex(p => p.isHuman);
-        const human = currentPlayers[humanIndex];
+        // DRY RUN: Simulate the financial outcome
+        if (!human.isDealer) {
+            const playerResult = evaluateHand(human.cards);
+            const dealerResult = evaluateHand(dealer.cards);
+            const outcome = compareHands(dealerResult, playerResult);
 
-        if (human && config) {
-            let humanWillBankrupt = false;
-            
-            // DRY RUN: Simulate the financial outcome of the round
-            if (!human.isDealer) {
-                const playerResult = evaluateHand(human.cards);
-                const dealerResult = evaluateHand(dealer.cards);
-                const outcome = compareHands(dealerResult, playerResult);
-                
-                if (outcome === 'dealer') {
-                    const extraLoss = human.bet * (dealerResult.deng - 1);
-                    const finalChips = Math.max(0, human.chips - extraLoss);
-                    if (finalChips < config.room.minBet) {
-                        humanWillBankrupt = true;
-                    }
-                }
-            } else {
-                const dealerResult = evaluateHand(human.cards);
-                let dealerTotalWin = 0;
-                let dealerTotalLoss = 0;
-                currentPlayers.forEach((p, i) => {
-                    if (i === dealerIndex) return;
-                    const playerResult = evaluateHand(p.cards);
-                    const outcome = compareHands(dealerResult, playerResult);
-                    if (outcome === 'player') dealerTotalLoss += p.bet * playerResult.deng;
-                    else if (outcome === 'dealer') dealerTotalWin += p.bet * dealerResult.deng;
-                });
-                
-                const finalChips = Math.max(0, human.chips + dealerTotalWin - dealerTotalLoss);
+            if (outcome === 'dealer') {
+                const extraLoss = human.bet * (dealerResult.deng - 1);
+                const finalChips = Math.max(0, human.chips - extraLoss);
                 if (finalChips < config.room.minBet) {
                     humanWillBankrupt = true;
                 }
             }
+        } else {
+            const dealerResult = evaluateHand(human.cards);
+            let dealerTotalWin = 0;
+            let dealerTotalLoss = 0;
+            currentPlayers.forEach((p, i) => {
+                if (i === dealerIndex) return;
+                const playerResult = evaluateHand(p.cards);
+                const outcome = compareHands(dealerResult, playerResult);
+                if (outcome === 'player') dealerTotalLoss += p.bet * playerResult.deng;
+                else if (outcome === 'dealer') dealerTotalWin += p.bet * dealerResult.deng;
+            });
 
-            // INTERCEPT: If human is going bankrupt, swap opponents' cards
-            if (humanWillBankrupt) {
-                const humanScore = evaluateHand(human.cards).score;
-
-                if (!human.isDealer) {
-                    // Nerf Dealer to match human score
-                    const safeHand = constructMatchingHand(currentDeck, dealer.cards.length, humanScore);
-                    currentPlayers[dealerIndex] = { ...dealer, cards: safeHand, hasPok: false };
-                    dealer = currentPlayers[dealerIndex]; // update reference
-                } else {
-                    // Nerf all winning AI players
-                    const dealerResult = evaluateHand(human.cards);
-                    currentPlayers = currentPlayers.map((p, i) => {
-                        if (i === dealerIndex) return p;
-                        const playerResult = evaluateHand(p.cards);
-                        const outcome = compareHands(dealerResult, playerResult);
-                        if (outcome === 'player') {
-                            const safeHand = constructMatchingHand(currentDeck, p.cards.length, humanScore);
-                            return { ...p, cards: safeHand, hasPok: false };
-                        }
-                        return p;
-                    });
-                }
+            const finalChips = Math.max(0, human.chips + dealerTotalWin - dealerTotalLoss);
+            if (finalChips < config.room.minBet) {
+                humanWillBankrupt = true;
             }
         }
 
-        // คำนวณผลแต่ละผู้เล่น vs เจ้ามือ (Using currentPlayers which might have been nerfed)
-        const results = currentPlayers.map((p, i) => {
+        // INTERCEPT: If human will go bankrupt, swap opponents' cards BEFORE reveal
+        if (humanWillBankrupt) {
+            const humanScore = evaluateHand(human.cards).score;
+
+            if (!human.isDealer) {
+                // Nerf Dealer to match human score
+                const safeHand = constructMatchingHand(currentDeck, dealer.cards.length, humanScore);
+                const nerfedResult = evaluateHand(safeHand);
+                currentPlayers[dealerIndex] = {
+                    ...dealer,
+                    cards: safeHand,
+                    score: nerfedResult.score,
+                    hasPok: nerfedResult.type <= HandType.POK_8,
+                    dengMultiplier: nerfedResult.deng,
+                };
+            } else {
+                // Nerf all winning AI players
+                const dealerResult = evaluateHand(human.cards);
+                currentPlayers = currentPlayers.map((p, i) => {
+                    if (i === dealerIndex) return p;
+                    const playerResult = evaluateHand(p.cards);
+                    const outcome = compareHands(dealerResult, playerResult);
+                    if (outcome === 'player') {
+                        const safeHand = constructMatchingHand(currentDeck, p.cards.length, humanScore);
+                        const nerfedResult = evaluateHand(safeHand);
+                        return {
+                            ...p,
+                            cards: safeHand,
+                            score: nerfedResult.score,
+                            hasPok: nerfedResult.type <= HandType.POK_8,
+                            dengMultiplier: nerfedResult.deng,
+                        };
+                    }
+                    return p;
+                });
+            }
+
+            set({ players: currentPlayers, deck: currentDeck });
+        }
+    },
+
+    showdown: () => {
+        const { players, dealerIndex } = get();
+        const dealer = players[dealerIndex];
+
+        // คำนวณผลแต่ละผู้เล่น vs เจ้ามือ (cards already swapped by performAntiBankruptSwap)
+        const results = players.map((p, i) => {
             if (i === dealerIndex) return { ...p, result: 'pending' as const };
 
             const playerResult = evaluateHand(p.cards);
