@@ -514,8 +514,68 @@ export const useGameStore = create<GameState>((set, get) => ({
         // Guard: ป้องกันแจกไพ่ซ้ำจาก race condition
         if (get().gamePhase !== 'BETTING') return;
 
+        const { players, config, deck, dealerIndex } = get();
+        let currentDeck = [...deck];
+
+        // --- Anti-Bankruptcy: Pre-deal Pok Prevention ---
+        // ถ้าผู้เล่นใกล้จะหมดตัว ต้องป้องกันไม่ให้คู่แข่งได้ป๊อกตั้งแต่ตอนแจกไพ่
+        // เพราะถ้าเจ้ามือป๊อก เกมจะจบทันทีและ UI จะโชว์ป๊อกออกมาก่อน
+        // ทำให้ตอน showdown ถ้าเราแอบสลับไพ่ จะ "โป๊ะแตก" ทันที
+        const humanIndex = players.findIndex(p => p.isHuman);
+        const human = players[humanIndex];
+
+        if (human && config) {
+            const totalWealth = human.chips + human.bet;
+            const isNearBankrupt = human.chips < config.room.minBet || (human.bet / totalWealth) > 0.8;
+
+            if (isNearBankrupt) {
+                const totalPlayers = players.length;
+
+                // Pre-scan: check all opponent card positions and prevent Pok hands
+                for (let pIdx = 0; pIdx < totalPlayers; pIdx++) {
+                    // Skip the human player - we don't nerf ourselves
+                    if (pIdx === humanIndex) continue;
+
+                    // Calculate where this player's 2 cards will be in the deck
+                    // Cards are popped from end: round 0 deals indices [len-1, len-2, ...], round 1 deals [len-n-1, ...]
+                    const card1Idx = currentDeck.length - 1 - pIdx;
+                    const card2Idx = currentDeck.length - 1 - (totalPlayers + pIdx);
+
+                    if (card1Idx < 0 || card2Idx < 0) continue;
+
+                    const card1 = currentDeck[card1Idx];
+                    const card2 = currentDeck[card2Idx];
+                    const testHand = evaluateHand([card1, card2]);
+
+                    // If this opponent would get a Pok (8 or 9), swap one of their cards
+                    if (testHand.type <= HandType.POK_8) {
+                        // Find a replacement card from unused positions that breaks the Pok
+                        const usedIndices = new Set<number>();
+                        for (let p = 0; p < totalPlayers; p++) {
+                            usedIndices.add(currentDeck.length - 1 - p);
+                            usedIndices.add(currentDeck.length - 1 - (totalPlayers + p));
+                        }
+
+                        // Swap card2 with a safe card that makes their total NOT 8 or 9
+                        for (let s = 0; s < currentDeck.length; s++) {
+                            if (usedIndices.has(s)) continue;
+                            const candidate = currentDeck[s];
+                            const newTotal = (card1.value + candidate.value) % 10;
+                            if (newTotal !== 8 && newTotal !== 9) {
+                                // Swap
+                                currentDeck[card2Idx] = candidate;
+                                currentDeck[s] = card2;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         SFX.dealStart();
         set({
+            deck: currentDeck,
             gamePhase: 'DEALING',
             isDealing: true,
             dealingPlayerIndex: 0,
