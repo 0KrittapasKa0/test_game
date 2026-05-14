@@ -523,13 +523,18 @@ export const useGameStore = create<GameState>((set, get) => ({
                         swapCard(humanCard2Idx, c => c.value === 0);
                     } else {
                         // Human Player trying to abuse/out of luck -> Give a DRAW
-                        // Give Human 2 and 3 (5 points)
-                        swapCard(humanCard1Idx, c => c.value === 2);
-                        swapCard(humanCard2Idx, c => c.value === 3);
+                        // To prevent either player from drawing a 3rd card and breaking the draw,
+                        // we must force an immediate showdown by giving the Dealer a Pok.
+                        // We give both Human and Dealer the EXACT SAME Pok (randomly 8 or 9)
+                        const drawPokValue = Math.random() < 0.5 ? 9 : 8;
+
+                        // Give Human Pok
+                        swapCard(humanCard1Idx, c => c.value === drawPokValue);
+                        swapCard(humanCard2Idx, c => c.value === 0);
                         
-                        // Give Dealer 4 and A (5 points)
-                        swapCard(dealerCard1Idx, c => c.value === 4);
-                        swapCard(dealerCard2Idx, c => c.value === 1);
+                        // Give Dealer SAME Pok
+                        swapCard(dealerCard1Idx, c => c.value === drawPokValue);
+                        swapCard(dealerCard2Idx, c => c.value === 0);
                     }
                 }
             }
