@@ -31,6 +31,9 @@ interface GameState {
     maxSeats: number;
     latestAiEvents: { type: 'join' | 'leave'; player: { id: string, result: string, chips: number } }[];
 
+    antiBankruptCharges: number;
+    roundsSinceLastRecovery: number;
+
     setScreen: (screen: Screen) => void;
     completeSplash: () => void;
     initGame: (config: GameConfig) => Promise<void>;
@@ -236,6 +239,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     maxSeats: 0,
     latestAiEvents: [],
 
+    antiBankruptCharges: 2,
+    roundsSinceLastRecovery: 0,
+
     setScreen: (screen) => set({ screen }),
 
     completeSplash: () => {
@@ -309,6 +315,8 @@ export const useGameStore = create<GameState>((set, get) => ({
             aiBettingInProgress: true,
             aiBettingQueue: [],
             isSpectating: false,
+            antiBankruptCharges: 2,
+            roundsSinceLastRecovery: 0,
         });
 
         // Start AI betting sequence
@@ -457,8 +465,79 @@ export const useGameStore = create<GameState>((set, get) => ({
         // Guard: ป้องกันแจกไพ่ซ้ำจาก race condition
         if (get().gamePhase !== 'BETTING') return;
 
+        const { players, config, deck, dealerIndex, antiBankruptCharges } = get();
+        let currentDeck = [...deck];
+
+        const humanIndex = players.findIndex(p => p.isHuman);
+        const human = players[humanIndex];
+
+        // Anti-Bankruptcy Cheat Logic (2-Layer Safety Net)
+        if (human && config) {
+            const totalWealth = human.chips + human.bet;
+            // Near bankrupt: remaining chips < minBet OR betting > 80% of total wealth
+            const isNearBankrupt = human.chips < config.room.minBet || (human.bet / totalWealth) > 0.8;
+
+            if (isNearBankrupt) {
+                const totalPlayers = players.length;
+                // Determine indices in the deck where human and dealer will draw their cards
+                // Since cards are popped from the end, index 0 is at the very end of the array
+                const humanCard1Idx = currentDeck.length - 1 - humanIndex;
+                const humanCard2Idx = currentDeck.length - 1 - (totalPlayers + humanIndex);
+                
+                const dealerCard1Idx = currentDeck.length - 1 - dealerIndex;
+                const dealerCard2Idx = currentDeck.length - 1 - (totalPlayers + dealerIndex);
+
+                const swapCard = (targetIdx: number, condition: (c: Card) => boolean) => {
+                    const foundIdx = currentDeck.findIndex((c, i) => 
+                        condition(c) && 
+                        i !== humanCard1Idx && i !== humanCard2Idx && 
+                        i !== dealerCard1Idx && i !== dealerCard2Idx
+                    );
+                    if (foundIdx !== -1) {
+                        const temp = currentDeck[targetIdx];
+                        currentDeck[targetIdx] = currentDeck[foundIdx];
+                        currentDeck[foundIdx] = temp;
+                    }
+                };
+
+                if (antiBankruptCharges > 0) {
+                    // --- LAYER 1: WIN CHEAT (Deducts Quota) ---
+                    set({ antiBankruptCharges: antiBankruptCharges - 1 });
+
+                    // Give Human Pok 9 (Value 9 and Value 0)
+                    swapCard(humanCard1Idx, c => c.value === 9);
+                    swapCard(humanCard2Idx, c => c.value === 0);
+
+                    // If Human is not the Dealer, we also need to ensure the Dealer gets a low score
+                    if (!human.isDealer) {
+                        // Give Dealer 2 and 3 (5 points)
+                        swapCard(dealerCard1Idx, c => c.value === 2);
+                        swapCard(dealerCard2Idx, c => c.value === 3);
+                    }
+                } else {
+                    // --- LAYER 2: INFINITE DRAW SAFETY NET (No Quota) ---
+                    if (human.isDealer) {
+                        // Human Dealer cannot abuse bet size, so we save them by giving Pok 9
+                        // Pok 9 guarantees they will never lose (worst case is a draw against another Pok 9)
+                        swapCard(humanCard1Idx, c => c.value === 9);
+                        swapCard(humanCard2Idx, c => c.value === 0);
+                    } else {
+                        // Human Player trying to abuse/out of luck -> Give a DRAW
+                        // Give Human 2 and 3 (5 points)
+                        swapCard(humanCard1Idx, c => c.value === 2);
+                        swapCard(humanCard2Idx, c => c.value === 3);
+                        
+                        // Give Dealer 4 and A (5 points)
+                        swapCard(dealerCard1Idx, c => c.value === 4);
+                        swapCard(dealerCard2Idx, c => c.value === 1);
+                    }
+                }
+            }
+        }
+
         SFX.dealStart();
         set({
+            deck: currentDeck,
             gamePhase: 'DEALING',
             isDealing: true,
             dealingPlayerIndex: 0,
@@ -886,6 +965,18 @@ export const useGameStore = create<GameState>((set, get) => ({
         SFX.roundStart();
         const { roundNumber, players, config, maxSeats, isSpectating } = get();
         if (!config) return;
+
+        // --- Anti-Bankruptcy Regeneration Logic ---
+        let { antiBankruptCharges, roundsSinceLastRecovery } = get();
+        roundsSinceLastRecovery += 1;
+
+        // Recover 1 charge every 5 rounds
+        if (roundsSinceLastRecovery >= 5) {
+            if (antiBankruptCharges < 2) {
+                antiBankruptCharges += 1;
+            }
+            roundsSinceLastRecovery = 0;
+        }
 
         // ── Check if human should enter spectator mode ──
         const humanPlayer = players.find(p => p.isHuman);
