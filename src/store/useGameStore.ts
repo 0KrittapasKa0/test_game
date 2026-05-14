@@ -211,8 +211,6 @@ function getTurnOrder(players: Player[], dealerIndex: number): number[] {
     }
     order.push(dealerIndex);
     return order;
-    order.push(dealerIndex);
-    return order;
 }
 
 const constructMatchingHand = (deck: Card[], numCards: number, targetScore: number): Card[] => {
@@ -516,15 +514,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         // Guard: ป้องกันแจกไพ่ซ้ำจาก race condition
         if (get().gamePhase !== 'BETTING') return;
 
-        const { players, config, deck, dealerIndex, antiBankruptCharges } = get();
-        let currentDeck = [...deck];
-
-        const humanIndex = players.findIndex(p => p.isHuman);
-        const human = players[humanIndex];
-
         SFX.dealStart();
         set({
-            deck: currentDeck,
             gamePhase: 'DEALING',
             isDealing: true,
             dealingPlayerIndex: 0,
