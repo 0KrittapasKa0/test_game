@@ -1,5 +1,41 @@
 import { loadSettings } from './storage';
 
+let bgmAudio: HTMLAudioElement | null = null;
+let bgmInitialized = false;
+let isIntendedToPlay = false;
+
+export const BGM = {
+    play: () => {
+        isIntendedToPlay = true;
+        if (!bgmInitialized) {
+            bgmAudio = new Audio('/audio/gameplay_bgm.ogg');
+            bgmAudio.loop = true;
+            bgmAudio.volume = 0.3;
+            bgmInitialized = true;
+        }
+        if (isSoundEnabled() && bgmAudio) {
+            bgmAudio.play().catch(e => console.warn('BGM play failed:', e));
+        }
+    },
+    stop: () => {
+        isIntendedToPlay = false;
+        if (bgmAudio) {
+            bgmAudio.pause();
+            bgmAudio.currentTime = 0;
+        }
+    }
+};
+
+window.addEventListener('settings_changed', () => {
+    if (bgmAudio) {
+        if (isSoundEnabled() && isIntendedToPlay) {
+            bgmAudio.play().catch(() => {});
+        } else {
+            bgmAudio.pause();
+        }
+    }
+});
+
 // Web Audio API based sound system - no external files needed
 let audioCtx: AudioContext | null = null;
 

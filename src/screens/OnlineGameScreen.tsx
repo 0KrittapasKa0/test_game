@@ -7,7 +7,7 @@ import OnlineGameTable, { useOnlineEmoji } from '../components/OnlineGameTable';
 import OnlineRoundResultSummary from '../components/OnlineRoundResultSummary';
 import { AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { SFX, speakPhrase } from '../utils/sound';
+import { SFX, speakPhrase, BGM } from '../utils/sound';
 import { formatChips, numberToThaiVoice } from '../utils/formatChips';
 import { loadProfile, saveProfile } from '../utils/storage';
 import { Copy, Check, Smile } from 'lucide-react';
@@ -37,6 +37,13 @@ export default function OnlineGameScreen() {
             setScreen('MENU');
         }
     }, [roomId, connectionStatus, setScreen]);
+
+    useEffect(() => {
+        BGM.play();
+        return () => {
+            BGM.stop();
+        };
+    }, []);
 
     if (!config || !roomId) return null;
 
