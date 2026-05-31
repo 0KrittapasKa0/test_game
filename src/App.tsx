@@ -11,6 +11,7 @@ import ActivitiesScreen from './screens/ActivitiesScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import OnlineGameScreen from './screens/OnlineGameScreen';
 import OnlineJoinScreen from './screens/OnlineJoinScreen';
+import MailboxScreen from './screens/MailboxScreen';
 
 const screenComponents = {
   SPLASH: SplashScreen,
@@ -23,6 +24,7 @@ const screenComponents = {
   SETTINGS: SettingsScreen,
   ACTIVITIES: ActivitiesScreen,
   PROFILE: ProfileScreen,
+  MAILBOX: MailboxScreen,
 } as const;
 
 export default function App() {

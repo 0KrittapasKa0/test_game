@@ -55,10 +55,20 @@ export interface PlayerStats {
     chipHistory: number[];     // chip balance after each round (last 30)
 }
 
-export type Screen = 'SPLASH' | 'ONBOARDING' | 'MENU' | 'GAME_SETUP' | 'PLAYING' | 'ONLINE_PLAYING' | 'ONLINE_JOIN' | 'SETTINGS' | 'ACTIVITIES' | 'PROFILE';
+export type Screen = 'SPLASH' | 'ONBOARDING' | 'MENU' | 'GAME_SETUP' | 'PLAYING' | 'ONLINE_PLAYING' | 'ONLINE_JOIN' | 'SETTINGS' | 'ACTIVITIES' | 'PROFILE' | 'MAILBOX';
 
 export type GamePhase = 'BETTING' | 'DEALING' | 'PLAYER_ACTION' | 'AI_ACTION' | 'SHOWDOWN' | 'ROUND_END';
 
+export interface Mail {
+    id: string;
+    title: string;
+    content: string;
+    chipsReward: number;
+    isRead: boolean;
+    isClaimed: boolean;
+    createdAt: number;
+    type: 'system' | 'relief';
+}
 export interface RoomConfig {
     id: string;
     name: string;

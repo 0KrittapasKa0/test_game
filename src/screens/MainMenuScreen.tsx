@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
-import { Play, Settings, Gift, User } from 'lucide-react';
+import { Play, Settings, Gift, User, Mail } from 'lucide-react';
 import { ChipIcon } from '../components/ChipIcon';
 import { PokDengLogo } from '../components/PokDengLogo';
 import { useGameStore } from '../store/useGameStore';
-import { loadProfile } from '../utils/storage';
+import { loadProfile, loadMails, checkAndGenerateReliefMail } from '../utils/storage';
 import { SFX, speakWelcome, speakPhrase, BGM } from '../utils/sound';
 import { formatChips } from '../utils/formatChips';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { GAME_VERSION } from '../version';
 
 // Generates random configurations for floating background cards
@@ -27,11 +27,18 @@ let hasGreeted = false; // Module-level flag to track if we've already greeted t
 export default function MainMenuScreen() {
     const setScreen = useGameStore(s => s.setScreen);
     const profile = loadProfile()!;
+    const [hasUnreadMails, setHasUnreadMails] = useState(false);
 
     // Memoize the background cards so they don't re-render and jump around
     const bgCards = useMemo(() => generateCards(15), []);
 
     useEffect(() => {
+        // Generate relief mail if needed when reaching main menu
+        checkAndGenerateReliefMail();
+        // Check for unread mails
+        const mails = loadMails();
+        setHasUnreadMails(mails.some(m => !m.isRead));
+        
         // อ้างอิง Browser Autoplay Policy: เสียงจะดังได้ก็ต่อเมื่อผู้เล่นมี Reaction กับหน้าเว็บก่อน (เช่น แตะจอ, ขยับเมาส์คลิก)
         const playWelcome = () => {
             if (!hasGreeted) {
@@ -207,16 +214,37 @@ export default function MainMenuScreen() {
                     </motion.button>
                 </div>
 
-                <motion.button
-                    onClick={() => { speakPhrase('กิจกรรมรับชิป'); nav('ACTIVITIES'); }}
-                    className="mt-6 flex items-center justify-center gap-2 text-yellow-500/80 hover:text-yellow-400 text-sm font-normal transition-colors px-6 py-2.5 rounded-full border border-yellow-500/10 hover:bg-yellow-500/10"
-                    style={{ background: 'rgba(0,0,0,0.2)' }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                >
-                    <Gift size={16} />
-                    <span>กิจกรรมรับชิป</span>
-                </motion.button>
+                <div className="mt-6 flex items-center justify-center gap-4">
+                    <motion.button
+                        onClick={() => { speakPhrase('กล่องจดหมาย'); nav('MAILBOX'); }}
+                        className="flex items-center justify-center gap-2 text-yellow-500/80 hover:text-yellow-400 text-sm font-normal transition-colors px-6 py-2.5 rounded-full border border-yellow-500/10 hover:bg-yellow-500/10 relative"
+                        style={{ background: 'rgba(0,0,0,0.2)' }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        <div className="relative">
+                            <Mail size={16} />
+                            {hasUnreadMails && (
+                                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                            )}
+                        </div>
+                        <span>กล่องจดหมาย</span>
+                    </motion.button>
+
+                    <motion.button
+                        onClick={() => { speakPhrase('กิจกรรมรับชิป'); nav('ACTIVITIES'); }}
+                        className="flex items-center justify-center gap-2 text-yellow-500/80 hover:text-yellow-400 text-sm font-normal transition-colors px-6 py-2.5 rounded-full border border-yellow-500/10 hover:bg-yellow-500/10"
+                        style={{ background: 'rgba(0,0,0,0.2)' }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        <Gift size={16} />
+                        <span>กิจกรรมรับชิป</span>
+                    </motion.button>
+                </div>
 
                 <p className="text-white/20 text-[10px] mt-8 tracking-widest uppercase mb-4">{GAME_VERSION}</p>
             </div>

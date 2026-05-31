@@ -1,4 +1,4 @@
-import type { UserProfile, AvatarColor, PlayerStats } from '../types/game';
+import type { UserProfile, AvatarColor, PlayerStats, Mail } from '../types/game';
 
 const PROFILE_KEY = 'pokdeng_profile';
 const USED_CODES_KEY = 'pokdeng_used_codes';
@@ -284,5 +284,80 @@ export function importGameData(encodedData: string): boolean {
     } catch (e) {
         console.error('Import failed', e);
         return false;
+    }
+}
+
+// ── Mail System ──
+
+const MAILS_KEY = 'pokdeng_mails';
+
+export function loadMails(): Mail[] {
+    return getItem<Mail[]>(MAILS_KEY, []);
+}
+
+export function saveMails(mails: Mail[]): void {
+    setItem(MAILS_KEY, mails);
+}
+
+export function checkAndGenerateReliefMail(): void {
+    const profile = loadProfile();
+    if (!profile || profile.chips > 0) return;
+
+    const mails = loadMails();
+    
+    // Check if there is already an unclaimed relief mail
+    const hasUnclaimedRelief = mails.some(m => m.type === 'relief' && !m.isClaimed);
+    if (hasUnclaimedRelief) return;
+
+    // Generate random relief amount: 500 to 1M
+    const randomChips = Math.floor(Math.random() * (1000000 - 500 + 1)) + 500;
+    
+    const messages = [
+        "โอ้โห หมดตูดซะแล้ว! 💸 เอาไปเลยทุนรอนก้อนใหม่ สู้ๆ นะวัยรุ่น!",
+        "สู้ชีวิตแต่ชีวิตสู้กลับหรอ? 🤣 ไม่เป็นไร ป๋าจัดให้ เอาทุนไปแก้มือซะ!",
+        "ล้มได้ก็ลุกได้! 🔥 ฟ้าหลังฝนย่อมดีเสมอ รับชิปไปทำทุนแล้วลุยต่อเลย!",
+        "เจ๊เห็นใจวัยรุ่นสร้างตัวนะ 😭 เอาชิปไปลุยต่อ อย่าเพิ่งท้อล่ะ!",
+        "ใครๆ ก็เคยพลาดกันทั้งนั้น! 💎 รับชิปฟรีแล้วไปทวงบัลลังก์คืนมา!",
+    ];
+    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+    
+    const newMail: Mail = {
+        id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+        title: 'เงินทุนช่วยเหลือ',
+        content: randomMessage,
+        chipsReward: randomChips,
+        isRead: false,
+        isClaimed: false,
+        createdAt: Date.now(),
+        type: 'relief',
+    };
+    
+    mails.unshift(newMail);
+    saveMails(mails);
+}
+
+export function claimMailReward(mailId: string): boolean {
+    const mails = loadMails();
+    const mailIndex = mails.findIndex(m => m.id === mailId);
+    
+    if (mailIndex === -1) return false;
+    
+    const mail = mails[mailIndex];
+    if (mail.isClaimed || mail.chipsReward <= 0) return false;
+    
+    // Remove the mail from the array entirely
+    mails.splice(mailIndex, 1);
+    saveMails(mails);
+    
+    return true;
+}
+
+export function markMailAsRead(mailId: string): void {
+    const mails = loadMails();
+    const mailIndex = mails.findIndex(m => m.id === mailId);
+    
+    if (mailIndex !== -1 && !mails[mailIndex].isRead) {
+        mails[mailIndex].isRead = true;
+        saveMails(mails);
     }
 }
