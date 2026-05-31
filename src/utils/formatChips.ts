@@ -1,5 +1,9 @@
 import { loadSettings } from './storage';
 
+const SUFFIX_LIST = [
+    '', 'K', 'M', 'B', 'T', 'Q', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc', 'Ud', 'Dd', 'Td', 'Qd', 'Qid', 'Sxd', 'Spd', 'Ocd', 'Nod', 'Vg'
+];
+
 /**
  * Smart chip number formatting
  * 
@@ -7,45 +11,28 @@ import { loadSettings } from './storage';
  *   < 10,000              → full number with commas (e.g., 1,500 / 5,800)
  *   ≥ 10,000              → K format, 1 decimal if needed (e.g., 12.5K / 50K)
  *   ≥ 1,000,000           → M format, 1 decimal if needed (e.g., 1.5M / 2M)
- *   ≥ 1,000,000,000       → B format (e.g., 5B / 2.5B)
- *   ≥ 1,000,000,000,000   → T format (e.g., 1T / 50T)
- *   ≥ 1,000,000,000,000,000 → Q format (e.g., 2.5Q)
+ *   ...and scales up infinitely through standard large number abbreviations
  */
 export function formatChips(amount: number): string {
     const settings = loadSettings();
     const abs = Math.abs(amount);
     const sign = amount < 0 ? '-' : '';
 
-    if (settings.fullChipFormat) {
+    if (settings.fullChipFormat || abs < 10000) {
         return sign + abs.toLocaleString();
     }
 
-    if (abs >= 1_000_000_000_000_000) {
-        const q = abs / 1_000_000_000_000_000;
-        return sign + (q % 1 === 0 ? `${q}Q` : `${q.toFixed(1)}Q`);
+    let tier = Math.floor(Math.log10(abs) / 3);
+    
+    // Cap tier to the maximum suffix we have defined
+    if (tier >= SUFFIX_LIST.length) {
+        tier = SUFFIX_LIST.length - 1;
     }
 
-    if (abs >= 1_000_000_000_000) {
-        const t = abs / 1_000_000_000_000;
-        return sign + (t % 1 === 0 ? `${t}T` : `${t.toFixed(1)}T`);
-    }
-
-    if (abs >= 1_000_000_000) {
-        const b = abs / 1_000_000_000;
-        return sign + (b % 1 === 0 ? `${b}B` : `${b.toFixed(1)}B`);
-    }
-
-    if (abs >= 1_000_000) {
-        const m = abs / 1_000_000;
-        return sign + (m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`);
-    }
-
-    if (abs >= 10_000) {
-        const k = abs / 1_000;
-        return sign + (k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`);
-    }
-
-    return sign + abs.toLocaleString();
+    const value = abs / Math.pow(10, tier * 3);
+    const formattedNum = value % 1 === 0 ? value.toString() : value.toFixed(1);
+    
+    return sign + formattedNum + SUFFIX_LIST[tier];
 }
 
 /**
@@ -66,30 +53,34 @@ export function numberToThaiVoice(amount: number): string {
     };
 
     // For extremely large numbers, use shorthand decimals so TTS reads it faster
-    // e.g. "1.5 ล้าน" instead of "หนึ่งล้านห้าแสน"
-    if (abs >= 1_000_000_000_000_000) {
-        const num = abs / 1_000_000_000_000_000;
-        return sign + formatNumStr(num) + " ล้านล้านล้าน"; // Q scale
-    }
-
-    if (abs >= 1_000_000_000_000) {
-        const num = abs / 1_000_000_000_000;
-        return sign + formatNumStr(num) + " ล้านล้าน";
-    }
-
-    if (abs >= 1_000_000_000) {
-        const num = abs / 1_000_000_000;
-        return sign + formatNumStr(num) + " พันล้าน";
-    }
-
-    if (abs >= 1_000_000) {
-        const num = abs / 1_000_000;
-        return sign + formatNumStr(num) + " ล้าน";
-    }
-
     if (abs >= 100_000) {
-        const num = abs / 100_000;
-        return sign + formatNumStr(num) + " แสน";
+        const exp = Math.floor(Math.log10(abs));
+        
+        // Special case for 100k - 999k (แสน)
+        if (exp === 5) {
+            const num = abs / 100_000;
+            return sign + formatNumStr(num) + " แสน";
+        }
+
+        // Algorithmic generation for ล้าน, พันล้าน, ล้านล้าน, พันล้านล้าน, ...
+        const tier = Math.floor(exp / 3);
+        const value = abs / Math.pow(10, tier * 3);
+        
+        let unit = "";
+        const baseMillions = Math.floor(tier / 2);
+        const isPan = tier % 2 !== 0;
+        
+        if (isPan) {
+            unit = " พัน";
+        } else {
+            unit = " ";
+        }
+        
+        for (let i = 0; i < baseMillions; i++) {
+            unit += "ล้าน";
+        }
+        
+        return sign + formatNumStr(value) + unit;
     }
 
     // For amounts below 100,000, explicitly build the Thai phonetic string to ensure 
