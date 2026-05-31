@@ -427,7 +427,7 @@ export default function GameTable() {
                         onClick={() => { SFX.click(); speakPhrase(`มี ${numberToThaiVoice(humanPlayer.chips)} ชิปค่ะ`); }}
                     >
                         <span className="inline-block w-2.5 h-2.5 rounded-full bg-linear-to-br from-yellow-300 to-amber-500 shadow-[0_0_6px_rgba(250,204,21,0.6)]" />
-                        <span className="text-yellow-300 text-xs sm:text-sm font-bold">{formatChips(humanPlayer.chips)}</span>
+                        <span className="text-yellow-300 text-xs sm:text-sm font-bold">{formatChips(humanPlayer.chips, true)}</span>
                     </div>
                 )}
             </div>

@@ -13,12 +13,12 @@ const SUFFIX_LIST = [
  *   ≥ 1,000,000           → M format, 1 decimal if needed (e.g., 1.5M / 2M)
  *   ...and scales up infinitely through standard large number abbreviations
  */
-export function formatChips(amount: number): string {
+export function formatChips(amount: number, isPlayerBalance: boolean = false): string {
     const settings = loadSettings();
     const abs = Math.abs(amount);
     const sign = amount < 0 ? '-' : '';
 
-    if (settings.fullChipFormat || abs < 10000) {
+    if ((settings.fullChipFormat && isPlayerBalance) || abs < 10000) {
         return sign + abs.toLocaleString();
     }
 

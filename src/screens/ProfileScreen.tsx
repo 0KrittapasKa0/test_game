@@ -248,7 +248,7 @@ export default function ProfileScreen() {
                         <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
                             <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-black/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-yellow-500/20 shadow-inner">
                                 <ChipIcon className="w-4 h-4 sm:w-5 sm:h-5 drop-shadow-md" />
-                                <span className="text-yellow-400 font-bold tracking-wider text-sm sm:text-lg">{formatChips(profile.chips)}</span>
+                                <span className="text-yellow-400 font-bold tracking-wider text-sm sm:text-lg">{formatChips(profile.chips, true)}</span>
                             </div>
                         </div>
 

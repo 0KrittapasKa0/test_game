@@ -160,7 +160,7 @@ export default function GameSetupScreen() {
                                 {/* Centered Capital Text Without Background or Icon */}
                                 <div className="text-center mb-6 w-full cursor-pointer hover:brightness-110 transition-all active:scale-95" onClick={() => { SFX.click(); speakPhrase(`มีทุน ${numberToThaiVoice(profile.chips)} ชิปค่ะ`); }}>
                                     <span className="text-white/40 text-xs font-bold uppercase tracking-wider mr-2">ทุนของคุณ:</span>
-                                    <span className="text-yellow-400 font-bold tracking-wider">{formatChips(profile.chips)}</span>
+                                    <span className="text-yellow-400 font-bold tracking-wider">{formatChips(profile.chips, true)}</span>
                                 </div>
 
                                 {/* Category Tabs */}
@@ -439,7 +439,7 @@ export default function GameSetupScreen() {
                                 <div className="pt-3 sm:pt-4 border-t border-white/5 mt-auto">
                                     <div className="flex items-center justify-between mb-3 sm:mb-4 px-1 cursor-pointer hover:brightness-110 transition-all active:scale-95" onClick={() => { SFX.click(); speakPhrase(`ยอดชิปคงเหลือ ${numberToThaiVoice(profile.chips)} ชิปค่ะ`); }}>
                                         <span className="text-white/40 text-[10px] sm:text-xs font-semibold uppercase tracking-widest">ยอดชิปคงเหลือ:</span>
-                                        <span className="text-yellow-400 font-semibold text-base sm:text-lg drop-shadow-md">{formatChips(profile.chips)}</span>
+                                        <span className="text-yellow-400 font-semibold text-base sm:text-lg drop-shadow-md">{formatChips(profile.chips, true)}</span>
                                     </div>
 
                                     {/* Button Row */}

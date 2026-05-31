@@ -1,6 +1,7 @@
 import { loadSettings } from './storage';
 
 let bgmAudio: HTMLAudioElement | null = null;
+let bgmSourceNode: MediaElementAudioSourceNode | null = null;
 let bgmInitialized = false;
 let isIntendedToPlay = false;
 
@@ -10,7 +11,27 @@ export const BGM = {
         if (!bgmInitialized) {
             bgmAudio = new Audio('/audio/gameplay_bgm.ogg');
             bgmAudio.loop = true;
-            bgmAudio.volume = 0.3;
+            bgmAudio.crossOrigin = "anonymous";
+            
+            try {
+                // เชื่อมต่อ BGM เข้ากับ Web Audio API เดียวกันกับ SFX 
+                // เพื่อป้องกันไม่ให้ Browser ลดเสียงพื้นหลังอัตโนมัติ (Audio Ducking)
+                const ctx = getAudioContext();
+                bgmSourceNode = ctx.createMediaElementSource(bgmAudio);
+                
+                const gainNode = ctx.createGain();
+                gainNode.gain.value = 0.05; // ปรับให้เสียงเบาๆ คลอๆ
+                
+                bgmSourceNode.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                
+                // ให้ Audio tag ดังสุด แล้วไปควบคุมผ่าน GainNode แทน
+                bgmAudio.volume = 1;
+            } catch (e) {
+                console.warn('Web Audio routing failed, fallback to standard audio', e);
+                bgmAudio.volume = 0.05;
+            }
+
             bgmInitialized = true;
         }
         if (isSoundEnabled() && bgmAudio) {

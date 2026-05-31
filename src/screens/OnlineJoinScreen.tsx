@@ -124,7 +124,7 @@ export default function OnlineJoinScreen() {
                         {/* Capital Text */}
                         <div className="text-center mb-4 w-full flex items-center justify-center gap-2 shrink-0">
                             <span className="text-white/40 text-xs font-bold uppercase tracking-wider">ทุนของคุณ:</span>
-                            <span className="text-yellow-400 font-bold tracking-wider">{formatChips(userChips)}</span>
+                            <span className="text-yellow-400 font-bold tracking-wider">{formatChips(userChips, true)}</span>
                         </div>
 
                         {/* --- Room Details Card --- */}

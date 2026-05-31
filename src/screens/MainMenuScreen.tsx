@@ -154,7 +154,7 @@ export default function MainMenuScreen() {
                             <p className="text-white text-xl font-medium truncate tracking-wide">{profile.name}</p>
                             <div className="flex items-center gap-1.5 mt-1 bg-black/40 w-fit px-2.5 py-1 rounded-full border border-yellow-500/20">
                                 <ChipIcon className="w-5 h-5" />
-                                <span className="text-yellow-300 text-lg font-semibold tracking-wider">{formatChips(profile.chips)}</span>
+                                <span className="text-yellow-300 text-lg font-semibold tracking-wider">{formatChips(profile.chips, true)}</span>
                             </div>
                         </div>
 
