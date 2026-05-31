@@ -86,7 +86,7 @@ export function loadSettings(): GameSettings {
 
         cachedSettings = { ...DEFAULT_SETTINGS, ...raw, graphicQuality };
     }
-    return cachedSettings;
+    return cachedSettings as GameSettings;
 }
 
 export function saveSettings(settings: Partial<GameSettings>): void {

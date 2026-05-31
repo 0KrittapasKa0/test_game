@@ -34,7 +34,7 @@ export const BGM = {
             bgmAudio.crossOrigin = "anonymous";
             
             try {
-                if (loadSettings().lowMemoryMode || loadSettings().graphicQuality !== 'HIGH') {
+                if (loadSettings().graphicQuality !== 'HIGH') {
                     // LOW MEMORY MODE or NON-HIGH QUALITY: Bypass Web Audio API routing to prevent iOS Safari OOM crashes
                     bgmAudio.volume = 0.05;
                 } else {
