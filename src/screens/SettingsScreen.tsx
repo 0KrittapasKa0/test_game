@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Volume2, VolumeX, Settings as SettingsIcon, Mic, MicOff, Check, X, Download, Upload, Save, Bug, Facebook } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Settings as SettingsIcon, Mic, MicOff, Check, X, Download, Upload, Save, Bug, Facebook, Coins } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { loadSettings, saveSettings, exportGameData, importGameData } from '../utils/storage';
 import { SFX, speakPhrase } from '../utils/sound';
@@ -30,6 +30,7 @@ export default function SettingsScreen() {
 
     const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
     const [voiceEnabled, setVoiceEnabled] = useState(settings.voiceEnabled ?? true);
+    const [fullChipFormat, setFullChipFormat] = useState(settings.fullChipFormat ?? false);
 
     // Account Transfer States
     const [showImport, setShowImport] = useState(false);
@@ -47,6 +48,13 @@ export default function SettingsScreen() {
         const newVal = !voiceEnabled;
         setVoiceEnabled(newVal);
         saveSettings({ voiceEnabled: newVal });
+        if (soundEnabled) SFX.click();
+    };
+
+    const toggleFullChipFormat = () => {
+        const newVal = !fullChipFormat;
+        setFullChipFormat(newVal);
+        saveSettings({ fullChipFormat: newVal });
         if (soundEnabled) SFX.click();
     };
 
@@ -160,6 +168,27 @@ export default function SettingsScreen() {
                                         enabled={voiceEnabled}
                                         onClick={toggleVoice}
                                         activeColorClass="bg-gradient-to-b from-pink-400 to-pink-600 shadow-[0_0_10px_rgba(236,72,153,0.5)]"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Full Chip Format Setting */}
+                            <div className="relative group">
+                                <div className={`absolute inset-0 bg-gradient-to-r from-yellow-500/10 via-transparent to-transparent opacity-0 transition-opacity duration-200 rounded-2xl blur-xl ${fullChipFormat ? 'group-hover:opacity-100' : ''}`} />
+                                <div className="relative flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-2xl hover:bg-black/50 transition-colors shadow-inner">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${fullChipFormat ? 'bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 text-yellow-400 border border-yellow-500/30' : 'bg-white/5 text-white/30 border border-white/5'}`}>
+                                            <Coins size={20} />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className={`font-bold text-sm sm:text-base tracking-wider transition-colors ${fullChipFormat ? 'text-white' : 'text-white/60'}`}>แสดงชิปเต็มจำนวน</span>
+                                            <span className="text-white/40 text-[10px] m-0 leading-none">แสดงเช่น 1,000,000 แทน 1M</span>
+                                        </div>
+                                    </div>
+                                    <ToggleSwitch
+                                        enabled={fullChipFormat}
+                                        onClick={toggleFullChipFormat}
+                                        activeColorClass="bg-gradient-to-b from-yellow-400 to-yellow-600 shadow-[0_0_10px_rgba(234,179,8,0.5)]"
                                     />
                                 </div>
                             </div>

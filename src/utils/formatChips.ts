@@ -1,3 +1,5 @@
+import { loadSettings } from './storage';
+
 /**
  * Smart chip number formatting
  * 
@@ -10,8 +12,13 @@
  *   ≥ 1,000,000,000,000,000 → Q format (e.g., 2.5Q)
  */
 export function formatChips(amount: number): string {
+    const settings = loadSettings();
     const abs = Math.abs(amount);
     const sign = amount < 0 ? '-' : '';
+
+    if (settings.fullChipFormat) {
+        return sign + abs.toLocaleString();
+    }
 
     if (abs >= 1_000_000_000_000_000) {
         const q = abs / 1_000_000_000_000_000;

@@ -53,6 +53,7 @@ export function saveUsedCode(code: string): void {
 export interface GameSettings {
     soundEnabled: boolean;
     voiceEnabled: boolean;
+    fullChipFormat: boolean;
     lastPlayerCount: number;
     lastHumanIsDealer: boolean;
     lastRoomId: string;
@@ -61,18 +62,29 @@ export interface GameSettings {
 const DEFAULT_SETTINGS: GameSettings = {
     soundEnabled: true,
     voiceEnabled: false,
+    fullChipFormat: false,
     lastPlayerCount: 3,
     lastHumanIsDealer: false,
     lastRoomId: 'standard',
 };
 
+let cachedSettings: GameSettings | null = null;
+
 export function loadSettings(): GameSettings {
-    return getItem<GameSettings>(SETTINGS_KEY, DEFAULT_SETTINGS);
+    if (!cachedSettings) {
+        const raw = getItem<GameSettings>(SETTINGS_KEY, DEFAULT_SETTINGS);
+        cachedSettings = { ...DEFAULT_SETTINGS, ...raw };
+    }
+    return cachedSettings;
 }
 
 export function saveSettings(settings: Partial<GameSettings>): void {
     const current = loadSettings();
-    setItem(SETTINGS_KEY, { ...current, ...settings });
+    cachedSettings = { ...current, ...settings };
+    setItem(SETTINGS_KEY, cachedSettings);
+    
+    // Dispatch event to force re-render components if needed
+    window.dispatchEvent(new Event('settings_changed'));
 }
 
 export function createDefaultProfile(name: string, avatarColor: AvatarColor, avatarUrl?: string): UserProfile {
