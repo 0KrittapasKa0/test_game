@@ -47,7 +47,6 @@ interface GameState {
     playerDraw: () => void;
     playerStay: () => void;
     processCurrentAi: () => void;
-    performAntiBankruptSwap: () => void;
     showdown: () => void;
     nextRound: () => void;
     resetGame: () => void;
@@ -213,63 +212,6 @@ function getTurnOrder(players: Player[], dealerIndex: number): number[] {
     order.push(dealerIndex);
     return order;
 }
-
-const constructMatchingHand = (deck: Card[], numCards: number, targetScore: number): Card[] => {
-    // Attempt to find a hand that exactly matches targetScore
-    for (let i = 0; i < deck.length; i++) {
-        for (let j = i + 1; j < deck.length; j++) {
-            if (numCards === 2) {
-                const hand = [deck[i], deck[j]];
-                const res = evaluateHand(hand);
-                if (res.score === targetScore && res.type === HandType.NORMAL) {
-                    deck.splice(j, 1);
-                    deck.splice(i, 1);
-                    return hand;
-                }
-            } else if (numCards === 3) {
-                for (let k = j + 1; k < deck.length; k++) {
-                    const hand = [deck[i], deck[j], deck[k]];
-                    const res = evaluateHand(hand);
-                    if (res.score === targetScore && res.type === HandType.NORMAL) {
-                        deck.splice(k, 1);
-                        deck.splice(j, 1);
-                        deck.splice(i, 1);
-                        return hand;
-                    }
-                }
-            }
-        }
-    }
-    
-    // Fallback: Try to find ANY hand that is <= targetScore so human at least wins
-    for (let i = 0; i < deck.length; i++) {
-        for (let j = i + 1; j < deck.length; j++) {
-            if (numCards === 2) {
-                const hand = [deck[i], deck[j]];
-                const res = evaluateHand(hand);
-                if (res.score <= targetScore && res.type === HandType.NORMAL) {
-                    deck.splice(j, 1);
-                    deck.splice(i, 1);
-                    return hand;
-                }
-            } else if (numCards === 3) {
-                for (let k = j + 1; k < deck.length; k++) {
-                    const hand = [deck[i], deck[j], deck[k]];
-                    const res = evaluateHand(hand);
-                    if (res.score <= targetScore && res.type === HandType.NORMAL) {
-                        deck.splice(k, 1);
-                        deck.splice(j, 1);
-                        deck.splice(i, 1);
-                        return hand;
-                    }
-                }
-            }
-        }
-    }
-
-    // Absolute fallback
-    return deck.splice(0, numCards);
-};
 
 export const useGameStore = create<GameState>((set, get) => ({
     screen: 'SPLASH',
@@ -518,62 +460,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         const { players, config, deck } = get();
         let currentDeck = [...deck];
 
-        // --- Anti-Bankruptcy: Pre-deal Pok Prevention ---
-        // ถ้าผู้เล่นใกล้จะหมดตัว ต้องป้องกันไม่ให้คู่แข่งได้ป๊อกตั้งแต่ตอนแจกไพ่
-        // เพราะถ้าเจ้ามือป๊อก เกมจะจบทันทีและ UI จะโชว์ป๊อกออกมาก่อน
-        // ทำให้ตอน showdown ถ้าเราแอบสลับไพ่ จะ "โป๊ะแตก" ทันที
-        const humanIndex = players.findIndex(p => p.isHuman);
-        const human = players[humanIndex];
-
-        if (human && config) {
-            const totalWealth = human.chips + human.bet;
-            const isNearBankrupt = human.chips < config.room.minBet || (human.bet / totalWealth) > 0.8;
-
-            if (isNearBankrupt) {
-                const totalPlayers = players.length;
-
-                // Pre-scan: check all opponent card positions and prevent Pok hands
-                for (let pIdx = 0; pIdx < totalPlayers; pIdx++) {
-                    // Skip the human player - we don't nerf ourselves
-                    if (pIdx === humanIndex) continue;
-
-                    // Calculate where this player's 2 cards will be in the deck
-                    // Cards are popped from end: round 0 deals indices [len-1, len-2, ...], round 1 deals [len-n-1, ...]
-                    const card1Idx = currentDeck.length - 1 - pIdx;
-                    const card2Idx = currentDeck.length - 1 - (totalPlayers + pIdx);
-
-                    if (card1Idx < 0 || card2Idx < 0) continue;
-
-                    const card1 = currentDeck[card1Idx];
-                    const card2 = currentDeck[card2Idx];
-                    const testHand = evaluateHand([card1, card2]);
-
-                    // If this opponent would get a Pok (8 or 9), swap one of their cards
-                    if (testHand.type <= HandType.POK_8) {
-                        // Find a replacement card from unused positions that breaks the Pok
-                        const usedIndices = new Set<number>();
-                        for (let p = 0; p < totalPlayers; p++) {
-                            usedIndices.add(currentDeck.length - 1 - p);
-                            usedIndices.add(currentDeck.length - 1 - (totalPlayers + p));
-                        }
-
-                        // Swap card2 with a safe card that makes their total NOT 8 or 9
-                        for (let s = 0; s < currentDeck.length; s++) {
-                            if (usedIndices.has(s)) continue;
-                            const candidate = currentDeck[s];
-                            const newTotal = (card1.value + candidate.value) % 10;
-                            if (newTotal !== 8 && newTotal !== 9) {
-                                // Swap
-                                currentDeck[card2Idx] = candidate;
-                                currentDeck[s] = card2;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         SFX.dealStart();
         set({
             deck: currentDeck,
@@ -647,9 +533,6 @@ export const useGameStore = create<GameState>((set, get) => ({
             const updatedPlayers = players.map(p => ({ ...p, hasActed: true }));
             set({ players: updatedPlayers, isDealing: false, activePlayerIndex: -1 });
 
-            // Anti-Bankruptcy: swap cards BEFORE revealing
-            get().performAntiBankruptSwap();
-
             set({
                 showCards: true,
                 gamePhase: 'SHOWDOWN',
@@ -677,9 +560,6 @@ export const useGameStore = create<GameState>((set, get) => ({
                 // Mark dealer as acted
                 updatedPlayers[dealerIndex] = { ...updatedPlayers[dealerIndex], hasActed: true };
                 set({ players: updatedPlayers, isDealing: false, activePlayerIndex: -1 });
-
-                // Anti-Bankruptcy: swap cards BEFORE revealing
-                get().performAntiBankruptSwap();
 
                 set({
                     showCards: true,
@@ -743,9 +623,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         if (nextOrderIdx >= turnOrder.length) {
             SFX.showdownReveal();
-
-            // Anti-Bankruptcy: swap cards BEFORE revealing
-            get().performAntiBankruptSwap();
 
             set({ gamePhase: 'SHOWDOWN', showCards: true, activePlayerIndex: -1 });
             setGameTimeout(() => get().showdown(), 1800);
@@ -858,94 +735,11 @@ export const useGameStore = create<GameState>((set, get) => ({
         setGameTimeout(() => get().advanceToNextPlayer(), 800);
     },
 
-    performAntiBankruptSwap: () => {
-        const { players, dealerIndex, deck, config } = get();
-        const humanIndex = players.findIndex(p => p.isHuman);
-        const human = players[humanIndex];
-        if (!human || !config) return;
-
-        const dealer = players[dealerIndex];
-        let currentPlayers = [...players];
-        let currentDeck = [...deck];
-        let humanWillBankrupt = false;
-
-        // DRY RUN: Simulate the financial outcome
-        if (!human.isDealer) {
-            const playerResult = evaluateHand(human.cards);
-            const dealerResult = evaluateHand(dealer.cards);
-            const outcome = compareHands(dealerResult, playerResult);
-
-            if (outcome === 'dealer') {
-                const extraLoss = human.bet * (dealerResult.deng - 1);
-                const finalChips = Math.max(0, human.chips - extraLoss);
-                if (finalChips < config.room.minBet) {
-                    humanWillBankrupt = true;
-                }
-            }
-        } else {
-            const dealerResult = evaluateHand(human.cards);
-            let dealerTotalWin = 0;
-            let dealerTotalLoss = 0;
-            currentPlayers.forEach((p, i) => {
-                if (i === dealerIndex) return;
-                const playerResult = evaluateHand(p.cards);
-                const outcome = compareHands(dealerResult, playerResult);
-                if (outcome === 'player') dealerTotalLoss += p.bet * playerResult.deng;
-                else if (outcome === 'dealer') dealerTotalWin += p.bet * dealerResult.deng;
-            });
-
-            const finalChips = Math.max(0, human.chips + dealerTotalWin - dealerTotalLoss);
-            if (finalChips < config.room.minBet) {
-                humanWillBankrupt = true;
-            }
-        }
-
-        // INTERCEPT: If human will go bankrupt, swap opponents' cards BEFORE reveal
-        if (humanWillBankrupt) {
-            const humanScore = evaluateHand(human.cards).score;
-
-            if (!human.isDealer) {
-                // Nerf Dealer to match human score
-                const safeHand = constructMatchingHand(currentDeck, dealer.cards.length, humanScore);
-                const nerfedResult = evaluateHand(safeHand);
-                currentPlayers[dealerIndex] = {
-                    ...dealer,
-                    cards: safeHand,
-                    score: nerfedResult.score,
-                    hasPok: nerfedResult.type <= HandType.POK_8,
-                    dengMultiplier: nerfedResult.deng,
-                };
-            } else {
-                // Nerf all winning AI players
-                const dealerResult = evaluateHand(human.cards);
-                currentPlayers = currentPlayers.map((p, i) => {
-                    if (i === dealerIndex) return p;
-                    const playerResult = evaluateHand(p.cards);
-                    const outcome = compareHands(dealerResult, playerResult);
-                    if (outcome === 'player') {
-                        const safeHand = constructMatchingHand(currentDeck, p.cards.length, humanScore);
-                        const nerfedResult = evaluateHand(safeHand);
-                        return {
-                            ...p,
-                            cards: safeHand,
-                            score: nerfedResult.score,
-                            hasPok: nerfedResult.type <= HandType.POK_8,
-                            dengMultiplier: nerfedResult.deng,
-                        };
-                    }
-                    return p;
-                });
-            }
-
-            set({ players: currentPlayers, deck: currentDeck });
-        }
-    },
-
     showdown: () => {
         const { players, dealerIndex } = get();
         const dealer = players[dealerIndex];
 
-        // คำนวณผลแต่ละผู้เล่น vs เจ้ามือ (cards already swapped by performAntiBankruptSwap)
+        // คำนวณผลแต่ละผู้เล่น vs เจ้ามือ
         const results = players.map((p, i) => {
             if (i === dealerIndex) return { ...p, result: 'pending' as const };
 
