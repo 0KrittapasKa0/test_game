@@ -457,7 +457,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         // Guard: ป้องกันแจกไพ่ซ้ำจาก race condition
         if (get().gamePhase !== 'BETTING') return;
 
-        const { players, config, deck } = get();
+        const { deck } = get();
         let currentDeck = [...deck];
 
         SFX.dealStart();
