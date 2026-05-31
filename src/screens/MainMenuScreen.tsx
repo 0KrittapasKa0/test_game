@@ -4,7 +4,7 @@ import { ChipIcon } from '../components/ChipIcon';
 import { PokDengLogo } from '../components/PokDengLogo';
 import { useGameStore } from '../store/useGameStore';
 import { loadProfile } from '../utils/storage';
-import { SFX, speakWelcome, speakPhrase } from '../utils/sound';
+import { SFX, speakWelcome, speakPhrase, BGM } from '../utils/sound';
 import { formatChips } from '../utils/formatChips';
 import { useMemo, useEffect } from 'react';
 import { GAME_VERSION } from '../version';
@@ -39,6 +39,7 @@ export default function MainMenuScreen() {
                 // หน่วงเวลาเล็กน้อยให้ดูเป็นธรรมชาติ
                 setTimeout(() => speakWelcome(profile?.name), 300);
             }
+            BGM.play('MENU');
             // ลบ Event ออกเพื่อไม่ให้ทำงานซ้ำ
             window.removeEventListener('pointerdown', playWelcome);
             window.removeEventListener('keydown', playWelcome);
@@ -53,6 +54,8 @@ export default function MainMenuScreen() {
                 window.addEventListener('pointerdown', playWelcome);
                 window.addEventListener('keydown', playWelcome);
             }
+        } else {
+            BGM.play('MENU');
         }
 
         return () => {

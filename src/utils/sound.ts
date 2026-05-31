@@ -4,12 +4,32 @@ let bgmAudio: HTMLAudioElement | null = null;
 let bgmSourceNode: MediaElementAudioSourceNode | null = null;
 let bgmInitialized = false;
 let isIntendedToPlay = false;
+let currentBgmPath = '';
 
 export const BGM = {
-    play: () => {
+    play: (track: 'MENU' | 'STANDARD' | 'HIGH_STAKES' | 'EXPERT' | 'LEGENDARY' | 'ULTIMATE' = 'MENU') => {
+        const trackMap = {
+            'MENU': '/audio/bgm_menu.ogg',
+            'STANDARD': '/audio/bgm_standard.ogg',
+            'HIGH_STAKES': '/audio/bgm_high_stakes.ogg',
+            'EXPERT': '/audio/bgm_expert.ogg',
+            'LEGENDARY': '/audio/bgm_legendary.ogg',
+            'ULTIMATE': '/audio/bgm_ultimate.ogg'
+        };
+        const path = trackMap[track] || trackMap['MENU'];
+
         isIntendedToPlay = true;
+
+        if (bgmAudio && currentBgmPath !== path) {
+            bgmAudio.pause();
+            bgmAudio.src = path;
+            bgmAudio.load();
+            currentBgmPath = path;
+        }
+
         if (!bgmInitialized) {
-            bgmAudio = new Audio('/audio/gameplay_bgm.ogg');
+            bgmAudio = new Audio(path);
+            currentBgmPath = path;
             bgmAudio.loop = true;
             bgmAudio.crossOrigin = "anonymous";
             
@@ -34,6 +54,7 @@ export const BGM = {
 
             bgmInitialized = true;
         }
+        
         if (isSoundEnabled() && bgmAudio) {
             bgmAudio.play().catch(e => console.warn('BGM play failed:', e));
         }

@@ -39,11 +39,13 @@ export default function OnlineGameScreen() {
     }, [roomId, connectionStatus, setScreen]);
 
     useEffect(() => {
-        BGM.play();
+        if (config?.room?.category) {
+            BGM.play(config.room.category);
+        }
         return () => {
             BGM.stop();
         };
-    }, []);
+    }, [config?.room?.category]);
 
     if (!config || !roomId) return null;
 
