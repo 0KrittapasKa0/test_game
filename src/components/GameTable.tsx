@@ -15,6 +15,7 @@ import EmojiPicker from './EmojiPicker';
 import FloatingEmoji, { type FloatingEmojiEvent } from './FloatingEmoji';
 import { tryBotEmoji, trySocialReaction, getContextualEmojiResponse, resetEmojiCooldowns, updateMood } from '../utils/aiEmojiLogic';
 import type { EmojiContext } from '../utils/aiEmojiLogic';
+import { loadSettings } from '../utils/storage';
 
 interface SeatPosition {
     x: number;
@@ -153,6 +154,14 @@ export default function GameTable() {
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [emojiEvents, setEmojiEvents] = useState<FloatingEmojiEvent[]>([]);
+    
+    const [lowMemoryMode, setLowMemoryMode] = useState(false);
+    useEffect(() => {
+        setLowMemoryMode(loadSettings().lowMemoryMode);
+        const handleSettings = () => setLowMemoryMode(loadSettings().lowMemoryMode);
+        window.addEventListener('settings_changed', handleSettings);
+        return () => window.removeEventListener('settings_changed', handleSettings);
+    }, []);
 
     const humanPlayer = players.find(p => p.isHuman);
     const humanIndex = players.findIndex(p => p.isHuman);
@@ -296,6 +305,7 @@ export default function GameTable() {
 
         // Schedule an emoji with a delay
         const schedule = (playerId: string, emoji: string, delayMs: number) => {
+            if (lowMemoryMode && Math.random() > 0.3) return; // 70% reduction in AI emojis for low memory mode
             setTimeout(() => {
                 const event: FloatingEmojiEvent = {
                     id: `ai-${Date.now()}-${Math.random()}`,
@@ -449,7 +459,7 @@ export default function GameTable() {
                         className="absolute inset-0 rounded-3xl"
                         style={{
                             background: 'linear-gradient(180deg, #5c3a1e 0%, #3e2415 30%, #2a1a0e 70%, #1a0f08 100%)',
-                            boxShadow: '0 8px 40px rgba(0,0,0,0.8), 0 2px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
+                            boxShadow: lowMemoryMode ? 'none' : '0 8px 40px rgba(0,0,0,0.8), 0 2px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
                             padding: '8px',
                         }}
                     >
@@ -478,10 +488,10 @@ export default function GameTable() {
                                                 config?.room?.category === 'LEGENDARY' ? 'radial-gradient(ellipse at 45% 35%, #7f1d1d 0%, #450a0a 40%, #1c0505 80%, #0a0101 100%)' :
                                                     config?.room?.category === 'ULTIMATE' ? 'radial-gradient(ellipse at 45% 35%, #111827 0%, #030712 40%, #000000 80%, #000000 100%)' :
                                                     /* STANDARD */ 'radial-gradient(ellipse at 45% 35%, #2d8a4e 0%, #246e3d 20%, #1a5c2e 45%, #135026 65%, #0e3d1d 85%, #0a2e15 100%)',
-                                        boxShadow: 'inset 0 0 60px rgba(0,0,0,0.5), inset 0 0 120px rgba(0,0,0,0.15)',
+                                        boxShadow: lowMemoryMode ? 'none' : 'inset 0 0 60px rgba(0,0,0,0.5), inset 0 0 120px rgba(0,0,0,0.15)',
                                     }}
                                 >
-                                    {config?.room && <RoomEnvironment category={config.room.category} />}
+                                    {(!lowMemoryMode) && config?.room && <RoomEnvironment category={config.room.category} />}
 
                                     {/* Felt Texture */}
                                     <div

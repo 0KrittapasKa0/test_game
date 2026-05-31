@@ -34,19 +34,24 @@ export const BGM = {
             bgmAudio.crossOrigin = "anonymous";
             
             try {
-                // เชื่อมต่อ BGM เข้ากับ Web Audio API เดียวกันกับ SFX 
-                // เพื่อป้องกันไม่ให้ Browser ลดเสียงพื้นหลังอัตโนมัติ (Audio Ducking)
-                const ctx = getAudioContext();
-                bgmSourceNode = ctx.createMediaElementSource(bgmAudio);
-                
-                const gainNode = ctx.createGain();
-                gainNode.gain.value = 0.05; // ปรับให้เสียงเบาๆ คลอๆ
-                
-                bgmSourceNode.connect(gainNode);
-                gainNode.connect(ctx.destination);
-                
-                // ให้ Audio tag ดังสุด แล้วไปควบคุมผ่าน GainNode แทน
-                bgmAudio.volume = 1;
+                if (loadSettings().lowMemoryMode) {
+                    // LOW MEMORY MODE: Bypass Web Audio API routing to prevent iOS Safari OOM crashes
+                    bgmAudio.volume = 0.05;
+                } else {
+                    // เชื่อมต่อ BGM เข้ากับ Web Audio API เดียวกันกับ SFX 
+                    // เพื่อป้องกันไม่ให้ Browser ลดเสียงพื้นหลังอัตโนมัติ (Audio Ducking)
+                    const ctx = getAudioContext();
+                    bgmSourceNode = ctx.createMediaElementSource(bgmAudio);
+                    
+                    const gainNode = ctx.createGain();
+                    gainNode.gain.value = 0.05; // ปรับให้เสียงเบาๆ คลอๆ
+                    
+                    bgmSourceNode.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+                    
+                    // ให้ Audio tag ดังสุด แล้วไปควบคุมผ่าน GainNode แทน
+                    bgmAudio.volume = 1;
+                }
             } catch (e) {
                 console.warn('Web Audio routing failed, fallback to standard audio', e);
                 bgmAudio.volume = 0.05;

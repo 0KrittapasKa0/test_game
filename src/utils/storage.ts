@@ -77,6 +77,7 @@ export interface GameSettings {
     lastPlayerCount: number;
     lastHumanIsDealer: boolean;
     lastRoomId: string;
+    lowMemoryMode: boolean;
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -86,6 +87,7 @@ const DEFAULT_SETTINGS: GameSettings = {
     lastPlayerCount: 3,
     lastHumanIsDealer: false,
     lastRoomId: 'standard',
+    lowMemoryMode: false,
 };
 
 let cachedSettings: GameSettings | null = null;
