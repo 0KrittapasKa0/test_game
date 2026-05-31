@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Volume2, VolumeX, Settings as SettingsIcon, Mic, MicOff, Check, X, Download, Upload, Save, Bug, Facebook, Coins, Cpu, Gamepad2, UserCircle } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Mic, MicOff, Check, X, Download, Upload, Save, Bug, Facebook, Coins, Cpu, Gamepad2, UserCircle } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { loadSettings, saveSettings, exportGameData, importGameData } from '../utils/storage';
 import { SFX, speakPhrase } from '../utils/sound';
