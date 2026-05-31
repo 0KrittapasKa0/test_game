@@ -184,12 +184,15 @@ export function saveDailyState(state: DailyRewardState): void {
 
 function generateNewDailyCycle(): DailyRewardState {
     const rewards: number[] = [];
-    // Days 1-6: 25,000 - 50,000
+    const baseRewards = [500, 1000, 2000, 3000, 5000, 10000];
+    
+    // Days 1-6: Escalating rewards with a small random bonus (0 - 1,000)
     for (let i = 0; i < 6; i++) {
-        rewards.push(25000 + Math.floor(Math.random() * 251) * 100);
+        const bonus = Math.floor(Math.random() * 11) * 100;
+        rewards.push(baseRewards[i] + bonus);
     }
-    // Day 7: 100,000 - 300,000
-    rewards.push(100000 + Math.floor(Math.random() * 2001) * 100);
+    // Day 7: Jackpot 20,000 - 50,000
+    rewards.push(20000 + Math.floor(Math.random() * 301) * 100);
 
     const newState: DailyRewardState = {
         lastClaimDate: '',
@@ -301,7 +304,8 @@ export function saveMails(mails: Mail[]): void {
 
 export function checkAndGenerateReliefMail(): void {
     const profile = loadProfile();
-    if (!profile || profile.chips > 0) return;
+    // ถือว่าล้มละลายถ้าชิปน้อยกว่า 100 (ไม่พอเล่นห้องเริ่มต้น)
+    if (!profile || profile.chips >= 100) return;
 
     const mails = loadMails();
     
@@ -309,15 +313,15 @@ export function checkAndGenerateReliefMail(): void {
     const hasUnclaimedRelief = mails.some(m => m.type === 'relief' && !m.isClaimed);
     if (hasUnclaimedRelief) return;
 
-    // Generate random relief amount: 500 to 1M
-    const randomChips = Math.floor(Math.random() * (1000000 - 500 + 1)) + 500;
+    // Generate reasonable relief amount: 1,000 to 3,000 chips
+    const randomChips = Math.floor(Math.random() * (3000 - 1000 + 1)) + 1000;
     
     const messages = [
-        "โอ้โห หมดตูดซะแล้ว! 💸 เอาไปเลยทุนรอนก้อนใหม่ สู้ๆ นะวัยรุ่น!",
-        "สู้ชีวิตแต่ชีวิตสู้กลับหรอ? 🤣 ไม่เป็นไร ป๋าจัดให้ เอาทุนไปแก้มือซะ!",
-        "ล้มได้ก็ลุกได้! 🔥 ฟ้าหลังฝนย่อมดีเสมอ รับชิปไปทำทุนแล้วลุยต่อเลย!",
-        "เจ๊เห็นใจวัยรุ่นสร้างตัวนะ 😭 เอาชิปไปลุยต่อ อย่าเพิ่งท้อล่ะ!",
-        "ใครๆ ก็เคยพลาดกันทั้งนั้น! 💎 รับชิปฟรีแล้วไปทวงบัลลังก์คืนมา!",
+        "ลูกหลานส่งเบี้ยยังชีพมาให้แล้วจ้า 👵👴 รับไปเล่นคลายเครียดนะคะ",
+        "พักผ่อนหย่อนใจนะคะ 🍵 รับชิปไปเล่นต่อเพลินๆ ค่ะ",
+        "บุญรักษา พระคุ้มครองนะคะ 🙏 ลูกหลานเอาทุนมาฝากให้เล่นต่อขำๆ ค่ะ",
+        "ยิ้มแย้มแจ่มใสนะคะ 🌸 รับเงินขวัญถุงไปสนุกต่อได้เลยจ้า",
+        "โชคลาภมาเยือนแล้วจ้า 💰 ไม่เป็นไรนะคะ เอาทุนไปเล่นสนุกๆ ต่อได้เลย",
     ];
     const randomMessage = messages[Math.floor(Math.random() * messages.length)];
     

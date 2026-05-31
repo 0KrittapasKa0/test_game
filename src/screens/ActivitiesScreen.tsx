@@ -263,7 +263,7 @@ function MathGameView({ addChips }: { addChips: (amount: number) => void }) {
     const [message, setMessage] = useState('');
     const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
     const [winStreak, setWinStreak] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(25);
+    const [timeLeft, setTimeLeft] = useState(15);
     const [isActive, setIsActive] = useState(false);
     const [nextFreePlay, setNextFreePlay] = useState<number>(0);
     const [cooldownString, setCooldownString] = useState('');
@@ -309,7 +309,7 @@ function MathGameView({ addChips }: { addChips: (amount: number) => void }) {
         setMathAnswer('');
         setMessage('');
         setMessageType('');
-        setTimeLeft(25);
+        setTimeLeft(15);
     };
 
     useEffect(() => {
@@ -346,7 +346,7 @@ function MathGameView({ addChips }: { addChips: (amount: number) => void }) {
         if (parseInt(mathAnswer) === correct) {
             SFX.win();
             setTimeout(() => SFX.chipCollect(), 500); // เล่นเสียงชิปตามหลังเสียงชนะเล็กน้อย
-            const reward = 2000 + (winStreak * 500);
+            const reward = 500 + (winStreak * 500);
             addChips(reward);
             setMessage(`ถูกต้อง! +${formatChips(reward)}`);
             setMessageType('success');
@@ -418,7 +418,7 @@ function MathGameView({ addChips }: { addChips: (amount: number) => void }) {
                 <motion.div
                     className={`h-full ${timeLeft <= 5 ? 'bg-red-500' : 'bg-gradient-to-r from-yellow-500 to-amber-400'}`}
                     initial={{ width: '100%' }}
-                    animate={{ width: `${(timeLeft / 25) * 100}%` }}
+                    animate={{ width: `${(timeLeft / 15) * 100}%` }}
                     transition={{ duration: 1, ease: 'linear' }}
                 />
             </div>
