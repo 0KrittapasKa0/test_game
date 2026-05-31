@@ -34,8 +34,8 @@ export const BGM = {
             bgmAudio.crossOrigin = "anonymous";
             
             try {
-                if (loadSettings().lowMemoryMode) {
-                    // LOW MEMORY MODE: Bypass Web Audio API routing to prevent iOS Safari OOM crashes
+                if (loadSettings().lowMemoryMode || loadSettings().graphicQuality !== 'HIGH') {
+                    // LOW MEMORY MODE or NON-HIGH QUALITY: Bypass Web Audio API routing to prevent iOS Safari OOM crashes
                     bgmAudio.volume = 0.05;
                 } else {
                     // เชื่อมต่อ BGM เข้ากับ Web Audio API เดียวกันกับ SFX 

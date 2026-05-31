@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Volume2, VolumeX, Mic, MicOff, Check, X, Download, Upload, Save, Bug, Facebook, Coins, Cpu, Gamepad2, UserCircle } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Mic, MicOff, Check, X, Download, Upload, Save, Bug, Facebook, Coins, Cpu, Gamepad2, UserCircle, Zap } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { loadSettings, saveSettings, exportGameData, importGameData } from '../utils/storage';
 import { SFX, speakPhrase } from '../utils/sound';
@@ -35,7 +35,7 @@ export default function SettingsScreen() {
     const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
     const [voiceEnabled, setVoiceEnabled] = useState(settings.voiceEnabled ?? true);
     const [fullChipFormat, setFullChipFormat] = useState(settings.fullChipFormat ?? false);
-    const [lowMemoryMode, setLowMemoryMode] = useState(settings.lowMemoryMode ?? false);
+    const [graphicQuality, setGraphicQuality] = useState(settings.graphicQuality ?? 'HIGH');
 
     // Account Transfer States
     const [showImport, setShowImport] = useState(false);
@@ -63,10 +63,9 @@ export default function SettingsScreen() {
         if (soundEnabled) SFX.click();
     };
 
-    const toggleLowMemoryMode = () => {
-        const newVal = !lowMemoryMode;
-        setLowMemoryMode(newVal);
-        saveSettings({ lowMemoryMode: newVal });
+    const setQuality = (quality: 'LOW' | 'STANDARD' | 'HIGH') => {
+        setGraphicQuality(quality);
+        saveSettings({ graphicQuality: quality });
         if (soundEnabled) SFX.click();
     };
 
@@ -226,21 +225,39 @@ export default function SettingsScreen() {
                                         </div>
                                     </div>
 
-                                    <div className="relative group">
-                                        <div className={`absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent opacity-0 transition-opacity duration-300 rounded-2xl blur-xl ${lowMemoryMode ? 'group-hover:opacity-100' : ''}`} />
-                                        <div className={`relative flex items-center justify-between p-4 bg-black/40 border ${lowMemoryMode ? 'border-emerald-500/30' : 'border-white/5'} rounded-2xl hover:bg-black/50 transition-colors`}>
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shadow-inner shrink-0 ${lowMemoryMode ? 'bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-white/30 border border-white/5'}`}>
-                                                    <Cpu size={24} />
-                                                </div>
-                                                <div className="flex flex-col pr-2">
-                                                    <span className={`font-bold text-sm sm:text-base tracking-wider transition-colors ${lowMemoryMode ? 'text-emerald-400' : 'text-white/60'}`}>โหมดประหยัดความจำ</span>
-                                                    <span className="text-white/40 text-[10px] mt-1 leading-snug">ลดกราฟิกและปิด BGM เพื่อลดอาการเกมหน่วง/เด้ง</span>
-                                                </div>
-                                            </div>
-                                            <div className="shrink-0">
-                                                <ToggleSwitch enabled={lowMemoryMode} onClick={toggleLowMemoryMode} activeColorClass="bg-gradient-to-b from-emerald-400 to-emerald-600 shadow-[0_0_15px_rgba(52,211,153,0.5)]" />
-                                            </div>
+                                    {/* Graphic Quality Group */}
+                                    <div className="relative group mt-4">
+                                        <div className="mb-2 px-1 flex items-center justify-between">
+                                            <span className="text-white font-bold tracking-wider">คุณภาพกราฟิก</span>
+                                            <span className="text-white/40 text-[10px]">มีผลกับความลื่นไหลของเกม</span>
+                                        </div>
+                                        <div className="flex gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/5">
+                                            <button
+                                                onClick={() => setQuality('LOW')}
+                                                className={`flex-1 py-3 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${graphicQuality === 'LOW' ? 'bg-gradient-to-b from-red-500 to-red-700 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)] border border-red-400' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                                            >
+                                                <Zap size={18} />
+                                                <span className="text-[11px] font-bold">ลื่นไหลสุด</span>
+                                            </button>
+                                            <button
+                                                onClick={() => setQuality('STANDARD')}
+                                                className={`flex-1 py-3 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${graphicQuality === 'STANDARD' ? 'bg-gradient-to-b from-emerald-500 to-emerald-700 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)] border border-emerald-400' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                                            >
+                                                <Cpu size={18} />
+                                                <span className="text-[11px] font-bold">มาตรฐาน</span>
+                                            </button>
+                                            <button
+                                                onClick={() => setQuality('HIGH')}
+                                                className={`flex-1 py-3 px-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${graphicQuality === 'HIGH' ? 'bg-gradient-to-b from-blue-500 to-blue-700 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)] border border-blue-400' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                                            >
+                                                <Gamepad2 size={18} />
+                                                <span className="text-[11px] font-bold">สูงสุด</span>
+                                            </button>
+                                        </div>
+                                        <div className="mt-2 text-center">
+                                            {graphicQuality === 'LOW' && <span className="text-red-400 text-[10px]">ปิดแอนิเมชันและเอฟเฟกต์ทั้งหมด (สำหรับเครื่องสเปคต่ำ)</span>}
+                                            {graphicQuality === 'STANDARD' && <span className="text-emerald-400 text-[10px]">ลดกราฟิกบางส่วนและปิด BGM เพื่อให้เล่นได้ลื่นขึ้น</span>}
+                                            {graphicQuality === 'HIGH' && <span className="text-blue-400 text-[10px]">เปิดเอฟเฟกต์แสงเงาและแอนิเมชันจัดเต็ม</span>}
                                         </div>
                                     </div>
                                 </motion.div>

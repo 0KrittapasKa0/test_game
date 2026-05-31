@@ -364,3 +364,32 @@ input[type="range"]::-moz-range-thumb {
   display: none !important;
   animation: none !important;
 }
+
+/* ===== Low Spec Mode (Maximum Performance for Low-end Devices) ===== */
+.low-spec-mode * {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.low-spec-mode .glass {
+  background: rgba(12, 16, 24, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.low-spec-mode .bg-casino-table,
+.low-spec-mode .bg-theme-standard,
+.low-spec-mode .bg-theme-high-stakes,
+.low-spec-mode .bg-theme-expert,
+.low-spec-mode .bg-theme-legendary,
+.low-spec-mode .bg-theme-ultimate,
+.low-spec-mode .page-bg {
+  background: #0f3d1d !important;
+}
+
+.low-spec-mode .heavy-fx,
+.low-spec-mode .floating-card,
+.low-spec-mode .animate-glow {
+  display: none !important;
+  animation: none !important;
+}

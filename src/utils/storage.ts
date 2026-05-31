@@ -52,6 +52,8 @@ export function saveUsedCode(code: string): void {
     }
 }
 
+export type GraphicQuality = 'LOW' | 'STANDARD' | 'HIGH';
+
 export interface GameSettings {
     soundEnabled: boolean;
     voiceEnabled: boolean;
@@ -59,7 +61,7 @@ export interface GameSettings {
     lastPlayerCount: number;
     lastHumanIsDealer: boolean;
     lastRoomId: string;
-    lowMemoryMode: boolean;
+    graphicQuality: GraphicQuality;
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -69,15 +71,20 @@ const DEFAULT_SETTINGS: GameSettings = {
     lastPlayerCount: 3,
     lastHumanIsDealer: false,
     lastRoomId: 'standard',
-    lowMemoryMode: false,
+    graphicQuality: 'HIGH',
 };
 
 let cachedSettings: GameSettings | null = null;
 
 export function loadSettings(): GameSettings {
     if (!cachedSettings) {
-        const raw = getItem<GameSettings>(SETTINGS_KEY, DEFAULT_SETTINGS);
-        cachedSettings = { ...DEFAULT_SETTINGS, ...raw };
+        const raw = getItem<any>(SETTINGS_KEY, DEFAULT_SETTINGS);
+        
+        let graphicQuality = raw.graphicQuality || 'HIGH';
+        if (raw.lowSpecMode === true) graphicQuality = 'LOW';
+        else if (raw.lowMemoryMode === true) graphicQuality = 'STANDARD';
+
+        cachedSettings = { ...DEFAULT_SETTINGS, ...raw, graphicQuality };
     }
     return cachedSettings;
 }

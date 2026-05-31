@@ -29,17 +29,22 @@ const screenComponents = {
 
 export default function App() {
   const currentScreen = useGameStore((s) => s.screen);
-  const [isLowMemory, setIsLowMemory] = useState(false);
+  const [graphicQuality, setGraphicQuality] = useState('HIGH');
 
   useEffect(() => {
-    const handleSettingsChange = () => setIsLowMemory(loadSettings().lowMemoryMode);
+    const handleSettingsChange = () => {
+      const settings = loadSettings();
+      setGraphicQuality(settings.graphicQuality);
+    };
     handleSettingsChange(); // Initial check
     window.addEventListener('settings_changed', handleSettingsChange);
     return () => window.removeEventListener('settings_changed', handleSettingsChange);
   }, []);
 
+  const qualityClass = graphicQuality === 'LOW' ? 'low-spec-mode low-memory-mode' : graphicQuality === 'STANDARD' ? 'low-memory-mode' : '';
+
   return (
-    <div className={`w-full h-full overflow-hidden relative bg-black ${isLowMemory ? 'low-memory-mode' : ''}`}>
+    <div className={`w-full h-full overflow-hidden relative bg-black ${qualityClass}`}>
       {Object.entries(screenComponents).map(([key, ScreenComponent]) => {
         const screenKey = key as keyof typeof screenComponents;
         const isActive = currentScreen === screenKey;
