@@ -72,7 +72,7 @@ export default function MainMenuScreen() {
     return (
         <div className="w-full h-full bg-casino-table flex items-center justify-center p-4 sm:p-6 overflow-hidden relative">
             {/* Ambient Lighting & Particles */}
-            <div className="absolute inset-0 pointer-events-none opacity-60">
+            <div className="absolute inset-0 pointer-events-none opacity-60 heavy-fx">
                 <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full opacity-20"
                     style={{ background: 'radial-gradient(circle, #fbbf24, transparent 60%)', filter: 'blur(80px)', transform: 'translate(-50%, -50%)' }} />
                 <div className="absolute bottom-0 right-1/4 w-[800px] h-[800px] rounded-full opacity-10"

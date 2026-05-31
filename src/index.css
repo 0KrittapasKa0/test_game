@@ -357,3 +357,10 @@ input[type="range"]::-moz-range-thumb {
 .emoji-pop-active {
   animation: emoji-pop 2.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
+
+/* ===== Low Memory Mode (Optimize Memory) ===== */
+.low-memory-mode .heavy-fx,
+.low-memory-mode .floating-card {
+  display: none !important;
+  animation: none !important;
+}

@@ -25,7 +25,7 @@ export default function RewardCodeScreen() {
     return (
         <div className="w-full h-full bg-casino-table flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden relative">
             {/* Ambient Dark Vignette overlay */}
-            <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)] z-10" />
+            <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)] z-10 heavy-fx" />
 
             {/* Content Container matches GameSetupScreen & Profile layout */}
             <motion.div
@@ -34,30 +34,27 @@ export default function RewardCodeScreen() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35 }}
             >
-                <div className="bg-[rgba(0,0,0,0.85)] border border-yellow-500/20 shadow-2xl rounded-3xl p-4 sm:p-6 relative overflow-hidden flex flex-col h-full">
+                <div className="bg-black/60 border border-yellow-500/20 shadow-2xl rounded-3xl backdrop-blur-xl relative overflow-hidden flex flex-col max-h-full w-full h-full">
                     {/* Top Glow Decor */}
                     <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent" />
 
-                    {/* Header with Back Button (Absolute for space saving like Profile/Settings) */}
-                    <button
-                        onClick={() => setScreen('MENU')}
-                        className="flex items-center justify-center w-10 h-10 rounded-full bg-black/40 border border-white/10 text-white/70 hover:text-white hover:bg-black/60 transition cursor-pointer shadow-lg absolute top-4 sm:top-5 left-4 sm:left-6 z-30"
-                    >
-                        <ArrowLeft size={18} />
-                    </button>
+                    {/* Header */}
+                    <div className="p-6 pb-4 relative z-10 flex flex-col items-center border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent shrink-0">
+                        <button
+                            onClick={() => { SFX.click(); setScreen('MENU'); }}
+                            className="absolute left-6 top-6 flex items-center justify-center w-10 h-10 rounded-full bg-black/40 border border-white/10 text-white/70 hover:text-yellow-400 hover:border-yellow-500/30 transition-all cursor-pointer shadow-lg group"
+                        >
+                            <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                        </button>
 
-                    <div className="mt-2 mb-6 sm:mt-1">
-                        <h2 className="text-xl sm:text-2xl font-bold text-gold-gradient text-center tracking-widest drop-shadow-md uppercase mb-1">
+                        <h2 className="text-2xl font-bold text-gold-gradient tracking-widest uppercase">
                             กิจกรรม
                         </h2>
-                        {/* Centered Decorative Subtitle */}
-                        <div className="text-center flex items-center justify-center gap-2">
-                            <span className="text-white/40 text-[10px] sm:text-xs font-bold uppercase tracking-widest">Reward Center</span>
-                        </div>
+                        <span className="text-yellow-500/60 text-[10px] tracking-widest font-bold uppercase mt-1">Reward Center</span>
                     </div>
 
                     {/* Main 2-Column Layout */}
-                    <div className="flex flex-col md:flex-row flex-1 gap-4 overflow-hidden">
+                    <div className="flex flex-col md:flex-row flex-1 gap-4 overflow-hidden p-4 sm:p-6">
 
                         {/* LEFT: Sidebar / Menu Tabs */}
                         <div className="w-full md:w-1/4 md:min-w-[220px] bg-black/30 border border-white/5 rounded-2xl p-2 md:p-4 flex flex-row md:flex-col gap-2 shrink-0 overflow-x-auto no-scrollbar shadow-inner relative">

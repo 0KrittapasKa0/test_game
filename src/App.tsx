@@ -1,4 +1,6 @@
 import { useGameStore } from './store/useGameStore';
+import { useState, useEffect } from 'react';
+import { loadSettings } from './utils/storage';
 import SplashScreen from './screens/SplashScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import MainMenuScreen from './screens/MainMenuScreen';
@@ -25,9 +27,17 @@ const screenComponents = {
 
 export default function App() {
   const currentScreen = useGameStore((s) => s.screen);
+  const [isLowMemory, setIsLowMemory] = useState(false);
+
+  useEffect(() => {
+    const handleSettingsChange = () => setIsLowMemory(loadSettings().lowMemoryMode);
+    handleSettingsChange(); // Initial check
+    window.addEventListener('settings_changed', handleSettingsChange);
+    return () => window.removeEventListener('settings_changed', handleSettingsChange);
+  }, []);
 
   return (
-    <div className="w-full h-full overflow-hidden relative bg-black">
+    <div className={`w-full h-full overflow-hidden relative bg-black ${isLowMemory ? 'low-memory-mode' : ''}`}>
       {Object.entries(screenComponents).map(([key, ScreenComponent]) => {
         const screenKey = key as keyof typeof screenComponents;
         const isActive = currentScreen === screenKey;

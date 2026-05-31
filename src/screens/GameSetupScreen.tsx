@@ -112,52 +112,62 @@ export default function GameSetupScreen() {
     };
 
     return (
-        <div className="w-full h-full bg-casino-table flex items-center justify-center p-4 sm:p-6 overflow-y-auto relative">
+        <div className="w-full h-full bg-casino-table flex items-center justify-center p-4 sm:p-6 overflow-hidden relative">
             {/* Ambient Dark Vignette overlay */}
-            <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
+            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)] z-10 heavy-fx" />
+
+            {/* Ambient Glows */}
+            <div className="absolute inset-0 pointer-events-none opacity-40 z-0 heavy-fx">
+                <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] rounded-full bg-yellow-500/20 blur-[100px]" />
+                <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-blue-500/20 blur-[100px]" />
+            </div>
 
             <motion.div
-                className="w-full max-w-lg relative z-10"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35 }}
+                className="w-full max-w-md relative z-20 max-h-full flex flex-col"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.4, type: 'spring', bounce: 0.3 }}
             >
-                <div className="bg-black/60 border border-yellow-500/20 shadow-2xl rounded-3xl p-5 sm:p-7 backdrop-blur-xl relative overflow-hidden">
+                <div className="bg-black/60 border border-yellow-500/20 shadow-2xl rounded-3xl backdrop-blur-xl relative overflow-hidden flex flex-col max-h-full">
                     {/* Top Glow Decor */}
                     <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent" />
 
-                    {/* Top Action Bar (Back) */}
-                    <div className="flex justify-between items-center mb-2 relative z-20">
-                        {/* Back Button */}
+                    {/* Header */}
+                    <div className="p-6 pb-4 relative z-10 flex flex-col items-center border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent shrink-0">
                         <button
                             onClick={() => {
+                                SFX.click();
                                 if (step === 'config') {
                                     setStep('room');
                                 } else {
                                     setScreen('MENU');
                                 }
                             }}
-                            className="flex items-center justify-center w-10 h-10 rounded-full bg-black/40 border border-white/10 text-white/70 hover:text-white hover:bg-black/60 transition cursor-pointer shadow-lg shrink-0"
+                            className="absolute left-6 top-6 flex items-center justify-center w-10 h-10 rounded-full bg-black/40 border border-white/10 text-white/70 hover:text-yellow-400 hover:border-yellow-500/30 transition-all cursor-pointer shadow-lg group"
                         >
-                            <ArrowLeft size={18} />
+                            <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                         </button>
+
+                        <h2 className="text-2xl font-bold text-gold-gradient tracking-widest uppercase">
+                            {step === 'room' ? 'เลือกโต๊ะ' : 'ตั้งค่าโต๊ะ'}
+                        </h2>
+                        <span className="text-yellow-500/60 text-[10px] tracking-widest font-bold uppercase mt-1">Game Setup</span>
                     </div>
 
-                    <AnimatePresence mode="wait">
-                        {/* ===== STEP 1: Room Selection ===== */}
-                        {step === 'room' && (
-                            <motion.div
-                                key="room"
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 20 }}
-                                className="mt-2"
-                            >
-                                <h2 className="text-xl sm:text-2xl font-bold text-gold-gradient text-center tracking-widest drop-shadow-md uppercase mb-1">
-                                    เลือกโต๊ะ
-                                </h2>
-
-                                {/* Centered Capital Text Without Background or Icon */}
+                    {/* Content Area */}
+                    <div className="flex-1 overflow-y-auto p-6 relative z-10 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                        <AnimatePresence mode="wait">
+                            {/* ===== STEP 1: Room Selection ===== */}
+                            {step === 'room' && (
+                                <motion.div
+                                    key="room"
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="space-y-4"
+                                >
+                                    {/* Centered Capital Text Without Background or Icon */}
                                 <div className="text-center mb-6 w-full cursor-pointer hover:brightness-110 transition-all active:scale-95" onClick={() => { SFX.click(); speakPhrase(`มีทุน ${numberToThaiVoice(profile.chips)} ชิปค่ะ`); }}>
                                     <span className="text-white/40 text-xs font-bold uppercase tracking-wider mr-2">ทุนของคุณ:</span>
                                     <span className="text-yellow-400 font-bold tracking-wider">{formatChips(profile.chips, true)}</span>
@@ -315,12 +325,9 @@ export default function GameSetupScreen() {
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
-                                className="mt-6"
+                                transition={{ duration: 0.2 }}
+                                className="space-y-4"
                             >
-                                <h3 className="text-center font-medium text-white/50 text-xs tracking-widest uppercase mb-4">
-                                    ตั้งค่าโต๊ะ
-                                </h3>
-
                                 {/* Room Badge */}
                                 <div
                                     className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-2xl mb-4 sm:mb-6 bg-black/50 border border-yellow-500/20 shadow-inner group relative overflow-hidden"
@@ -489,9 +496,10 @@ export default function GameSetupScreen() {
                                 </div>
                             </motion.div>
                         )}
-                    </AnimatePresence>
+                        </AnimatePresence>
+                    </div>
                 </div>
-            </motion.div >
+            </motion.div>
 
             {/* ===== Search Modal ===== */}
             <AnimatePresence>

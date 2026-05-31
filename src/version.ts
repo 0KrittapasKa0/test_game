@@ -1,2 +1,2 @@
 /** ตั้งค่าเวอร์ชันเกมตรงนี้ที่เดียว — ทุกหน้าจอจะดึงค่าจากที่นี่โดยอัตโนมัติ */
-export const GAME_VERSION = 'Beta Version 0.9.2';
+export const GAME_VERSION = 'Version 1.0';

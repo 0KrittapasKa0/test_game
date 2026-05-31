@@ -208,40 +208,45 @@ export default function ProfileScreen() {
         : 0;
 
     return (
-        <div className="w-full h-full bg-casino-table flex flex-col items-center justify-start p-4 sm:p-6 overflow-y-auto overflow-x-hidden relative">
+        <div className="w-full h-full bg-casino-table flex items-center justify-center p-4 sm:p-6 overflow-hidden relative">
             {/* Ambient Dark Vignette overlay */}
-            <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)] z-10" />
+            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)] z-10 heavy-fx" />
 
-            {/* Header matches GameSetup & Settings styles */}
-            <div className="w-full max-w-4xl relative z-20 flex justify-between items-center mb-6 mt-2 shrink-0">
-                <button
-                    onClick={() => setScreen('MENU')}
-                    className="flex items-center justify-center w-11 h-11 rounded-full bg-black/40 border border-white/10 text-white/70 hover:text-white hover:bg-black/60 hover:border-white/20 transition-all cursor-pointer shadow-lg backdrop-blur-md"
-                >
-                    <ArrowLeft size={22} className="drop-shadow-sm" />
-                </button>
-                <div className="flex flex-col items-center">
-                    <h2 className="text-2xl sm:text-3xl font-black text-gold-gradient tracking-widest uppercase shadow-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                        ข้อมูลผู้เล่น
-                    </h2>
-                    <span className="text-yellow-500/60 text-[10px] tracking-widest font-bold uppercase mt-1">Player Profile</span>
-                </div>
-                <div className="w-11 h-11" /> {/* Spacer */}
+            {/* Ambient Glows */}
+            <div className="absolute inset-0 pointer-events-none opacity-40 z-0 heavy-fx">
+                <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] rounded-full bg-yellow-500/20 blur-[100px]" />
+                <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-blue-500/20 blur-[100px]" />
             </div>
 
-            {/* Content Container matches GameSetupScreen width (max-w-4xl for 2 columns) */}
             <motion.div
-                className="w-full max-w-4xl relative z-20 mb-8 flex-1 flex flex-col"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35 }}
+                className="w-full max-w-4xl relative z-20 max-h-full flex flex-col"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.4, type: 'spring', bounce: 0.3 }}
             >
-                <div className="bg-black/60 border border-yellow-500/20 shadow-2xl rounded-3xl p-5 sm:p-8 backdrop-blur-xl relative overflow-hidden flex flex-col w-full">
+                <div className="bg-black/60 border border-yellow-500/20 shadow-2xl rounded-3xl backdrop-blur-xl relative overflow-hidden flex flex-col max-h-full w-full">
                     {/* Top Glow Decor */}
                     <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent" />
 
-                    {/* HEADER SECTION (Avatar, Name, Chips) */}
-                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6 bg-black/30 p-5 sm:p-6 rounded-2xl border border-white/5 shadow-inner relative mb-6">
+                    {/* Header */}
+                    <div className="p-6 pb-4 relative z-10 flex flex-col items-center border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent shrink-0">
+                        <button
+                            onClick={() => { SFX.click(); setScreen('MENU'); }}
+                            className="absolute left-6 top-6 flex items-center justify-center w-10 h-10 rounded-full bg-black/40 border border-white/10 text-white/70 hover:text-yellow-400 hover:border-yellow-500/30 transition-all cursor-pointer shadow-lg group"
+                        >
+                            <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                        </button>
+
+                        <h2 className="text-2xl font-bold text-gold-gradient tracking-widest uppercase">
+                            ข้อมูลผู้เล่น
+                        </h2>
+                        <span className="text-yellow-500/60 text-[10px] tracking-widest font-bold uppercase mt-1">Player Profile</span>
+                    </div>
+
+                    {/* Content Area */}
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 relative z-10 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                        {/* HEADER SECTION (Avatar, Name, Chips) */}
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6 bg-black/30 p-5 sm:p-6 rounded-2xl border border-white/5 shadow-inner relative mb-6 shrink-0">
                         <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none rounded-2xl" />
 
                         {/* Chips in Top Right */}
@@ -382,9 +387,10 @@ export default function ProfileScreen() {
 
 
                         {/* Chip History Chart */}
-                        <div className="flex-1 mt-2 h-full min-h-[140px]">
+                        <div className="flex-1 mt-2 h-full min-h-[140px] shrink-0">
                             <ChipHistoryChart data={stats.chipHistory} />
                         </div>
+                    </div>
                     </div>
                 </div>
             </motion.div>
