@@ -23,7 +23,27 @@ export function setItem<T>(key: string, value: T): void {
 }
 
 export function loadProfile(): UserProfile | null {
-    return getItem<UserProfile | null>(PROFILE_KEY, null);
+    const profile = getItem<UserProfile | null>(PROFILE_KEY, null);
+    
+    if (profile) {
+        let changed = false;
+        // 1Q = 1,000,000,000,000,000
+        const ONE_Q = 1_000_000_000_000_000;
+        
+        if (profile.chips >= ONE_Q) {
+            // Balance the game by reducing excessive chips (divide by 10,000)
+            while (profile.chips >= ONE_Q) {
+                profile.chips = Math.floor(profile.chips / 10000);
+            }
+            changed = true;
+        }
+
+        if (changed) {
+            setItem(PROFILE_KEY, profile);
+        }
+    }
+    
+    return profile;
 }
 
 export function saveProfile(profile: UserProfile): void {
