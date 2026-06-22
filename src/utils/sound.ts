@@ -375,12 +375,24 @@ export function initAudio() {
     document.addEventListener('touchstart', handler);
 }
 
+let iosTtsAudio: HTMLAudioElement | null = null;
+
 // Unlock Speech Synthesis context on strictly user-gesture events for iOS Safari
 export function unlockSpeech() {
     if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance('');
         utterance.volume = 0;
         window.speechSynthesis.speak(utterance);
+    }
+    
+    if (getOS() === 'iOS') {
+        if (!iosTtsAudio) {
+            iosTtsAudio = new Audio();
+        }
+        // Play silent sound to unlock the audio element for future TTS calls
+        iosTtsAudio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+        iosTtsAudio.volume = 0;
+        iosTtsAudio.play().catch(() => {});
     }
 }
 
@@ -509,9 +521,10 @@ export function speakWelcome(playerName: string = "ผู้เล่น") {
         // ใช้ Google TTS แบบ Audio Element แทน Web Speech API เฉพาะบน iOS
         // เพื่อป้องกันปัญหา Audio Ducking (ที่ iOS จะลดเสียง BGM อัตโนมัติเมื่อใช้ SpeechSynthesis)
         const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=th&q=${encodeURIComponent(randomGreeting)}`;
-        const audio = new Audio(url);
-        audio.volume = 0.8;
-        audio.play().catch(e => console.warn('iOS TTS fallback failed:', e));
+        if (!iosTtsAudio) iosTtsAudio = new Audio();
+        iosTtsAudio.src = url;
+        iosTtsAudio.volume = 0.8;
+        iosTtsAudio.play().catch(e => console.warn('iOS TTS fallback failed:', e));
         return;
     }
 
@@ -549,9 +562,10 @@ export function speakPhrase(text: string) {
         // ใช้ Google TTS แบบ Audio Element แทน Web Speech API เฉพาะบน iOS
         // เพื่อป้องกันปัญหา Audio Ducking
         const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=th&q=${encodeURIComponent(text)}`;
-        const audio = new Audio(url);
-        audio.volume = 0.8;
-        audio.play().catch(e => console.warn('iOS TTS fallback failed:', e));
+        if (!iosTtsAudio) iosTtsAudio = new Audio();
+        iosTtsAudio.src = url;
+        iosTtsAudio.volume = 0.8;
+        iosTtsAudio.play().catch(e => console.warn('iOS TTS fallback failed:', e));
         
         lastSpokenText = text;
         lastSpokenTime = now;
