@@ -2,6 +2,8 @@ import { loadSettings } from './storage';
 
 let bgmAudio: HTMLAudioElement | null = null;
 let bgmSourceNode: MediaElementAudioSourceNode | null = null;
+let bgmGainNode: GainNode | null = null;
+let bgmNormalVolume = 0.15;
 let bgmInitialized = false;
 let isIntendedToPlay = false;
 let currentBgmPath = '';
@@ -43,11 +45,11 @@ export const BGM = {
                     const ctx = getAudioContext();
                     bgmSourceNode = ctx.createMediaElementSource(bgmAudio);
                     
-                    const gainNode = ctx.createGain();
-                    gainNode.gain.value = 0.15; // ปรับให้เสียงเบาๆ คลอๆ
+                    bgmGainNode = ctx.createGain();
+                    bgmGainNode.gain.value = bgmNormalVolume;
                     
-                    bgmSourceNode.connect(gainNode);
-                    gainNode.connect(ctx.destination);
+                    bgmSourceNode.connect(bgmGainNode);
+                    bgmGainNode.connect(ctx.destination);
                     
                     // ให้ Audio tag ดังสุด แล้วไปควบคุมผ่าน GainNode แทน
                     bgmAudio.volume = 1;
@@ -375,8 +377,6 @@ export function initAudio() {
     document.addEventListener('touchstart', handler);
 }
 
-let iosTtsAudio: HTMLAudioElement | null = null;
-
 // Unlock Speech Synthesis context on strictly user-gesture events for iOS Safari
 export function unlockSpeech() {
     if ('speechSynthesis' in window) {
@@ -384,16 +384,47 @@ export function unlockSpeech() {
         utterance.volume = 0;
         window.speechSynthesis.speak(utterance);
     }
+}
+
+// ══════════════════════════════════════════════════════════════
+// iOS Audio Ducking Compensation
+// iOS จะลดเสียง BGM อัตโนมัติเมื่อใช้ SpeechSynthesis
+// เราจะชดเชยโดยเพิ่ม BGM ให้ดังขึ้นระหว่างพูด แล้วค่อยลดกลับเมื่อพูดจบ
+// ══════════════════════════════════════════════════════════════
+const BGM_DUCKING_BOOST = 3.5; // iOS ลดเสียง ~60-70% ดังนั้นเราเพิ่มขึ้น 3.5 เท่าเพื่อชดเชย
+
+function boostBgmForSpeech() {
+    if (getOS() !== 'iOS') return;
     
-    if (getOS() === 'iOS') {
-        if (!iosTtsAudio) {
-            iosTtsAudio = new Audio();
-        }
-        // Play silent sound to unlock the audio element for future TTS calls
-        iosTtsAudio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-        iosTtsAudio.volume = 0;
-        iosTtsAudio.play().catch(() => {});
+    if (bgmGainNode) {
+        // กรณีใช้ Web Audio API
+        bgmGainNode.gain.setValueAtTime(bgmNormalVolume * BGM_DUCKING_BOOST, bgmGainNode.context.currentTime);
+    } else if (bgmAudio) {
+        // กรณี fallback ไม่ใช้ Web Audio API
+        bgmAudio.volume = Math.min(1.0, bgmNormalVolume * BGM_DUCKING_BOOST);
     }
+}
+
+function restoreBgmAfterSpeech() {
+    if (getOS() !== 'iOS') return;
+    
+    if (bgmGainNode) {
+        // ค่อยๆ ลดกลับมาเพื่อให้ไม่กระตุกหู
+        bgmGainNode.gain.setTargetAtTime(bgmNormalVolume, bgmGainNode.context.currentTime, 0.3);
+    } else if (bgmAudio) {
+        bgmAudio.volume = bgmNormalVolume;
+    }
+}
+
+function attachDuckingCompensation(utterance: SpeechSynthesisUtterance) {
+    if (getOS() !== 'iOS') return;
+    
+    utterance.addEventListener('start', boostBgmForSpeech);
+    utterance.addEventListener('end', restoreBgmAfterSpeech);
+    utterance.addEventListener('error', restoreBgmAfterSpeech);
+    
+    // Safety: restore BGM หลัง 15 วินาทีเผื่อ event ไม่ fire
+    setTimeout(restoreBgmAfterSpeech, 15000);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -516,18 +547,6 @@ export function speakWelcome(playerName: string = "ผู้เล่น") {
     ];
 
     const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-
-    if (getOS() === 'iOS') {
-        // ใช้ Google TTS แบบ Audio Element แทน Web Speech API เฉพาะบน iOS
-        // เพื่อป้องกันปัญหา Audio Ducking (ที่ iOS จะลดเสียง BGM อัตโนมัติเมื่อใช้ SpeechSynthesis)
-        const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=th&q=${encodeURIComponent(randomGreeting)}`;
-        if (!iosTtsAudio) iosTtsAudio = new Audio();
-        iosTtsAudio.src = url;
-        iosTtsAudio.volume = 0.8;
-        iosTtsAudio.play().catch(e => console.warn('iOS TTS fallback failed:', e));
-        return;
-    }
-
     const utterance = new SpeechSynthesisUtterance(randomGreeting);
     utterance.lang = 'th-TH'; // สำรองไว้เผื่อระบบไม่ได้ผูก voice
 
@@ -539,6 +558,7 @@ export function speakWelcome(playerName: string = "ผู้เล่น") {
         utterance.pitch = config.pitch;
         utterance.volume = config.volume;
 
+        attachDuckingCompensation(utterance);
         window.speechSynthesis.speak(utterance);
     };
 
@@ -558,20 +578,6 @@ export function speakPhrase(text: string) {
     const now = Date.now();
     if (text === lastSpokenText && now - lastSpokenTime < 500) return;
 
-    if (getOS() === 'iOS') {
-        // ใช้ Google TTS แบบ Audio Element แทน Web Speech API เฉพาะบน iOS
-        // เพื่อป้องกันปัญหา Audio Ducking
-        const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=th&q=${encodeURIComponent(text)}`;
-        if (!iosTtsAudio) iosTtsAudio = new Audio();
-        iosTtsAudio.src = url;
-        iosTtsAudio.volume = 0.8;
-        iosTtsAudio.play().catch(e => console.warn('iOS TTS fallback failed:', e));
-        
-        lastSpokenText = text;
-        lastSpokenTime = now;
-        return;
-    }
-
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
@@ -583,6 +589,8 @@ export function speakPhrase(text: string) {
     utterance.rate = config.rate;
     utterance.pitch = config.pitch;
     utterance.volume = config.volume;
+
+    attachDuckingCompensation(utterance);
 
     lastSpokenText = text;
     lastSpokenTime = now;
