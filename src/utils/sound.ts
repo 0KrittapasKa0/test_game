@@ -36,7 +36,7 @@ export const BGM = {
             try {
                 if (loadSettings().graphicQuality !== 'HIGH') {
                     // LOW MEMORY MODE or NON-HIGH QUALITY: Bypass Web Audio API routing to prevent iOS Safari OOM crashes
-                    bgmAudio.volume = 0.05;
+                    bgmAudio.volume = 0.15;
                 } else {
                     // เชื่อมต่อ BGM เข้ากับ Web Audio API เดียวกันกับ SFX 
                     // เพื่อป้องกันไม่ให้ Browser ลดเสียงพื้นหลังอัตโนมัติ (Audio Ducking)
@@ -44,7 +44,7 @@ export const BGM = {
                     bgmSourceNode = ctx.createMediaElementSource(bgmAudio);
                     
                     const gainNode = ctx.createGain();
-                    gainNode.gain.value = 0.05; // ปรับให้เสียงเบาๆ คลอๆ
+                    gainNode.gain.value = 0.15; // ปรับให้เสียงเบาๆ คลอๆ
                     
                     bgmSourceNode.connect(gainNode);
                     gainNode.connect(ctx.destination);
@@ -54,7 +54,7 @@ export const BGM = {
                 }
             } catch (e) {
                 console.warn('Web Audio routing failed, fallback to standard audio', e);
-                bgmAudio.volume = 0.05;
+                bgmAudio.volume = 0.15;
             }
 
             bgmInitialized = true;
@@ -412,7 +412,7 @@ function getVoiceConfig(): VoiceConfig {
     let selectedVoice: SpeechSynthesisVoice | null = null;
     let rate = 1.0;
     let pitch = 1.0;
-    const volume = 1.0; // บังคับให้เสียงพากย์ดังสุดเสมอ
+    const volume = 0.8; // ปรับลดลงเล็กน้อยให้สมดุลกับ BGM
 
     if (os === 'Windows') {
         // ค้นหาเสียง Microsoft Premwadee Online (ตัวที่เป็น Natural Voice) ก่อน
@@ -504,6 +504,17 @@ export function speakWelcome(playerName: string = "ผู้เล่น") {
     ];
 
     const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+
+    if (getOS() === 'iOS') {
+        // ใช้ Google TTS แบบ Audio Element แทน Web Speech API เฉพาะบน iOS
+        // เพื่อป้องกันปัญหา Audio Ducking (ที่ iOS จะลดเสียง BGM อัตโนมัติเมื่อใช้ SpeechSynthesis)
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=th&q=${encodeURIComponent(randomGreeting)}`;
+        const audio = new Audio(url);
+        audio.volume = 0.8;
+        audio.play().catch(e => console.warn('iOS TTS fallback failed:', e));
+        return;
+    }
+
     const utterance = new SpeechSynthesisUtterance(randomGreeting);
     utterance.lang = 'th-TH'; // สำรองไว้เผื่อระบบไม่ได้ผูก voice
 
@@ -533,6 +544,19 @@ export function speakPhrase(text: string) {
 
     const now = Date.now();
     if (text === lastSpokenText && now - lastSpokenTime < 500) return;
+
+    if (getOS() === 'iOS') {
+        // ใช้ Google TTS แบบ Audio Element แทน Web Speech API เฉพาะบน iOS
+        // เพื่อป้องกันปัญหา Audio Ducking
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=th&q=${encodeURIComponent(text)}`;
+        const audio = new Audio(url);
+        audio.volume = 0.8;
+        audio.play().catch(e => console.warn('iOS TTS fallback failed:', e));
+        
+        lastSpokenText = text;
+        lastSpokenTime = now;
+        return;
+    }
 
     window.speechSynthesis.cancel();
 
