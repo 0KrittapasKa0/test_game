@@ -1,14 +1,26 @@
 import { loadSettings } from './storage';
 
+export function getBgmVolume(): number {
+    return loadSettings().bgmVolume ?? 0.05;
+}
+
 let bgmAudio: HTMLAudioElement | null = null;
 let bgmSourceNode: MediaElementAudioSourceNode | null = null;
 let bgmGainNode: GainNode | null = null;
-let bgmNormalVolume = 0.15;
+let bgmNormalVolume = getBgmVolume();
 let bgmInitialized = false;
 let isIntendedToPlay = false;
 let currentBgmPath = '';
 
 export const BGM = {
+    setVolume: (volume: number) => {
+        bgmNormalVolume = volume;
+        if (bgmGainNode) {
+            bgmGainNode.gain.setValueAtTime(volume, bgmGainNode.context.currentTime);
+        } else if (bgmAudio) {
+            bgmAudio.volume = volume;
+        }
+    },
     play: (track: 'MENU' | 'STANDARD' | 'HIGH_STAKES' | 'EXPERT' | 'LEGENDARY' | 'ULTIMATE' = 'MENU') => {
         const trackMap = {
             'MENU': '/audio/bgm_menu.ogg',
@@ -36,27 +48,22 @@ export const BGM = {
             bgmAudio.crossOrigin = "anonymous";
             
             try {
-                if (loadSettings().graphicQuality !== 'HIGH') {
-                    // LOW MEMORY MODE or NON-HIGH QUALITY: Bypass Web Audio API routing to prevent iOS Safari OOM crashes
-                    bgmAudio.volume = 0.15;
-                } else {
-                    // เชื่อมต่อ BGM เข้ากับ Web Audio API เดียวกันกับ SFX 
-                    // เพื่อป้องกันไม่ให้ Browser ลดเสียงพื้นหลังอัตโนมัติ (Audio Ducking)
-                    const ctx = getAudioContext();
-                    bgmSourceNode = ctx.createMediaElementSource(bgmAudio);
-                    
-                    bgmGainNode = ctx.createGain();
-                    bgmGainNode.gain.value = bgmNormalVolume;
-                    
-                    bgmSourceNode.connect(bgmGainNode);
-                    bgmGainNode.connect(ctx.destination);
-                    
-                    // ให้ Audio tag ดังสุด แล้วไปควบคุมผ่าน GainNode แทน
-                    bgmAudio.volume = 1;
-                }
+                // เชื่อมต่อ BGM เข้ากับ Web Audio API เดียวกันกับ SFX
+                // เพื่อป้องกันไม่ให้ Browser ลดเสียงพื้นหลังอัตโนมัติ (Audio Ducking)
+                const ctx = getAudioContext();
+                bgmSourceNode = ctx.createMediaElementSource(bgmAudio);
+                
+                bgmGainNode = ctx.createGain();
+                bgmGainNode.gain.value = bgmNormalVolume;
+                
+                bgmSourceNode.connect(bgmGainNode);
+                bgmGainNode.connect(ctx.destination);
+                
+                // ให้ Audio tag ดังสุด แล้วไปควบคุมผ่าน GainNode แทน
+                bgmAudio.volume = 1;
             } catch (e) {
                 console.warn('Web Audio routing failed, fallback to standard audio', e);
-                bgmAudio.volume = 0.15;
+                bgmAudio.volume = bgmNormalVolume;
             }
 
             bgmInitialized = true;
@@ -76,6 +83,12 @@ export const BGM = {
 };
 
 window.addEventListener('settings_changed', () => {
+    bgmNormalVolume = getBgmVolume();
+    if (bgmGainNode) {
+        bgmGainNode.gain.setValueAtTime(bgmNormalVolume, bgmGainNode.context.currentTime);
+    } else if (bgmAudio) {
+        bgmAudio.volume = bgmNormalVolume;
+    }
     if (bgmAudio) {
         if (isSoundEnabled() && isIntendedToPlay) {
             bgmAudio.play().catch(() => {});
@@ -386,46 +399,6 @@ export function unlockSpeech() {
     }
 }
 
-// ══════════════════════════════════════════════════════════════
-// iOS Audio Ducking Compensation
-// iOS จะลดเสียง BGM อัตโนมัติเมื่อใช้ SpeechSynthesis
-// เราจะชดเชยโดยเพิ่ม BGM ให้ดังขึ้นระหว่างพูด แล้วค่อยลดกลับเมื่อพูดจบ
-// ══════════════════════════════════════════════════════════════
-const BGM_DUCKING_BOOST = 3.5; // iOS ลดเสียง ~60-70% ดังนั้นเราเพิ่มขึ้น 3.5 เท่าเพื่อชดเชย
-
-function boostBgmForSpeech() {
-    if (getOS() !== 'iOS') return;
-    
-    if (bgmGainNode) {
-        // กรณีใช้ Web Audio API
-        bgmGainNode.gain.setValueAtTime(bgmNormalVolume * BGM_DUCKING_BOOST, bgmGainNode.context.currentTime);
-    } else if (bgmAudio) {
-        // กรณี fallback ไม่ใช้ Web Audio API
-        bgmAudio.volume = Math.min(1.0, bgmNormalVolume * BGM_DUCKING_BOOST);
-    }
-}
-
-function restoreBgmAfterSpeech() {
-    if (getOS() !== 'iOS') return;
-    
-    if (bgmGainNode) {
-        // ค่อยๆ ลดกลับมาเพื่อให้ไม่กระตุกหู
-        bgmGainNode.gain.setTargetAtTime(bgmNormalVolume, bgmGainNode.context.currentTime, 0.3);
-    } else if (bgmAudio) {
-        bgmAudio.volume = bgmNormalVolume;
-    }
-}
-
-function attachDuckingCompensation(utterance: SpeechSynthesisUtterance) {
-    if (getOS() !== 'iOS') return;
-    
-    utterance.addEventListener('start', boostBgmForSpeech);
-    utterance.addEventListener('end', restoreBgmAfterSpeech);
-    utterance.addEventListener('error', restoreBgmAfterSpeech);
-    
-    // Safety: restore BGM หลัง 15 วินาทีเผื่อ event ไม่ fire
-    setTimeout(restoreBgmAfterSpeech, 15000);
-}
 
 // ══════════════════════════════════════════════════════════════
 // WEB SPEECH API (Voice TTS)
@@ -558,7 +531,6 @@ export function speakWelcome(playerName: string = "ผู้เล่น") {
         utterance.pitch = config.pitch;
         utterance.volume = config.volume;
 
-        attachDuckingCompensation(utterance);
         window.speechSynthesis.speak(utterance);
     };
 
@@ -589,8 +561,6 @@ export function speakPhrase(text: string) {
     utterance.rate = config.rate;
     utterance.pitch = config.pitch;
     utterance.volume = config.volume;
-
-    attachDuckingCompensation(utterance);
 
     lastSpokenText = text;
     lastSpokenTime = now;

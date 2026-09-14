@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Volume2, VolumeX, Mic, MicOff, Check, X, Download, Upload, Save, Bug, Facebook, Coins, Cpu, Gamepad2, UserCircle, Zap } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Mic, MicOff, Check, X, Download, Upload, Save, Bug, Facebook, Coins, Cpu, Gamepad2, UserCircle, Zap, Music } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { loadSettings, saveSettings, exportGameData, importGameData } from '../utils/storage';
-import { SFX, speakPhrase } from '../utils/sound';
+import { SFX, speakPhrase, BGM } from '../utils/sound';
 import { GAME_VERSION } from '../version';
 
 const ToggleSwitch = ({ enabled, onClick, activeColorClass }: { enabled: boolean; onClick: () => void; activeColorClass: string }) => (
@@ -33,6 +33,7 @@ export default function SettingsScreen() {
     const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
 
     const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
+    const [bgmVolume, setBgmVolumeState] = useState(settings.bgmVolume ?? 0.05);
     const [voiceEnabled, setVoiceEnabled] = useState(settings.voiceEnabled ?? true);
     const [fullChipFormat, setFullChipFormat] = useState(settings.fullChipFormat ?? false);
     const [graphicQuality, setGraphicQuality] = useState(settings.graphicQuality ?? 'HIGH');
@@ -47,6 +48,12 @@ export default function SettingsScreen() {
         setSoundEnabled(newVal);
         saveSettings({ soundEnabled: newVal });
         if (newVal) SFX.click();
+    };
+
+    const handleBgmVolumeChange = (newVal: number) => {
+        setBgmVolumeState(newVal);
+        saveSettings({ bgmVolume: newVal });
+        BGM.setVolume(newVal);
     };
 
     const toggleVoice = () => {
@@ -192,6 +199,42 @@ export default function SettingsScreen() {
                                             <ToggleSwitch enabled={soundEnabled} onClick={toggleSound} activeColorClass="bg-gradient-to-b from-blue-400 to-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
                                         </div>
                                     </div>
+
+                                    {/* BGM Volume Slider */}
+                                    {soundEnabled && (
+                                        <div className="relative group">
+                                            <div className="relative p-4 bg-black/40 border border-white/5 rounded-2xl hover:bg-black/50 transition-colors">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400">
+                                                            <Music size={16} />
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-bold text-sm text-white tracking-wider">ระดับเสียงเพลงพื้นหลัง (BGM)</span>
+                                                            <span className="block text-[10px] text-white/40">ระดับคงที่ ไม่ลดลงตอนวางชิป/แอคชัน</span>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-yellow-400 font-bold text-xs bg-yellow-400/10 px-2.5 py-1 rounded-lg border border-yellow-400/20">
+                                                        {Math.round(bgmVolume * 500)}%
+                                                    </span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="0.01"
+                                                    max="0.20"
+                                                    step="0.01"
+                                                    value={bgmVolume}
+                                                    onChange={(e) => handleBgmVolumeChange(parseFloat(e.target.value))}
+                                                    className="w-full accent-yellow-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
+                                                />
+                                                <div className="flex justify-between text-[10px] text-white/30 mt-1 font-medium">
+                                                    <span>เบา</span>
+                                                    <span className={bgmVolume === 0.05 ? "text-yellow-400/80 font-bold" : ""}>ระดับแอคชัน (แนะนำ 25%)</span>
+                                                    <span>ดัง</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="relative group">
                                         <div className={`absolute inset-0 bg-gradient-to-r from-pink-500/10 via-transparent to-transparent opacity-0 transition-opacity duration-300 rounded-2xl blur-xl ${voiceEnabled ? 'group-hover:opacity-100' : ''}`} />

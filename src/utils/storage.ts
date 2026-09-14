@@ -62,6 +62,7 @@ export interface GameSettings {
     lastHumanIsDealer: boolean;
     lastRoomId: string;
     graphicQuality: GraphicQuality;
+    bgmVolume: number;
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -72,6 +73,7 @@ const DEFAULT_SETTINGS: GameSettings = {
     lastHumanIsDealer: false,
     lastRoomId: 'standard',
     graphicQuality: 'HIGH',
+    bgmVolume: 0.05,
 };
 
 let cachedSettings: GameSettings | null = null;
@@ -84,7 +86,9 @@ export function loadSettings(): GameSettings {
         if (raw.lowSpecMode === true) graphicQuality = 'LOW';
         else if (raw.lowMemoryMode === true) graphicQuality = 'STANDARD';
 
-        cachedSettings = { ...DEFAULT_SETTINGS, ...raw, graphicQuality };
+        const bgmVolume = typeof raw.bgmVolume === 'number' ? raw.bgmVolume : 0.05;
+
+        cachedSettings = { ...DEFAULT_SETTINGS, ...raw, graphicQuality, bgmVolume };
     }
     return cachedSettings as GameSettings;
 }
