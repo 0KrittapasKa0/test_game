@@ -1,6 +1,6 @@
-import { memo } from 'react';
-import { motion } from 'framer-motion';
-import type { Card as CardType } from '../types/game';
+import { memo, type CSSProperties } from 'react';
+import { motion, type Transition } from 'framer-motion';
+import type { Card as CardType, Suit } from '../types/game';
 
 interface CardProps {
     card: CardType;
@@ -9,93 +9,56 @@ interface CardProps {
     small?: boolean;
 }
 
-function isRed(suit: string): boolean {
-    return suit === '♥' || suit === '♦';
-}
+const suitFiles: Record<Suit, string> = {
+    '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs',
+};
+const faceStyle: CSSProperties = {
+    backfaceVisibility: 'hidden',
+    WebkitBackfaceVisibility: 'hidden',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+};
 
 function Card({ card, faceDown = false, delay = 0, small = false }: CardProps) {
-    const color = isRed(card.suit) ? '#dc2626' : '#1e293b';
-    const w = small ? 'w-[46px] h-[66px]' : 'w-[70px] h-[98px] sm:w-[82px] sm:h-[115px]';
-    const textBase = small ? 'text-[11px]' : 'text-sm sm:text-base';
-    const textCenter = small ? 'text-lg' : 'text-2xl sm:text-3xl';
-
-    // WRAPPER ANIMATION (Position, Scale, Opacity)
-    const wrapperInitial = { scale: 0.6, opacity: 0, y: -50 };
-    const wrapperAnimate = { scale: 1, opacity: 1, y: 0, rotateZ: 0 };
-
-    // INNER ANIMATION (3D Rotation Only)
-    // Always start rotated 180 (face down), then flip based on faceDown prop
-    const innerInitial = { rotateY: 180 };
-    const innerAnimate = { rotateY: faceDown ? 180 : 0 };
-
-    const transitionProps: any = { duration: 0.45, delay, type: 'spring', stiffness: 220, damping: 20 };
+    const size = small ? 'w-[46px] h-[66px]' : 'w-[70px] h-[98px] sm:w-[82px] sm:h-[115px]';
+    const transition: Transition = { duration: 0.45, delay, type: 'spring', stiffness: 220, damping: 20 };
+    const imageClass = 'absolute inset-0 w-full h-full rounded-lg';
+    const base = `${import.meta.env.BASE_URL}cards/`;
 
     return (
         <motion.div
-            className={`${w} relative select-none`}
-            initial={wrapperInitial}
-            animate={wrapperAnimate}
-            transition={transitionProps}
-            style={{ perspective: 1000, WebkitPerspective: 1000, willChange: 'transform, opacity' }} // Perspective defines the depth for the inner 3D space
+            className={`${size} relative select-none`}
+            role="img"
+            aria-label={faceDown ? 'ไพ่คว่ำ' : `${card.rank}${card.suit}`}
+            initial={{ scale: 0.6, opacity: 0, y: -50 }}
+            animate={{ scale: 1, opacity: 1, y: 0, rotateZ: 0 }}
+            transition={transition}
+            style={{ perspective: 1000, WebkitPerspective: 1000, willChange: 'transform, opacity' }}
         >
-            {/* INNER 3D CONTAINER */}
             <motion.div
                 className="w-full h-full relative"
-                initial={innerInitial}
-                animate={innerAnimate}
-                transition={transitionProps}
-                style={{ transformStyle: 'preserve-3d', WebkitTransformStyle: 'preserve-3d' as any, willChange: 'transform' }}
+                initial={{ rotateY: 180 }}
+                animate={{ rotateY: faceDown ? 180 : 0 }}
+                transition={transition}
+                style={{ transformStyle: 'preserve-3d', WebkitTransformStyle: 'preserve-3d', willChange: 'transform' }}
             >
-                {/* Front Face */}
-                <div
-                    className="absolute inset-0 rounded-lg bg-white"
-                    style={{
-                        backfaceVisibility: 'hidden',
-                        WebkitBackfaceVisibility: 'hidden',
-                        transform: 'rotateY(0deg) translateZ(1px)',
-                        WebkitTransform: 'rotateY(0deg) translateZ(1px)',
-                        border: '1px solid #e5e7eb', // subtle border
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)', // Hardware-friendly shadow
-                    }}
-                >
-                    {/* Top-left corner */}
-                    <div className={`absolute ${small ? 'top-1 left-1' : 'top-1.5 left-1.5'} flex flex-col items-center leading-none z-10 w-[20px] sm:w-[24px]`}>
-                        <span className={`${textBase} font-extrabold text-center`} style={{ color }}>{card.rank}</span>
-                        <span className={`${small ? 'text-[11px]' : 'text-sm sm:text-lg'} -mt-0.5 font-sans`} style={{ color }}>{card.suit + '\uFE0E'}</span>
-                    </div>
-
-                    {/* Center suit */}
-                    <div className="absolute inset-0 flex items-center justify-center z-10">
-                        <span className={`${textCenter} drop-shadow-none font-sans`} style={{ color }}>{card.suit + '\uFE0E'}</span>
-                    </div>
-
-                    {/* Bottom-right corner (inverted) */}
-                    <div className={`absolute ${small ? 'bottom-1 right-1' : 'bottom-1.5 right-1.5'} flex flex-col items-center leading-none rotate-180 z-10 w-[20px] sm:w-[24px]`}>
-                        <span className={`${textBase} font-extrabold text-center`} style={{ color }}>{card.rank}</span>
-                        <span className={`${small ? 'text-[11px]' : 'text-sm sm:text-lg'} -mt-0.5 font-sans`} style={{ color }}>{card.suit + '\uFE0E'}</span>
-                    </div>
-                </div>
-
-                {/* Back Face */}
-                <div
-                    className="absolute inset-0 rounded-lg bg-white"
-                    style={{
-                        backfaceVisibility: 'hidden',
-                        WebkitBackfaceVisibility: 'hidden',
-                        transform: 'rotateY(180deg) translateZ(1px)',
-                        WebkitTransform: 'rotateY(180deg) translateZ(1px)',
-                        border: '1px solid #e5e7eb', // matches front
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)', // Hardware-friendly shadow
-                    }}
-                >
-                    <div className="w-full h-full p-[5px] sm:p-[6px]">
-                        <div className="w-full h-full rounded-[6px] border-[1.5px] border-[#e5e7eb] flex items-center justify-center">
-                            <span className="text-[#e5e7eb] text-xl sm:text-2xl drop-shadow-none leading-none font-sans">
-                                {'♠\uFE0E'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                <img
+                    className={imageClass}
+                    src={`${base}${suitFiles[card.suit]}-${card.rank}.png`}
+                    alt=""
+                    draggable={false}
+                    width={164}
+                    height={230}
+                    style={{ ...faceStyle, transform: 'rotateY(0deg) translateZ(1px)' }}
+                />
+                <img
+                    className={imageClass}
+                    src={`${base}back.png`}
+                    alt=""
+                    draggable={false}
+                    width={164}
+                    height={230}
+                    style={{ ...faceStyle, transform: 'rotateY(180deg) translateZ(1px)' }}
+                />
             </motion.div>
         </motion.div>
     );
