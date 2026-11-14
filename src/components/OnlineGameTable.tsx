@@ -1,6 +1,8 @@
 import { useOnlineStore } from '../store/useOnlineStore';
 import PlayerAvatar from './PlayerAvatar';
 import Card from './Card';
+import DealingDeck from './DealingDeck';
+import { getDealerAction } from '../utils/dealerAnimation';
 import { motion } from 'framer-motion';
 import { evaluateHand } from '../utils/deck';
 import { RoomEnvironment } from './RoomEnvironment';
@@ -278,7 +280,7 @@ export default function OnlineGameTable({ emojiEvents }: { emojiEvents: Floating
 
 
     return (
-        <div className="absolute inset-0 z-30 pointer-events-none">
+        <div className="absolute inset-0 z-30 pointer-events-none" data-card-table>
             {/* Center Area (Room Info) */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
                 {config && <RoomEnvironment category={config.room.category} />}
@@ -302,6 +304,8 @@ export default function OnlineGameTable({ emojiEvents }: { emojiEvents: Floating
             </div>
 
 
+
+            <DealingDeck dealing={gamePhase === 'DEALING'} />
 
             {/* ===== Render Chips on Table ===== */}
             {activePlayers.map((player, idx) => {
@@ -342,8 +346,8 @@ export default function OnlineGameTable({ emojiEvents }: { emojiEvents: Floating
                             key={player.id}
                             className={`absolute flex flex-col items-center pointer-events-auto transition-all duration-500`}
                             style={{
-                                left: `${pos.x}%`,
-                                top: `${pos.y}%`,
+                                left: `clamp(16px, ${pos.x}%, calc(100% - 16px))`,
+                                top: `${pos.y + (player.isDealer && !player.isHuman ? 10 : 0)}%`,
                                 transform: 'translate(-50%, -50%)',
                                 minWidth: '100px',
                                 zIndex: isActive ? 100 : zIndex,
@@ -359,6 +363,9 @@ export default function OnlineGameTable({ emojiEvents }: { emojiEvents: Floating
                                         avatarUrl={player.avatarUrl}
                                         chips={player.chips}
                                         isDealer={player.isDealer}
+                                        dealerAction={player.isDealer && !player.isHuman ? getDealerAction(gamePhase, players.reduce((sum, p) => sum + p.cards.length, 0), player.result) : undefined}
+                                        dealerCue={players.reduce((sum, p) => sum + p.cards.length, 0)}
+                                        dealerVariant={player.isDealer && !player.isHuman ? config?.dealerVariant : undefined}
                                         isActive={isActive}
                                         result={gamePhase === 'ROUND_END' ? player.result : 'pending'}
                                         size={isHuman ? 60 : 48}
@@ -404,6 +411,7 @@ export default function OnlineGameTable({ emojiEvents }: { emojiEvents: Floating
                                         <div key={card.id} style={{ zIndex: ci }}>
                                             <Card
                                                 card={card}
+                                                dealFromDeck={gamePhase === 'DEALING'}
                                                 faceDown={!showCards && gamePhase !== 'ROUND_END' && !player.hasPok}
                                                 delay={ci * 0.1}
                                                 small={true}
@@ -453,6 +461,7 @@ export default function OnlineGameTable({ emojiEvents }: { emojiEvents: Floating
                                             <div key={card.id} style={{ zIndex: ci }}>
                                                 <Card
                                                     card={card}
+                                                    dealFromDeck={gamePhase === 'DEALING'}
                                                     faceDown={false}
                                                     delay={ci * 0.1}
                                                     small={false}

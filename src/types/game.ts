@@ -334,7 +334,10 @@ export const ROOMS: RoomConfig[] = [
     },
 ];
 
+export type DealerVariant = 'male' | 'female';
+
 export interface GameConfig {
+    dealerVariant?: DealerVariant;
     playerCount: number;
     humanIsDealer: boolean;
     room: RoomConfig;

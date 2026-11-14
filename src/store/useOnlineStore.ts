@@ -1,3 +1,5 @@
+import { randomDealerVariant } from '../utils/dealerAnimation';
+import { DECK_SHUFFLE_MS, CARD_DEAL_INTERVAL_MS } from '../utils/dealAnimation';
 import { create } from 'zustand';
 import Peer, { DataConnection } from 'peerjs';
 import type { Player, GameConfig, GamePhase } from '../types/game';
@@ -381,7 +383,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
         }, 2000);
 
         set({
-            config,
+            config: { ...config, dealerVariant: randomDealerVariant() },
             players: [humanPlayer],
             isHost: true,
             roomId: id,
@@ -834,7 +836,7 @@ export const useOnlineStore = create<OnlineGameState>((set, get) => ({
                         }
                     }, 1000);
                 }
-            }, index * 350 + 400); // Stagger deal by 350ms, initial delay 400ms to match offline
+            }, index * CARD_DEAL_INTERVAL_MS + DECK_SHUFFLE_MS); // Start after the shared shuffle animation
         });
     },
 

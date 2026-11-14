@@ -1,0 +1,18 @@
+.game-scene { position: absolute; inset: 0; overflow: hidden; pointer-events: none; background: #080e0d; }
+.game-scene > img { width: 100%; height: 100%; object-fit: cover; object-position: center; opacity: 0.9; }
+.game-scene__shade { position: absolute; inset: 0; background: linear-gradient(180deg, #02070630, #02070610 35%, #020706b3), radial-gradient(ellipse, transparent 20%, #0006 100%); }
+.game-scene--lobby .game-scene__shade { background: linear-gradient(180deg, #02070630, #02070666 55%, #020706d9); }
+.scene-screen > :first-child { background: transparent !important; }
+.scene-screen .floating-card { opacity: 0.1; }
+.table-artwork { position: absolute; inset: -16px; pointer-events: none; z-index: 1; filter: drop-shadow(0 18px 26px #0009); }
+.table-artwork > img { width: 100%; height: 100%; object-fit: fill; }
+.table-artwork__felt-tint { position: absolute; inset: 20.3% 7.8% 20.4%; border-radius: 3%; mix-blend-mode: color; background: var(--felt-color, transparent); }
+.image-table-rail, .image-table-rail > div, .image-table-rail > div > div, .image-table-rail > div > div > div { background: transparent !important; box-shadow: none !important; }
+.table-artwork--high_stakes { --felt-color: #133f91; }
+.table-artwork--expert { --felt-color: #663491; }
+.table-artwork--legendary { --felt-color: #8a202c; }
+.table-artwork--ultimate { --felt-color: #18202e; }
+@media (max-width: 640px) {
+    .game-scene > img { object-position: center top; }
+    .table-artwork { filter: drop-shadow(0 10px 14px #0009); }
+}

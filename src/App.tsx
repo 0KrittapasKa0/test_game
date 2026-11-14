@@ -12,6 +12,8 @@ import ProfileScreen from './screens/ProfileScreen';
 import OnlineGameScreen from './screens/OnlineGameScreen';
 import OnlineJoinScreen from './screens/OnlineJoinScreen';
 import MailboxScreen from './screens/MailboxScreen';
+import { useOnlineStore } from './store/useOnlineStore';
+import { GameScene } from './components/GameScene';
 
 const screenComponents = {
   SPLASH: SplashScreen,
@@ -29,6 +31,9 @@ const screenComponents = {
 
 export default function App() {
   const currentScreen = useGameStore((s) => s.screen);
+  const offlineCategory = useGameStore((s) => s.config?.room.category);
+  const onlineCategory = useOnlineStore((s) => s.config?.room.category);
+  const playing = currentScreen === 'PLAYING' || currentScreen === 'ONLINE_PLAYING';
   const [graphicQuality, setGraphicQuality] = useState('HIGH');
 
   useEffect(() => {
@@ -45,6 +50,7 @@ export default function App() {
 
   return (
     <div className={`w-full h-full overflow-hidden relative bg-black ${qualityClass}`}>
+      <GameScene lobby={!playing} category={currentScreen === 'ONLINE_PLAYING' ? onlineCategory : offlineCategory} />
       {Object.entries(screenComponents).map(([key, ScreenComponent]) => {
         const screenKey = key as keyof typeof screenComponents;
         const isActive = currentScreen === screenKey;
@@ -55,7 +61,7 @@ export default function App() {
         return (
           <div
             key={key}
-            className={`absolute inset-0 w-full h-full origin-center transition-all duration-200 ease-out opacity-100 scale-100 pointer-events-auto z-10`}
+            className={`scene-screen absolute inset-0 w-full h-full origin-center transition-all duration-200 ease-out opacity-100 scale-100 pointer-events-auto z-10`}
           >
             <ScreenComponent />
           </div>

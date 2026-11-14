@@ -1,3 +1,5 @@
+import { randomDealerVariant } from '../utils/dealerAnimation';
+import { DECK_SHUFFLE_MS, CARD_DEAL_INTERVAL_MS } from '../utils/dealAnimation';
 import { create } from 'zustand';
 import type { Player, Screen, GamePhase, Card, GameConfig } from '../types/game';
 import { AI_NAMES, AVATAR_COLORS } from '../types/game';
@@ -294,7 +296,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         set({
             players: allPlayers,
-            config,
+            config: { ...config, dealerVariant: randomDealerVariant() },
             dealerIndex,
             maxSeats: config.playerCount,
             deck: shuffleDeck(createDeck()),
@@ -468,7 +470,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             dealingPlayerIndex: 0,
             dealingRound: 0,
         });
-        setGameTimeout(() => get().dealNextCard(), 400);
+        setGameTimeout(() => get().dealNextCard(), DECK_SHUFFLE_MS);
     },
 
     dealNextCard: () => {
@@ -515,7 +517,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             activePlayerIndex: playerIdx,
         });
 
-        const delay = 350;
+        const delay = nextRound >= 2 ? 700 : CARD_DEAL_INTERVAL_MS;
         setGameTimeout(() => get().dealNextCard(), delay);
     },
 

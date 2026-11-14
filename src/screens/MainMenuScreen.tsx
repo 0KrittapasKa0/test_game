@@ -6,21 +6,8 @@ import { useGameStore } from '../store/useGameStore';
 import { loadProfile, loadMails, checkAndGenerateReliefMail } from '../utils/storage';
 import { SFX, speakWelcome, speakPhrase, BGM } from '../utils/sound';
 import { formatChips } from '../utils/formatChips';
-import { useMemo, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GAME_VERSION } from '../version';
-
-// Generates random configurations for floating background cards
-const generateCards = (count: number) => {
-    const suits = ['heart', 'spade black', 'diamond', 'club'];
-    return Array.from({ length: count }).map((_, i) => ({
-        id: i,
-        suit: suits[Math.floor(Math.random() * suits.length)],
-        left: Math.random() * 100, // percentage
-        delay: Math.random() * 10,  // seconds
-        duration: 10 + Math.random() * 15, // seconds
-        size: 0.6 + Math.random() * 0.8 // scale
-    }));
-};
 
 let hasGreeted = false; // Module-level flag to track if we've already greeted the player
 
@@ -29,8 +16,6 @@ export default function MainMenuScreen() {
     const profile = loadProfile()!;
     const [hasUnreadMails, setHasUnreadMails] = useState(false);
 
-    // Memoize the background cards so they don't re-render and jump around
-    const bgCards = useMemo(() => generateCards(15), []);
 
     useEffect(() => {
         // Generate relief mail if needed when reaching main menu
@@ -84,27 +69,6 @@ export default function MainMenuScreen() {
                     style={{ background: 'radial-gradient(circle, #fbbf24, transparent 60%)', filter: 'blur(80px)', transform: 'translate(-50%, -50%)' }} />
                 <div className="absolute bottom-0 right-1/4 w-[800px] h-[800px] rounded-full opacity-10"
                     style={{ background: 'radial-gradient(circle, #4ade80, transparent 60%)', filter: 'blur(100px)', transform: 'translate(50%, 50%)' }} />
-            </div>
-
-            {/* Floating Cards Background */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ transform: 'translateZ(0)' }}>
-                {bgCards.map(card => (
-                    <div
-                        key={card.id}
-                        className={`floating-card ${card.suit}`}
-                        style={{
-                            left: `${card.left}%`,
-                            animationDelay: `${card.delay}s`,
-                            animationDuration: `${card.duration}s`,
-                            transform: `scale(${card.size})`
-                        }}
-                    >
-                        {/* Center suit large watermark */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-10 text-4xl font-sans">
-                            {(card.suit.includes('heart') ? '♥' : card.suit.includes('spade') ? '♠' : card.suit.includes('club') ? '♣' : '♦') + '\uFE0E'}
-                        </div>
-                    </div>
-                ))}
             </div>
 
             {/* Remove staggered layout entry animations which cause heavy layout thrashing on every visibility toggle during DOM Caching */}

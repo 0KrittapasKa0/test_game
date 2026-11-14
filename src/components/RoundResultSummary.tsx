@@ -7,7 +7,7 @@ import PlayerAvatar from './PlayerAvatar';
 import { formatChips } from '../utils/formatChips';
 
 export default function RoundResultSummary() {
-    const { players, dealerIndex, nextRound, isSpectating } = useGameStore();
+    const { players, dealerIndex, nextRound, isSpectating, config } = useGameStore();
 
     const dealer = players[dealerIndex];
     const humanPlayer = players.find((p: any) => p.isHuman);
@@ -120,6 +120,7 @@ export default function RoundResultSummary() {
                                             name={p.name}
                                             color={p.avatarColor}
                                             avatarUrl={p.avatarUrl}
+                                            dealerVariant={p.isDealer && !p.isHuman ? config?.dealerVariant ?? 'male' : undefined}
                                             chips={p.chips}
                                             isDealer={p.isDealer}
                                             isActive={false}

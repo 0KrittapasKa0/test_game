@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { useOnlineStore } from '../store/useOnlineStore';
 import { useGameStore } from '../store/useGameStore';
-import { RoomEnvironment } from '../components/RoomEnvironment';
 import PlayerAvatar from '../components/PlayerAvatar';
 import OnlineGameTable, { useOnlineEmoji } from '../components/OnlineGameTable';
 import OnlineRoundResultSummary from '../components/OnlineRoundResultSummary';
@@ -14,6 +13,7 @@ import { Copy, Check, Smile } from 'lucide-react';
 import ChipSelector from '../components/ChipSelector';
 import EmojiPicker from '../components/EmojiPicker';
 import FloatingEmoji from '../components/FloatingEmoji';
+import { TableArtwork } from '../components/GameScene';
 export default function OnlineGameScreen() {
     const {
         config, players, roomId, localPlayerId, leaveRoom, isHost, startGame,
@@ -179,7 +179,7 @@ export default function OnlineGameScreen() {
                 >
                     {/* Outer Wood Border */}
                     <div
-                        className="absolute inset-0 rounded-3xl"
+                        className="absolute inset-0 rounded-3xl image-table-rail"
                         style={{
                             background: 'linear-gradient(180deg, #5c3a1e 0%, #3e2415 30%, #2a1a0e 70%, #1a0f08 100%)',
                             boxShadow: '0 8px 40px rgba(0,0,0,0.8), 0 2px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
@@ -211,26 +211,7 @@ export default function OnlineGameScreen() {
                                         boxShadow: 'inset 0 0 60px rgba(0,0,0,0.5), inset 0 0 120px rgba(0,0,0,0.15)',
                                     }}
                                 >
-                                    <RoomEnvironment category={config.room.category} />
-
-                                    <div
-                                        className="absolute inset-0 opacity-[0.04] pointer-events-none"
-                                        style={{
-                                            backgroundImage: `url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E")`,
-                                        }}
-                                    />
-
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <div
-                                            className="rounded-lg"
-                                            style={{
-                                                width: '88%',
-                                                height: '84%',
-                                                border: '1px solid rgba(255,215,100,0.06)',
-                                                boxShadow: 'inset 0 0 30px rgba(0,0,0,0.08)',
-                                            }}
-                                        />
-                                    </div>
+                                    <TableArtwork category={config.room.category} />
 
                                     {/* Waiting for Players Banner / Start Game */}
                                     {gamePhase === 'WAITING' && (
@@ -286,6 +267,8 @@ export default function OnlineGameScreen() {
                                         avatarUrl={player.avatarUrl}
                                         chips={player.chips}
                                         isDealer={player.isDealer}
+                                        dealerAction={player.isDealer && !player.isHuman ? 'idle' : undefined}
+                                        dealerVariant={player.isDealer && !player.isHuman ? config?.dealerVariant : undefined}
                                         isActive={false}
                                         result={'pending'}
                                         size={60}

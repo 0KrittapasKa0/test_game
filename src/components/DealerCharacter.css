@@ -1,0 +1,19 @@
+.dealer-character { position: relative; width: 144px; height: 132px; isolation: isolate; }
+.dealer-character__sprite {
+    position: absolute; left: 0; right: 0; top: -10px; aspect-ratio: 1;
+    background-repeat: no-repeat; background-size: 400% 600%;
+    background-position: 0 var(--sprite-row);
+    animation: dealer-frames 1.8s steps(3, end) infinite alternate;
+    filter: drop-shadow(0 6px 8px #0007);
+}
+.dealer-character--shuffle .dealer-character__sprite { animation-duration: 0.6s; }
+.dealer-character--deal .dealer-character__sprite { animation: dealer-frames 0.4s steps(3, end) 1 both; }
+.dealer-character--reveal .dealer-character__sprite { animation-duration: 0.7s; }
+.dealer-character--win .dealer-character__sprite, .dealer-character--lose .dealer-character__sprite { animation-duration: 0.85s; animation-iteration-count: 2; animation-fill-mode: forwards; }
+.dealer-character__aura { position: absolute; inset: 25% 0 0; border-radius: 50%; background: radial-gradient(ellipse, #d4b36330, transparent 70%); z-index: -1; }
+.dealer-character--win .dealer-character__aura { background: radial-gradient(ellipse, #f8d77855, transparent 70%); }
+.dealer-character--lose .dealer-character__aura { background: radial-gradient(ellipse, #517caa44, transparent 70%); }
+.dealer-character__title { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 9px; color: #f2dd9c; background: linear-gradient(90deg, transparent, #07130de6 20% 80%, transparent); padding: 2px 12px; letter-spacing: 0.06em; }
+@keyframes dealer-frames { from { background-position-x: 0%; } to { background-position-x: 100%; } }
+@media (max-width: 640px) { .dealer-character { width: 112px; height: 106px; } }
+@media (prefers-reduced-motion: reduce) { .dealer-character__sprite { animation: none !important; background-position-x: 0%; } }

@@ -8,6 +8,7 @@ import { formatChips, numberToThaiVoice } from '../utils/formatChips';
 import { ROOMS } from '../types/game';
 import type { RoomConfig } from '../types/game';
 import { SFX, speakPhrase } from '../utils/sound';
+import { roomSceneAsset } from '../utils/gameArt';
 
 export default function GameSetupScreen() {
     const { setScreen, initGame, screen } = useGameStore();
@@ -216,6 +217,7 @@ export default function GameSetupScreen() {
                                         return (
                                             <motion.button
                                                 key={room.id}
+                                                style={{ backgroundImage: `linear-gradient(90deg, rgba(3,12,10,0.94), rgba(3,12,10,0.78)), url("${roomSceneAsset(room.category)}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                                                 whileTap={affordable ? { scale: 0.96 } : {}}
                                                 onClick={() => affordable && handleSelectRoom(room)}
                                                 disabled={!affordable}

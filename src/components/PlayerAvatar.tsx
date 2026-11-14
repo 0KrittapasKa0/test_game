@@ -1,6 +1,10 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { formatChips } from '../utils/formatChips';
+import DealerCharacter from './DealerCharacter';
+import type { DealerAction } from '../utils/dealerAnimation';
+import type { DealerVariant } from '../types/game';
+import { dealerSpriteAsset } from '../utils/gameArt';
 
 interface PlayerAvatarProps {
     name: string;
@@ -13,6 +17,9 @@ interface PlayerAvatarProps {
     size?: 'sm' | 'md' | 'lg' | number;
     hideInfo?: boolean;
     isSpectating?: boolean;
+    dealerAction?: DealerAction;
+    dealerCue?: number;
+    dealerVariant?: DealerVariant;
 }
 
 function PlayerAvatar({
@@ -26,6 +33,9 @@ function PlayerAvatar({
     size = 'md',
     hideInfo = false,
     isSpectating = false,
+    dealerAction,
+    dealerCue,
+    dealerVariant,
 }: PlayerAvatarProps) {
     const sizeMap = {
         sm: { circle: 'w-9 h-9 text-xs', font: 'text-[10px]', chipFont: 'text-[10px]' },
@@ -75,7 +85,9 @@ function PlayerAvatar({
                     />
                 )}
 
-                {avatarUrl ? (
+                {dealerAction ? (
+                    <DealerCharacter action={dealerAction} cue={dealerCue} variant={dealerVariant} />
+                ) : dealerVariant || avatarUrl ? (
                     /* API avatar: photo image */
                     <div
                         className={`${s.circle} rounded-full transition-all duration-200 overflow-hidden relative z-10`}
@@ -86,9 +98,11 @@ function PlayerAvatar({
                         }}
                     >
                         <img
-                            src={avatarUrl}
+                            src={dealerVariant ? dealerSpriteAsset(dealerVariant) : avatarUrl}
                             alt={name}
-                            className="w-full h-full object-cover rounded-full"
+                            className={dealerVariant
+                                ? 'absolute w-[1200%] max-w-none -left-[105%] -top-[32%]'
+                                : 'w-full h-full object-cover rounded-full'}
                             draggable={false}
                         />
                     </div>

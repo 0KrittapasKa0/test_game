@@ -2,6 +2,9 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Smile } from 'lucide-react';
 import Card from './Card';
+import DealingDeck from './DealingDeck';
+import { TableArtwork } from './GameScene';
+import { getDealerAction } from '../utils/dealerAnimation';
 import PlayerAvatar from './PlayerAvatar';
 import ChipSelector from './ChipSelector';
 import ChipStack from './ChipStack';
@@ -10,7 +13,6 @@ import { useGameStore } from '../store/useGameStore';
 import { SFX, speakPhrase } from '../utils/sound';
 import { evaluateHand } from '../utils/deck';
 import { formatChips, numberToThaiVoice } from '../utils/formatChips';
-import { RoomEnvironment } from './RoomEnvironment';
 import EmojiPicker from './EmojiPicker';
 import FloatingEmoji, { type FloatingEmojiEvent } from './FloatingEmoji';
 import { tryBotEmoji, trySocialReaction, getContextualEmojiResponse, resetEmojiCooldowns, updateMood } from '../utils/aiEmojiLogic';
@@ -418,7 +420,7 @@ export default function GameTable() {
 
     return (
         <div className="w-full h-full flex flex-col overflow-hidden font-sans"
-            style={{ background: 'radial-gradient(ellipse at 50% 40%, #151d15 0%, #0d1210 40%, #080c0a 100%)' }}
+            style={{ background: 'transparent' }}
         >
             {/* ===== Top Bar ===== */}
             <div className="relative flex items-center justify-between px-3 sm:px-5 py-2.5 z-50 shrink-0">
@@ -448,7 +450,7 @@ export default function GameTable() {
                 {/* ===== TABLE (สี่เหลี่ยม) ===== */}
                 <div
                     className="relative"
-                    ref={tableRef}
+                    ref={tableRef} data-card-table
                     style={{
                         width: 'min(85%, 880px)',
                         height: 'min(68%, 510px)',
@@ -456,7 +458,7 @@ export default function GameTable() {
                 >
                     {/* Outer Wood Border */}
                     <div
-                        className="absolute inset-0 rounded-3xl"
+                        className="absolute inset-0 rounded-3xl image-table-rail"
                         style={{
                             background: 'linear-gradient(180deg, #5c3a1e 0%, #3e2415 30%, #2a1a0e 70%, #1a0f08 100%)',
                             boxShadow: graphicQuality !== 'HIGH' ? 'none' : '0 8px 40px rgba(0,0,0,0.8), 0 2px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
@@ -481,7 +483,7 @@ export default function GameTable() {
                             >
                                 {/* ===== Felt Surface ===== */}
                                 <div
-                                    className="w-full h-full rounded-xl relative overflow-hidden"
+                                    className="w-full h-full rounded-xl relative"
                                     style={{
                                         background: config?.room?.category === 'HIGH_STAKES' ? 'radial-gradient(ellipse at 45% 35%, #1e3a8a 0%, #172554 40%, #0a0f24 80%, #040814 100%)' :
                                             config?.room?.category === 'EXPERT' ? 'radial-gradient(ellipse at 45% 35%, #6b21a8 0%, #4c1d95 40%, #2e1065 80%, #18053a 100%)' :
@@ -491,59 +493,7 @@ export default function GameTable() {
                                         boxShadow: graphicQuality !== 'HIGH' ? 'none' : 'inset 0 0 60px rgba(0,0,0,0.5), inset 0 0 120px rgba(0,0,0,0.15)',
                                     }}
                                 >
-                                    {(graphicQuality === 'HIGH') && config?.room && <RoomEnvironment category={config.room.category} />}
-
-                                    {/* Felt Texture */}
-                                    <div
-                                        className="absolute inset-0 opacity-[0.04] pointer-events-none"
-                                        style={{
-                                            backgroundImage: `url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E")`,
-                                        }}
-                                    />
-
-                                    {/* Light highlight */}
-                                    <div
-                                        className="absolute inset-0 pointer-events-none"
-                                        style={{
-                                            background: 'radial-gradient(ellipse at 40% 30%, rgba(255,255,255,0.04) 0%, transparent 60%)',
-                                        }}
-                                    />
-
-                                    {/* Inner decorative border */}
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <div
-                                            className="rounded-lg"
-                                            style={{
-                                                width: '88%',
-                                                height: '84%',
-                                                border: '1px solid rgba(255,215,100,0.06)',
-                                                boxShadow: 'inset 0 0 30px rgba(0,0,0,0.08)',
-                                            }}
-                                        />
-                                    </div>
-
-                                    {/* Center Logo */}
-                                    {/* Center Logo */}
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-                                        <div className="flex flex-col items-center opacity-[0.07]">
-                                            <span className="text-3xl sm:text-5xl md:text-6xl font-bold text-yellow-300 tracking-[0.2em] font-serif"
-                                                style={{ textShadow: '0 0 40px rgba(255,215,100,0.3)' }}
-                                            >
-                                                ป๊อกเด้ง
-                                            </span>
-                                            <div className="w-28 sm:w-40 h-px bg-linear-to-r from-transparent via-yellow-400/40 to-transparent mt-2 mb-2" />
-                                            {config && (
-                                                <span className="text-sm sm:text-base font-light text-yellow-200/80 tracking-widest uppercase">
-                                                    {config.room.name}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* ===== Deck Area ===== */}
-                                    <div className="absolute inset-0 flex items-center justify-center z-1 pointer-events-none">
-                                        {/* Animation removed for performance optimization */}
-                                    </div>
+                                    <TableArtwork category={config?.room.category} />
 
                                     {/* ===== Central Pot Display ===== */}
                                     {totalPot > 0 && (
@@ -598,6 +548,7 @@ export default function GameTable() {
                             </div>
                         </div>
                     </div>
+                    <DealingDeck dealing={gamePhase === 'DEALING'} />
                     {/* ===== Players Layer (inside table container) ===== */}
                     <div className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', zIndex: 20 }}>
                         {activePlayers.map((player, idx) => {
@@ -616,8 +567,8 @@ export default function GameTable() {
                                     key={player.id}
                                     className={`absolute flex flex-col items-center pointer-events-auto transition-all duration-500`}
                                     style={{
-                                        left: `${pos.x}%`,
-                                        top: `${pos.y}%`,
+                                        left: `clamp(16px, ${pos.x}%, calc(100% - 16px))`,
+                                        top: `${pos.y + (player.isDealer && !player.isHuman ? 10 : 0)}%`,
                                         transform: 'translate(-50%, -50%)',
                                         minWidth: '100px',
                                         zIndex: isActive ? 100 : zIndex,
@@ -633,6 +584,9 @@ export default function GameTable() {
                                                 avatarUrl={player.avatarUrl}
                                                 chips={player.chips}
                                                 isDealer={player.isDealer}
+                                                dealerAction={player.isDealer && !player.isHuman ? getDealerAction(gamePhase, players.reduce((sum, p) => sum + p.cards.length, 0), player.result) : undefined}
+                                                dealerCue={players.reduce((sum, p) => sum + p.cards.length, 0)}
+                                                dealerVariant={player.isDealer && !player.isHuman ? config?.dealerVariant : undefined}
                                                 isActive={isActive}
                                                 result={gamePhase === 'ROUND_END' ? player.result : 'pending'}
                                                 size={isHuman ? 60 : 48}
@@ -677,6 +631,7 @@ export default function GameTable() {
                                                 <div key={card.id} style={{ zIndex: ci }}>
                                                     <Card
                                                         card={card}
+                                                        dealFromDeck={gamePhase === 'DEALING'}
                                                         faceDown={!showCards && !player.hasPok}
                                                         delay={ci * 0.1}
                                                         small={true}
@@ -726,6 +681,7 @@ export default function GameTable() {
                                                     <div key={card.id} style={{ zIndex: ci }}>
                                                         <Card
                                                             card={card}
+                                                            dealFromDeck={gamePhase === 'DEALING'}
                                                             faceDown={false}
                                                             delay={ci * 0.1}
                                                             small={false}
