@@ -98,7 +98,7 @@ function PlayerAvatar({
                     >
                         <img
                             src={dealerVariant ? dealerSpriteAsset(dealerVariant) : avatarUrl}
-                            alt={name}
+                            alt={name || 'Dealer'}
                             decoding="async"
                             className={dealerVariant
                                 ? 'absolute w-[1200%] max-w-none -left-[105%] -top-[32%]'
@@ -143,9 +143,11 @@ function PlayerAvatar({
             </div>
             {!hideInfo && (
                 <>
-                    <span className={`text-white ${s.font} font-medium ${isSpectating ? 'opacity-50' : ''} truncate max-w-[70px] leading-tight drop-shadow-md`}>
-                        {name}
-                    </span>
+                    {!dealerVariant && name && (
+                        <span className={`text-white ${s.font} font-medium ${isSpectating ? 'opacity-50' : ''} truncate max-w-[70px] leading-tight drop-shadow-md`}>
+                            {name}
+                        </span>
+                    )}
                     <div className={`flex items-center gap-1 bg-[rgba(0,0,0,0.6)] px-1.5 rounded-full ${isSpectating ? 'opacity-50 grayscale' : ''}`}>
                         <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.8)]" />
                         <span className={`text-yellow-300 ${s.chipFont} font-bold`}>{formatChips(chips)}</span>

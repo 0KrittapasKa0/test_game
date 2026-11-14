@@ -155,6 +155,119 @@ function getNoiseBuffer(ctx: AudioContext, duration: number): AudioBuffer {
     return buffer;
 }
 
+function getRawNoiseBuffer(ctx: AudioContext, duration: number): AudioBuffer {
+    const key = `raw:${ctx.sampleRate}:${duration}`;
+    let buffer = noiseBufferCache.get(key);
+    if (!buffer) {
+        const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * duration));
+        buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        noiseBufferCache.set(key, buffer);
+    }
+    return buffer;
+}
+
+/** Synthesize a single physical clay/ceramic poker chip impact at a precise Web Audio time */
+function scheduleChipClack(
+    ctx: AudioContext,
+    startTime: number,
+    options: { pitch?: number; volume?: number; feltThud?: boolean } = {},
+) {
+    const { pitch = 1, volume = 0.2, feltThud = false } = options;
+
+    // 1. Crisp edge contact transient (short bandpass-filtered noise snap)
+    const clickDur = 0.016;
+    const noiseSrc = ctx.createBufferSource();
+    noiseSrc.buffer = getRawNoiseBuffer(ctx, clickDur);
+
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = 'bandpass';
+    bandpass.frequency.setValueAtTime(3600 * pitch, startTime);
+    bandpass.Q.setValueAtTime(2.4, startTime);
+
+    const clickGain = ctx.createGain();
+    clickGain.gain.setValueAtTime(0.001, startTime);
+    clickGain.gain.linearRampToValueAtTime(volume * 0.72, startTime + 0.0012);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, startTime + clickDur);
+
+    noiseSrc.connect(bandpass);
+    bandpass.connect(clickGain);
+    clickGain.connect(ctx.destination);
+    noiseSrc.start(startTime);
+    noiseSrc.stop(startTime + clickDur);
+
+    // 2. Two tightly damped inharmonic disk resonances (~1 : 1.68 ratio for clay composite)
+    const bodyOsc = ctx.createOscillator();
+    bodyOsc.type = 'sine';
+    bodyOsc.frequency.setValueAtTime(2650 * pitch, startTime);
+    bodyOsc.frequency.exponentialRampToValueAtTime(2380 * pitch, startTime + 0.016);
+
+    const bodyGain = ctx.createGain();
+    bodyGain.gain.setValueAtTime(volume * 0.45, startTime);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.017);
+
+    bodyOsc.connect(bodyGain);
+    bodyGain.connect(ctx.destination);
+    bodyOsc.start(startTime);
+    bodyOsc.stop(startTime + 0.018);
+
+    const overtoneOsc = ctx.createOscillator();
+    overtoneOsc.type = 'sine';
+    overtoneOsc.frequency.setValueAtTime(4450 * pitch, startTime);
+
+    const overtoneGain = ctx.createGain();
+    overtoneGain.gain.setValueAtTime(volume * 0.28, startTime);
+    overtoneGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.011);
+
+    overtoneOsc.connect(overtoneGain);
+    overtoneGain.connect(ctx.destination);
+    overtoneOsc.start(startTime);
+    overtoneOsc.stop(startTime + 0.012);
+
+    // 3. Optional damped table-felt weight thud
+    if (feltThud) {
+        const thudOsc = ctx.createOscillator();
+        thudOsc.type = 'sine';
+        thudOsc.frequency.setValueAtTime(235 * pitch, startTime);
+        thudOsc.frequency.exponentialRampToValueAtTime(110, startTime + 0.022);
+
+        const thudGain = ctx.createGain();
+        thudGain.gain.setValueAtTime(volume * 0.34, startTime);
+        thudGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.024);
+
+        thudOsc.connect(thudGain);
+        thudGain.connect(ctx.destination);
+        thudOsc.start(startTime);
+        thudOsc.stop(startTime + 0.026);
+    }
+}
+
+/** Soft baize/felt sweep sound when sliding a chip stack across the table */
+function scheduleFeltSlide(ctx: AudioContext, startTime: number, duration = 0.08, volume = 0.05) {
+    const src = ctx.createBufferSource();
+    src.buffer = getRawNoiseBuffer(ctx, duration);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(950, startTime);
+    filter.frequency.exponentialRampToValueAtTime(1850, startTime + duration);
+    filter.Q.setValueAtTime(1.4, startTime);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.001, startTime);
+    gain.gain.linearRampToValueAtTime(volume, startTime + duration * 0.25);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(startTime);
+    src.stop(startTime + duration);
+}
+
 function playNoise(duration: number, volume = 0.08) {
     if (!isSoundEnabled()) return;
     try {
@@ -198,17 +311,31 @@ export const SFX = {
         playNoise(0.06, 0.06);
     },
 
-    /** Chip place on table */
+    /** Chip place on table (clay chip hitting casino felt + micro settle) */
     chipPlace: () => {
-        playTone(1200, 0.06, 'sine', 0.08);
-        setTimeout(() => playTone(900, 0.04, 'sine', 0.05), 30);
+        if (!isSoundEnabled()) return;
+        try {
+            const ctx = getAudioContext();
+            const t = ctx.currentTime;
+            scheduleChipClack(ctx, t, { pitch: 0.96, volume: 0.22, feltThud: true });
+            scheduleChipClack(ctx, t + 0.024, { pitch: 1.07, volume: 0.09, feltThud: false });
+        } catch {
+            // Silently fail
+        }
     },
 
-    /** Chip stack clink */
+    /** Chip stack clink (dropping a chip onto a clay chip stack) */
     chipStack: () => {
-        playTone(2400, 0.04, 'triangle', 0.06);
-        setTimeout(() => playTone(3200, 0.03, 'triangle', 0.04), 20);
-        setTimeout(() => playTone(2800, 0.03, 'triangle', 0.03), 45);
+        if (!isSoundEnabled()) return;
+        try {
+            const ctx = getAudioContext();
+            const t = ctx.currentTime;
+            scheduleChipClack(ctx, t, { pitch: 1.02, volume: 0.19, feltThud: false });
+            scheduleChipClack(ctx, t + 0.021, { pitch: 1.11, volume: 0.13, feltThud: false });
+            scheduleChipClack(ctx, t + 0.04, { pitch: 0.98, volume: 0.07, feltThud: false });
+        } catch {
+            // Silently fail
+        }
     },
 
     /** Betting confirm */
@@ -330,15 +457,31 @@ export const SFX = {
         playTone(600, 0.05, 'sine', 0.04);
     },
 
-    /** 💰 Chip collect — cascading metallic coins */
+    /** 💰 Chip collect — cascading clay poker chips swept into a stack */
     chipCollect: () => {
-        const tones = [2000, 2400, 1800, 2600, 2200, 3000, 2800];
-        tones.forEach((freq, i) => {
-            setTimeout(() => {
-                playTone(freq, 0.06, 'triangle', 0.05 - i * 0.005);
-                playTone(freq * 0.75, 0.04, 'sine', 0.03);
-            }, i * 60);
-        });
+        if (!isSoundEnabled()) return;
+        try {
+            const ctx = getAudioContext();
+            const t = ctx.currentTime;
+            scheduleFeltSlide(ctx, t, 0.09, 0.055);
+            const cascade = [
+                { offset: 0.015, pitch: 0.92, volume: 0.16, feltThud: true },
+                { offset: 0.048, pitch: 1.05, volume: 0.19, feltThud: true },
+                { offset: 0.076, pitch: 0.97, volume: 0.21, feltThud: false },
+                { offset: 0.101, pitch: 1.11, volume: 0.2, feltThud: false },
+                { offset: 0.125, pitch: 1.03, volume: 0.18, feltThud: false },
+                { offset: 0.151, pitch: 0.95, volume: 0.16, feltThud: false },
+                { offset: 0.18, pitch: 1.08, volume: 0.14, feltThud: false },
+                { offset: 0.214, pitch: 1.01, volume: 0.11, feltThud: false },
+                { offset: 0.254, pitch: 1.13, volume: 0.08, feltThud: false },
+                { offset: 0.302, pitch: 1.04, volume: 0.05, feltThud: false },
+            ];
+            cascade.forEach(({ offset, pitch, volume, feltThud }) => {
+                scheduleChipClack(ctx, t + offset, { pitch, volume, feltThud });
+            });
+        } catch {
+            // Silently fail
+        }
     },
 
     /** 🎰 Slider tick — subtle roulette tick */
@@ -376,11 +519,19 @@ export const SFX = {
         setTimeout(() => playTone(196, 0.7, 'sine', 0.04), 800);
     },
 
-    /** 🔄 Repeat bet — quick chip slide */
+    /** 🔄 Repeat bet — sliding a small stack of clay chips onto the felt */
     repeatBet: () => {
-        playTone(1000, 0.04, 'sine', 0.06);
-        setTimeout(() => playTone(1400, 0.04, 'sine', 0.05), 25);
-        setTimeout(() => playTone(1100, 0.03, 'triangle', 0.04), 50);
+        if (!isSoundEnabled()) return;
+        try {
+            const ctx = getAudioContext();
+            const t = ctx.currentTime;
+            scheduleFeltSlide(ctx, t, 0.055, 0.045);
+            scheduleChipClack(ctx, t + 0.012, { pitch: 0.94, volume: 0.18, feltThud: true });
+            scheduleChipClack(ctx, t + 0.039, { pitch: 1.04, volume: 0.15, feltThud: true });
+            scheduleChipClack(ctx, t + 0.065, { pitch: 1.1, volume: 0.1, feltThud: false });
+        } catch {
+            // Silently fail
+        }
     },
 
     /** ⏰ Countdown tick — clock-like tick */

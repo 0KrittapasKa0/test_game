@@ -2,8 +2,8 @@ import { motion } from 'framer-motion';
 import { useOnlineStore } from '../store/useOnlineStore';
 import { useGameStore } from '../store/useGameStore';
 import PlayerAvatar from '../components/PlayerAvatar';
-import OnlineGameTable, { useOnlineEmoji } from '../components/OnlineGameTable';
-import OnlineRoundResultSummary from '../components/OnlineRoundResultSummary';
+import OnlineGameTable from '../components/OnlineGameTable';
+import { useOnlineEmoji } from '../hooks/useOnlineEmoji';
 import { AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { SFX, speakPhrase, BGM } from '../utils/sound';
@@ -22,6 +22,7 @@ export default function OnlineGameScreen() {
     const leaveRoom = useOnlineStore(s => s.leaveRoom);
     const isHost = useOnlineStore(s => s.isHost);
     const startGame = useOnlineStore(s => s.startGame);
+    const nextRound = useOnlineStore(s => s.nextRound);
     const gamePhase = useOnlineStore(s => s.gamePhase);
     const connectionStatus = useOnlineStore(s => s.connectionStatus);
     const isSpectating = useOnlineStore(s => s.isSpectating);
@@ -34,6 +35,14 @@ export default function OnlineGameScreen() {
 
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
+
+    useEffect(() => {
+        if (gamePhase !== 'ROUND_END' || !isHost) return;
+        const timerId = window.setTimeout(() => {
+            nextRound();
+        }, 2950);
+        return () => window.clearTimeout(timerId);
+    }, [gamePhase, isHost, nextRound]);
 
     // Emoji system (hook manages state, networking, AI reactions)
     const { emojiEvents, showEmojiPicker, setShowEmojiPicker, handleSendEmoji } = useOnlineEmoji();
@@ -436,13 +445,6 @@ export default function OnlineGameScreen() {
                             </motion.div>
                         </div>
                     </div>
-                )}
-            </AnimatePresence>
-
-            {/* Round Summary Screen */}
-            <AnimatePresence>
-                {gamePhase === 'ROUND_END' && (
-                    <OnlineRoundResultSummary />
                 )}
             </AnimatePresence>
 

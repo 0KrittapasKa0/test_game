@@ -8,7 +8,7 @@ import { getDealerAction } from '../utils/dealerAnimation';
 import PlayerAvatar from './PlayerAvatar';
 import ChipSelector from './ChipSelector';
 import ChipStack from './ChipStack';
-import RoundResultSummary from './RoundResultSummary';
+import RoundChipSettlement from './RoundChipSettlement';
 import { useGameStore } from '../store/useGameStore';
 import { SFX, speakPhrase } from '../utils/sound';
 import { evaluateHand } from '../utils/deck';
@@ -158,6 +158,7 @@ export default function GameTable() {
     const confirmBet = useGameStore(s => s.confirmBet);
     const playerDraw = useGameStore(s => s.playerDraw);
     const playerStay = useGameStore(s => s.playerStay);
+    const nextRound = useGameStore(s => s.nextRound);
     const resetGame = useGameStore(s => s.resetGame);
     const addChips = useGameStore(s => s.addChips);
 
@@ -165,6 +166,14 @@ export default function GameTable() {
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [emojiEvents, setEmojiEvents] = useState<FloatingEmojiEvent[]>([]);
     const timeoutsRef = useRef<Set<number>>(new Set());
+
+    useEffect(() => {
+        if (gamePhase !== 'ROUND_END') return;
+        const timerId = window.setTimeout(() => {
+            nextRound();
+        }, 2950);
+        return () => window.clearTimeout(timerId);
+    }, [gamePhase, nextRound]);
 
     const scheduleTimeout = useCallback((fn: () => void, ms: number) => {
         const id = window.setTimeout(() => {
@@ -568,7 +577,7 @@ export default function GameTable() {
                                     )}
 
                                     {/* ===== Render Chips on Table ===== */}
-                                    {activePlayers.map((player, idx) => {
+                                    {gamePhase !== 'ROUND_END' && activePlayers.map((player, idx) => {
                                         const pos = seatPositions[idx];
                                         if (!pos || player.isDealer || player.bet <= 0) return null;
                                         const chipPos = getChipPosition(pos);
@@ -587,6 +596,16 @@ export default function GameTable() {
                                             </div>
                                         );
                                     })}
+
+                                    {/* ===== Round Settlement Chip Animation ===== */}
+                                    {gamePhase === 'ROUND_END' && (
+                                        <RoundChipSettlement
+                                            activePlayers={activePlayers}
+                                            seatPositions={seatPositions}
+                                            chipPresets={config?.room.chipPresets}
+                                            category={config?.room.category}
+                                        />
+                                    )}
 
 
                                 </div>
@@ -887,13 +906,6 @@ export default function GameTable() {
             </AnimatePresence>
 
 
-
-            {/* ===== Round Summary Screen ===== */}
-            <AnimatePresence>
-                {gamePhase === 'ROUND_END' && (
-                    <RoundResultSummary />
-                )}
-            </AnimatePresence>
 
             {/* Emoji Trigger Button */}
             {!isSpectating && humanPlayer && (

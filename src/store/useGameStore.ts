@@ -145,22 +145,23 @@ function createAiPlayers(
     count: number,
     aiChips: number,
     startIndex: number,
-    randomUsers: RandomUserResult[] = [],
+    randomUsers: (RandomUserResult | undefined)[] = [],
     seatStartIndex: number = 1,
     minBet: number = 10,
     humanChips?: number,
-
+    skipProfileIndex: number = -1,
 ): Player[] {
     const shuffledNames = [...AI_NAMES].sort(() => Math.random() - 0.5);
     const shuffledColors = [...AVATAR_COLORS].sort(() => Math.random() - 0.5);
 
     return Array.from({ length: count }, (_, i) => {
         const chips = randomizeAiChips(aiChips, minBet, humanChips);
+        const skipProfile = i === skipProfileIndex;
         return {
             id: `ai-${aiIdCounter++}`,
-            name: randomUsers[i]?.name || shuffledNames[i % shuffledNames.length],
+            name: skipProfile ? '' : (randomUsers[i]?.name || shuffledNames[i % shuffledNames.length]),
             avatarColor: shuffledColors[(startIndex + i + 1) % shuffledColors.length],
-            avatarUrl: randomUsers[i]?.avatarUrl || undefined,
+            avatarUrl: skipProfile ? undefined : (randomUsers[i]?.avatarUrl || undefined),
             isHuman: false,
             isDealer: false,
             cards: [],
@@ -284,10 +285,22 @@ export const useGameStore = create<GameState>((set, get) => ({
         };
 
         const aiCount = config.playerCount - 1;
+        const hasBotDealer = !config.humanIsDealer && aiCount > 0;
+        const fetchCount = hasBotDealer ? Math.max(0, aiCount - 1) : aiCount;
 
-        // Fetch random user data (with fallback to AI_NAMES)
-        const randomUsers = await fetchRandomUsers(aiCount);
-        const aiPlayers = createAiPlayers(aiCount, config.room.aiChips, 0, randomUsers, 1, config.room.minBet, profile.chips);
+        // Fetch random user data only for non-dealer AI players (bot dealer uses dealer character art without a name)
+        const fetchedUsers = fetchCount > 0 ? await fetchRandomUsers(fetchCount) : [];
+        const alignedUsers: (RandomUserResult | undefined)[] = hasBotDealer ? [undefined, ...fetchedUsers] : fetchedUsers;
+        const aiPlayers = createAiPlayers(
+            aiCount,
+            config.room.aiChips,
+            0,
+            alignedUsers,
+            1,
+            config.room.minBet,
+            profile.chips,
+            hasBotDealer ? 0 : -1,
+        );
 
         const allPlayers = [humanPlayer, ...aiPlayers];
         const dealerIndex = config.humanIsDealer ? 0 : 1;
