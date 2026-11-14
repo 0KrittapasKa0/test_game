@@ -8,6 +8,7 @@ import { getDealerAction } from '../utils/dealerAnimation';
 import PlayerAvatar from './PlayerAvatar';
 import ChipSelector from './ChipSelector';
 import ChipStack from './ChipStack';
+import { ChipIcon } from './ChipIcon';
 import RoundChipSettlement from './RoundChipSettlement';
 import { useGameStore } from '../store/useGameStore';
 import { SFX, speakPhrase } from '../utils/sound';
@@ -492,7 +493,7 @@ export default function GameTable() {
                         className="bg-[rgba(0,0,0,0.65)] px-3 py-1.5 rounded-xl border border-white/6 flex items-center gap-1.5 cursor-pointer pointer-events-auto hover:bg-[rgba(0,0,0,0.8)] transition-colors active:scale-95"
                         onClick={() => { SFX.click(); speakPhrase(`มี ${numberToThaiVoice(humanPlayer.chips)} ชิปค่ะ`); }}
                     >
-                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-linear-to-br from-yellow-300 to-amber-500 shadow-[0_0_6px_rgba(250,204,21,0.6)]" />
+                        <ChipIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                         <span className="text-yellow-300 text-xs sm:text-sm font-bold">{formatChips(humanPlayer.chips, true)}</span>
                     </div>
                 )}

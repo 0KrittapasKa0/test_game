@@ -11,6 +11,7 @@ import { formatChips, numberToThaiVoice } from '../utils/formatChips';
 import { loadProfile, saveProfile } from '../utils/storage';
 import { Copy, Check, Smile } from 'lucide-react';
 import ChipSelector from '../components/ChipSelector';
+import { ChipIcon } from '../components/ChipIcon';
 import EmojiPicker from '../components/EmojiPicker';
 import FloatingEmoji from '../components/FloatingEmoji';
 import { TableArtwork } from '../components/GameScene';
@@ -181,7 +182,7 @@ export default function OnlineGameScreen() {
                             className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-1.5 cursor-pointer hover:bg-black/60 transition-colors active:scale-95 shadow-lg shadow-black/50"
                             onClick={() => { SFX.click(); speakPhrase(`มีชิปตุนไว้ ${numberToThaiVoice(localPlayer.chips)} ชิปค่ะ`); }}
                         >
-                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-linear-to-br from-yellow-300 to-amber-500 shadow-[0_0_6px_rgba(250,204,21,0.6)]" />
+                            <ChipIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                             <span className="text-yellow-300 text-xs sm:text-sm font-bold">{formatChips(localPlayer.chips, true)}</span>
                         </div>
                     )}

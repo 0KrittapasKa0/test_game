@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { formatChips } from '../utils/formatChips';
+import { ChipIcon } from './ChipIcon';
 import DealerCharacter from './DealerCharacter';
 import type { DealerAction } from '../utils/dealerAnimation';
 import type { DealerVariant } from '../types/game';
@@ -148,8 +149,8 @@ function PlayerAvatar({
                             {name}
                         </span>
                     )}
-                    <div className={`flex items-center gap-1 bg-[rgba(0,0,0,0.6)] px-1.5 rounded-full ${isSpectating ? 'opacity-50 grayscale' : ''}`}>
-                        <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.8)]" />
+                    <div className={`flex items-center gap-1 bg-[rgba(0,0,0,0.6)] px-1.5 py-0.5 rounded-full border border-yellow-500/20 ${isSpectating ? 'opacity-50 grayscale' : ''}`}>
+                        <ChipIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         <span className={`text-yellow-300 ${s.chipFont} font-bold`}>{formatChips(chips)}</span>
                     </div>
                 </>
