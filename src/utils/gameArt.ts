@@ -6,7 +6,7 @@ const roomImages: Record<RoomCategory, string> = {
     LEGENDARY: 'legendary', ULTIMATE: 'ultimate',
 };
 export function sceneAsset(name: string) {
-    return `${import.meta.env.BASE_URL}art/${name}.png`;
+    return `${import.meta.env.BASE_URL}art/${name}.webp`;
 }
 export function roomSceneAsset(category: RoomCategory) {
     return sceneAsset(roomImages[category]);

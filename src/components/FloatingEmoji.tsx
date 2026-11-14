@@ -13,7 +13,7 @@ interface FloatingEmojiProps {
 }
 
 // Local Animated Emoji (from public/emojis folder)
-export function getAnimatedEmojiUrl(emoji: string, _size: number = 512): string {
+export function getAnimatedEmojiUrl(emoji: string, _size: number = 160): string {
     const code = Array.from(emoji)
         .map(char => char.codePointAt(0)?.toString(16))
         .filter(c => c !== 'fe0f') // remove variation selector
@@ -23,11 +23,7 @@ export function getAnimatedEmojiUrl(emoji: string, _size: number = 512): string 
 
 // Local Static Emoji fallback (if applicable, currently mapping to the same animated file)
 export function getStaticEmojiUrl(emoji: string): string {
-    const code = Array.from(emoji)
-        .map(char => char.codePointAt(0)?.toString(16))
-        .filter(c => c !== 'fe0f') // remove variation selector
-        .join('_');
-    return `/emojis/${code}_512.webp`; // Fallback to the 512px version on local
+    return getAnimatedEmojiUrl(emoji);
 }
 
 

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Smile } from 'lucide-react';
 import Card from './Card';
@@ -145,17 +145,43 @@ function getChipPosition(playerPos: SeatPosition): SeatPosition {
 }
 
 export default function GameTable() {
-    const {
-        players, gamePhase,
-        showCards, config,
-        activePlayerIndex, aiBettingInProgress, isSpectating, humanBetConfirmed,
-        placeBet, confirmBet, playerDraw, playerStay, resetGame, addChips,
-        latestAiEvents,
-    } = useGameStore();
+    const players = useGameStore(s => s.players);
+    const gamePhase = useGameStore(s => s.gamePhase);
+    const showCards = useGameStore(s => s.showCards);
+    const config = useGameStore(s => s.config);
+    const activePlayerIndex = useGameStore(s => s.activePlayerIndex);
+    const aiBettingInProgress = useGameStore(s => s.aiBettingInProgress);
+    const isSpectating = useGameStore(s => s.isSpectating);
+    const humanBetConfirmed = useGameStore(s => s.humanBetConfirmed);
+    const latestAiEvents = useGameStore(s => s.latestAiEvents);
+    const placeBet = useGameStore(s => s.placeBet);
+    const confirmBet = useGameStore(s => s.confirmBet);
+    const playerDraw = useGameStore(s => s.playerDraw);
+    const playerStay = useGameStore(s => s.playerStay);
+    const resetGame = useGameStore(s => s.resetGame);
+    const addChips = useGameStore(s => s.addChips);
 
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [emojiEvents, setEmojiEvents] = useState<FloatingEmojiEvent[]>([]);
+    const timeoutsRef = useRef<Set<number>>(new Set());
+
+    const scheduleTimeout = useCallback((fn: () => void, ms: number) => {
+        const id = window.setTimeout(() => {
+            timeoutsRef.current.delete(id);
+            fn();
+        }, ms);
+        timeoutsRef.current.add(id);
+        return id;
+    }, []);
+
+    useEffect(() => {
+        const timeouts = timeoutsRef.current;
+        return () => {
+            timeouts.forEach(id => window.clearTimeout(id));
+            timeouts.clear();
+        };
+    }, []);
     
     const [graphicQuality, setGraphicQuality] = useState('HIGH');
     useEffect(() => {
@@ -170,13 +196,24 @@ export default function GameTable() {
     const humanIsDealer = humanPlayer?.isDealer ?? false;
 
     // Use maxSeats for stable positioning — players at fixed seatIndex positions
-    const activePlayers = isSpectating ? players.filter(p => !p.isHuman) : players;
-    const seatPositions = activePlayers.length > 0
-        ? computeSeatPositions(activePlayers.length, activePlayers.findIndex(p => p.isDealer), activePlayers.findIndex(p => p.isHuman))
-        : [];
+    const activePlayers = useMemo(
+        () => (isSpectating ? players.filter(p => !p.isHuman) : players),
+        [isSpectating, players],
+    );
+    const seatPositions = useMemo(
+        () =>
+            activePlayers.length > 0
+                ? computeSeatPositions(activePlayers.length, activePlayers.findIndex(p => p.isDealer), activePlayers.findIndex(p => p.isHuman))
+                : [],
+        [activePlayers],
+    );
+    const totalCardsDealt = useMemo(
+        () => players.reduce((sum, p) => sum + p.cards.length, 0),
+        [players],
+    );
 
     const isHumanTurn = !isSpectating && gamePhase === 'PLAYER_ACTION' && activePlayerIndex === humanIndex && humanPlayer && !humanPlayer.hasActed;
-    const totalPot = activePlayers.reduce((sum, p) => sum + p.bet, 0);
+    const totalPot = useMemo(() => activePlayers.reduce((sum, p) => sum + p.bet, 0), [activePlayers]);
 
     // Check if game is in progress (bet placed or past betting phase)
     const humanBet = humanPlayer?.bet ?? 0;
@@ -212,6 +249,11 @@ export default function GameTable() {
 
 
 
+    const emojiEventsRef = useRef(emojiEvents);
+    useEffect(() => {
+        emojiEventsRef.current = emojiEvents;
+    }, [emojiEvents]);
+
     // --- Listen to Join/Leave Events ---
     useEffect(() => {
         if (!latestAiEvents || latestAiEvents.length === 0) return;
@@ -219,7 +261,7 @@ export default function GameTable() {
         latestAiEvents.forEach(event => {
             const delay = 400 + Math.random() * 800; // Quick reaction
 
-            setTimeout(() => {
+            scheduleTimeout(() => {
                 let context: EmojiContext | null = null;
                 if (event.type === 'join') {
                     context = 'join_room';
@@ -242,14 +284,14 @@ export default function GameTable() {
                             timestamp: Date.now()
                         };
                         setEmojiEvents(prev => [...prev, newEvent]);
-                        setTimeout(() => {
+                        scheduleTimeout(() => {
                             setEmojiEvents(prev => prev.filter(e => e.id !== newEvent.id));
                         }, 2500);
                     }
                 }
             }, delay);
         });
-    }, [latestAiEvents]);
+    }, [latestAiEvents, scheduleTimeout]);
 
 
 
@@ -266,7 +308,7 @@ export default function GameTable() {
         setEmojiEvents(prev => [...prev, newEvent]);
 
         // Remove emoji after 2 seconds
-        setTimeout(() => {
+        scheduleTimeout(() => {
             setEmojiEvents(prev => prev.filter(e => e.id !== newEvent.id));
         }, 2000);
 
@@ -276,7 +318,7 @@ export default function GameTable() {
         // Smart contextual response: letting all AIs evaluate if they want to respond
         aiPlayers.forEach((ai) => {
             const delay = 600 + Math.random() * 2500; // Random delay per bot
-            setTimeout(() => {
+            scheduleTimeout(() => {
                 const aiEmoji = getContextualEmojiResponse(emoji, ai.id);
                 if (aiEmoji) {
                     const aiEvent: FloatingEmojiEvent = {
@@ -287,17 +329,19 @@ export default function GameTable() {
                     };
 
                     setEmojiEvents(prev => [...prev, aiEvent]);
-                    setTimeout(() => {
+                    scheduleTimeout(() => {
                         setEmojiEvents(prev => prev.filter(e => e.id !== aiEvent.id));
                     }, 2000);
                 }
             }, delay);
         });
-    }, [humanPlayer, activePlayers]);
+    }, [humanPlayer, activePlayers, scheduleTimeout]);
 
     // --- Autonomous AI Emojis (Organic Engine v2) ---
     useEffect(() => {
-        const aiPlayers = activePlayers.filter(p => !p.isHuman);
+        const { players: latestPlayers, isSpectating: spectating } = useGameStore.getState();
+        const currentPlayers = spectating ? latestPlayers.filter(p => !p.isHuman) : latestPlayers;
+        const aiPlayers = currentPlayers.filter(p => !p.isHuman);
         if (aiPlayers.length === 0) return;
 
         // Reset budgets + cooldowns at round start
@@ -307,8 +351,8 @@ export default function GameTable() {
 
         // Schedule an emoji with a delay
         const schedule = (playerId: string, emoji: string, delayMs: number) => {
-            if (graphicQuality !== 'HIGH' && Math.random() > 0.3) return; // 70% reduction in AI emojis for non-high quality
-            setTimeout(() => {
+            if (loadSettings().graphicQuality !== 'HIGH' && Math.random() > 0.3) return; // 70% reduction in AI emojis for non-high quality
+            scheduleTimeout(() => {
                 const event: FloatingEmojiEvent = {
                     id: `ai-${Date.now()}-${Math.random()}`,
                     playerId,
@@ -316,7 +360,7 @@ export default function GameTable() {
                     timestamp: Date.now()
                 };
                 setEmojiEvents(prev => [...prev, event]);
-                setTimeout(() => {
+                scheduleTimeout(() => {
                     setEmojiEvents(prev => prev.filter(e => e.id !== event.id));
                 }, 2500);
             }, delayMs);
@@ -324,7 +368,8 @@ export default function GameTable() {
 
         // --- Herd Mentality: Reacting to other bots ---
         // We look at the latest emoji event. If it's from a bot, others might pile on.
-        const latestEvent = emojiEvents[emojiEvents.length - 1];
+        const currentEmojiEvents = emojiEventsRef.current;
+        const latestEvent = currentEmojiEvents[currentEmojiEvents.length - 1];
         if (latestEvent && latestEvent.timestamp > Date.now() - 3000) {
             const isFromBot = aiPlayers.some(p => p.id === latestEvent.playerId);
             if (isFromBot) {
@@ -343,7 +388,7 @@ export default function GameTable() {
             }
         }
 
-        const dealer = activePlayers.find(p => p.isDealer);
+        const dealer = currentPlayers.find(p => p.isDealer);
 
         // === BETTING: maybe one bot greets or yawns ===
         if (gamePhase === 'BETTING') {
@@ -373,7 +418,7 @@ export default function GameTable() {
             });
 
             // Social: other bots react to someone getting Pok
-            const pokPlayers = activePlayers.filter(p => p.hasPok);
+            const pokPlayers = currentPlayers.filter(p => p.hasPok);
             if (pokPlayers.length > 0) {
                 aiPlayers.forEach(bot => {
                     if (bot.hasPok) return; // skip the one who got it
@@ -383,7 +428,7 @@ export default function GameTable() {
             }
 
             // Active bot reacts to drawing/staying decision
-            const currentBot = activePlayers[activePlayerIndex];
+            const currentBot = currentPlayers[activePlayerIndex];
             if (currentBot && !currentBot.isHuman && !currentBot.hasActed) {
                 const ctx: EmojiContext = currentBot.score <= 5 ? 'drawing' : 'staying';
                 const emoji = tryBotEmoji(currentBot.id, ctx);
@@ -416,7 +461,7 @@ export default function GameTable() {
                 if (emoji) schedule(bot.id, emoji, delay);
             });
         }
-    }, [gamePhase, activePlayerIndex, activePlayers]);
+    }, [gamePhase, activePlayerIndex, isSpectating, scheduleTimeout]);
 
     return (
         <div className="w-full h-full flex flex-col overflow-hidden font-sans"
@@ -584,8 +629,8 @@ export default function GameTable() {
                                                 avatarUrl={player.avatarUrl}
                                                 chips={player.chips}
                                                 isDealer={player.isDealer}
-                                                dealerAction={player.isDealer && !player.isHuman ? getDealerAction(gamePhase, players.reduce((sum, p) => sum + p.cards.length, 0), player.result) : undefined}
-                                                dealerCue={players.reduce((sum, p) => sum + p.cards.length, 0)}
+                                                dealerAction={player.isDealer && !player.isHuman ? getDealerAction(gamePhase, totalCardsDealt, player.result) : undefined}
+                                                dealerCue={totalCardsDealt}
                                                 dealerVariant={player.isDealer && !player.isHuman ? config?.dealerVariant : undefined}
                                                 isActive={isActive}
                                                 result={gamePhase === 'ROUND_END' ? player.result : 'pending'}

@@ -67,20 +67,21 @@ function Card({ card, faceDown = false, delay = 0, small = false, dealFromDeck =
             aria-label={faceDown ? 'ไพ่คว่ำ' : `${card.rank}${card.suit}`}
             initial={{ opacity: 0 }}
             animate={controls}
-            style={{ perspective: 1000, WebkitPerspective: 1000, willChange: 'transform, opacity' }}
+            style={{ perspective: 1000, WebkitPerspective: 1000 }}
         >
             <motion.div
                 className="w-full h-full relative"
                 initial={{ rotateY: 180 }}
                 animate={{ rotateY: faceDown ? 180 : 0 }}
                 transition={{ ...transition, delay: dealFromDeck && !reducedMotion ? CARD_FLIGHT_SECONDS - 0.08 : delay }}
-                style={{ transformStyle: 'preserve-3d', WebkitTransformStyle: 'preserve-3d', willChange: 'transform' }}
+                style={{ transformStyle: 'preserve-3d', WebkitTransformStyle: 'preserve-3d' }}
             >
                 <img
                     className={imageClass}
                     src={`${base}${suitFiles[card.suit]}-${card.rank}.png`}
                     alt=""
                     draggable={false}
+                    decoding="async"
                     width={164}
                     height={230}
                     style={{ ...faceStyle, transform: 'rotateY(0deg) translateZ(1px)' }}
@@ -90,6 +91,7 @@ function Card({ card, faceDown = false, delay = 0, small = false, dealFromDeck =
                     src={`${base}back.png`}
                     alt=""
                     draggable={false}
+                    decoding="async"
                     width={164}
                     height={230}
                     style={{ ...faceStyle, transform: 'rotateY(180deg) translateZ(1px)' }}

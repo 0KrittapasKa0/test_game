@@ -15,11 +15,22 @@ import EmojiPicker from '../components/EmojiPicker';
 import FloatingEmoji from '../components/FloatingEmoji';
 import { TableArtwork } from '../components/GameScene';
 export default function OnlineGameScreen() {
-    const {
-        config, players, roomId, localPlayerId, leaveRoom, isHost, startGame,
-        gamePhase, connectionStatus, isSpectating, activePlayerIndex, humanBetConfirmed, placeBet, confirmBet, playerAction
-    } = useOnlineStore();
-    const { setScreen } = useGameStore();
+    const config = useOnlineStore(s => s.config);
+    const players = useOnlineStore(s => s.players);
+    const roomId = useOnlineStore(s => s.roomId);
+    const localPlayerId = useOnlineStore(s => s.localPlayerId);
+    const leaveRoom = useOnlineStore(s => s.leaveRoom);
+    const isHost = useOnlineStore(s => s.isHost);
+    const startGame = useOnlineStore(s => s.startGame);
+    const gamePhase = useOnlineStore(s => s.gamePhase);
+    const connectionStatus = useOnlineStore(s => s.connectionStatus);
+    const isSpectating = useOnlineStore(s => s.isSpectating);
+    const activePlayerIndex = useOnlineStore(s => s.activePlayerIndex);
+    const humanBetConfirmed = useOnlineStore(s => s.humanBetConfirmed);
+    const placeBet = useOnlineStore(s => s.placeBet);
+    const confirmBet = useOnlineStore(s => s.confirmBet);
+    const playerAction = useOnlineStore(s => s.playerAction);
+    const setScreen = useGameStore(s => s.setScreen);
 
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [isCopied, setIsCopied] = useState(false);

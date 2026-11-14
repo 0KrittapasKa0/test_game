@@ -71,7 +71,6 @@ function PlayerAvatar({
                             background: 'transparent',
                             boxShadow: '0 0 0 2.5px #fde047, 0 0 16px rgba(253,224,71,0.5)',
                             zIndex: -1,
-                            willChange: 'transform, opacity'
                         }}
                         animate={{ scale: [1, 1.15, 1], opacity: [0.8, 0, 0.8] }}
                         transition={{ duration: 1.5, ease: 'easeInOut', repeat: Infinity }}
@@ -100,6 +99,7 @@ function PlayerAvatar({
                         <img
                             src={dealerVariant ? dealerSpriteAsset(dealerVariant) : avatarUrl}
                             alt={name}
+                            decoding="async"
                             className={dealerVariant
                                 ? 'absolute w-[1200%] max-w-none -left-[105%] -top-[32%]'
                                 : 'w-full h-full object-cover rounded-full'}

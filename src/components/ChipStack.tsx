@@ -67,7 +67,6 @@ export default function ChipStack({ amount, delay = 0, chipPresets, category = '
                         bg-gradient-to-br ${chip.style.fromTo} border border-white/10`}
                     style={{
                         zIndex: i,
-                        willChange: 'transform, opacity' // Hardware acceleration hint
                     }}
                     initial={{ y: -100, opacity: 0, scale: 0.8, rotate: Math.random() * 90 }}
                     animate={{ y: -i * 4, opacity: 1, scale: 1, rotate: chip.rotation }}

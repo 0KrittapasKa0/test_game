@@ -9,7 +9,7 @@ import ChipStack from './ChipStack';
 import FloatingEmoji, { type FloatingEmojiEvent } from './FloatingEmoji';
 import { tryBotEmoji, trySocialReaction, getContextualEmojiResponse, resetEmojiCooldowns, updateMood } from '../utils/aiEmojiLogic';
 import type { EmojiContext } from '../utils/aiEmojiLogic';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 
 // This is a simplified version of GameTable for the online mode.
 // We reuse the basic rendering but hook it into useOnlineStore.
@@ -81,11 +81,36 @@ function getChipPosition(playerPos: SeatPosition): SeatPosition {
 
 // === Custom hook: emoji logic for online mode ===
 export function useOnlineEmoji() {
-    const { players, gamePhase, activePlayerIndex, localPlayerId, sendEmoji, onEmojiReceived, offEmojiReceived, latestAiEvents } = useOnlineStore();
-    const activePlayers = players.filter(p => !p.isSpectating);
+    const players = useOnlineStore(s => s.players);
+    const gamePhase = useOnlineStore(s => s.gamePhase);
+    const activePlayerIndex = useOnlineStore(s => s.activePlayerIndex);
+    const localPlayerId = useOnlineStore(s => s.localPlayerId);
+    const sendEmoji = useOnlineStore(s => s.sendEmoji);
+    const onEmojiReceived = useOnlineStore(s => s.onEmojiReceived);
+    const offEmojiReceived = useOnlineStore(s => s.offEmojiReceived);
+    const latestAiEvents = useOnlineStore(s => s.latestAiEvents);
+    const activePlayers = useMemo(() => players.filter(p => !p.isSpectating), [players]);
 
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [emojiEvents, setEmojiEvents] = useState<FloatingEmojiEvent[]>([]);
+    const timeoutsRef = useRef<Set<number>>(new Set());
+
+    const scheduleTimeout = useCallback((fn: () => void, ms: number) => {
+        const id = window.setTimeout(() => {
+            timeoutsRef.current.delete(id);
+            fn();
+        }, ms);
+        timeoutsRef.current.add(id);
+        return id;
+    }, []);
+
+    useEffect(() => {
+        const timeouts = timeoutsRef.current;
+        return () => {
+            timeouts.forEach(id => window.clearTimeout(id));
+            timeouts.clear();
+        };
+    }, []);
 
     const handleSendEmoji = useCallback((emoji: string) => {
         if (!localPlayerId) return;
@@ -98,7 +123,7 @@ export function useOnlineEmoji() {
         };
 
         setEmojiEvents(prev => [...prev, newEvent]);
-        setTimeout(() => {
+        scheduleTimeout(() => {
             setEmojiEvents(prev => prev.filter(e => e.id !== newEvent.id));
         }, 2000);
 
@@ -110,7 +135,7 @@ export function useOnlineEmoji() {
         if (aiPlayers.length > 0) {
             aiPlayers.forEach((ai) => {
                 const delay = 600 + Math.random() * 2500;
-                setTimeout(() => {
+                scheduleTimeout(() => {
                     const aiEmoji = getContextualEmojiResponse(emoji, ai.id);
                     if (aiEmoji) {
                         const aiEvent: FloatingEmojiEvent = {
@@ -120,7 +145,7 @@ export function useOnlineEmoji() {
                             timestamp: Date.now()
                         };
                         setEmojiEvents(prev => [...prev, aiEvent]);
-                        setTimeout(() => {
+                        scheduleTimeout(() => {
                             setEmojiEvents(prev => prev.filter(e => e.id !== aiEvent.id));
                         }, 2000);
                     }
@@ -128,7 +153,7 @@ export function useOnlineEmoji() {
             });
         }
 
-    }, [localPlayerId, activePlayers, sendEmoji]);
+    }, [localPlayerId, activePlayers, sendEmoji, scheduleTimeout]);
 
     // --- Listen for emojis from other players over the network ---
     useEffect(() => {
@@ -142,13 +167,13 @@ export function useOnlineEmoji() {
                 timestamp: Date.now()
             };
             setEmojiEvents(prev => [...prev, event]);
-            setTimeout(() => {
+            scheduleTimeout(() => {
                 setEmojiEvents(prev => prev.filter(e => e.id !== eventId));
             }, 2500);
         };
         onEmojiReceived(handleRemoteEmoji);
         return () => offEmojiReceived(handleRemoteEmoji);
-    }, [localPlayerId, onEmojiReceived, offEmojiReceived]);
+    }, [localPlayerId, onEmojiReceived, offEmojiReceived, scheduleTimeout]);
 
     // --- Listen to Join/Leave Events ---
     useEffect(() => {
@@ -157,7 +182,7 @@ export function useOnlineEmoji() {
         latestAiEvents.forEach(event => {
             const delay = 400 + Math.random() * 800; // Quick reaction
 
-            setTimeout(() => {
+            scheduleTimeout(() => {
                 let context: EmojiContext | null = null;
                 if (event.type === 'join') {
                     context = 'join_room';
@@ -179,18 +204,19 @@ export function useOnlineEmoji() {
                             timestamp: Date.now()
                         };
                         setEmojiEvents(prev => [...prev, newEvent]);
-                        setTimeout(() => {
+                        scheduleTimeout(() => {
                             setEmojiEvents(prev => prev.filter(e => e.id !== newEvent.id));
                         }, 2500);
                     }
                 }
             }, delay);
         });
-    }, [latestAiEvents]);
+    }, [latestAiEvents, scheduleTimeout]);
 
     // --- Autonomous AI Emojis (Organic Engine v2) ---
     useEffect(() => {
-        const aiPlayers = activePlayers.filter(p => !p.isHuman);
+        const currentPlayers = useOnlineStore.getState().players.filter(p => !p.isSpectating);
+        const aiPlayers = currentPlayers.filter(p => !p.isHuman);
         if (aiPlayers.length === 0) return;
 
         if (gamePhase === 'BETTING') {
@@ -198,7 +224,7 @@ export function useOnlineEmoji() {
         }
 
         const schedule = (playerId: string, emoji: string, delayMs: number) => {
-            setTimeout(() => {
+            scheduleTimeout(() => {
                 const event: FloatingEmojiEvent = {
                     id: `ai-${Date.now()}-${Math.random()}`,
                     playerId,
@@ -206,7 +232,7 @@ export function useOnlineEmoji() {
                     timestamp: Date.now()
                 };
                 setEmojiEvents(prev => [...prev, event]);
-                setTimeout(() => {
+                scheduleTimeout(() => {
                     setEmojiEvents(prev => prev.filter(e => e.id !== event.id));
                 }, 2500);
             }, delayMs);
@@ -229,7 +255,7 @@ export function useOnlineEmoji() {
             });
 
             // Social: react to someone else's Pok
-            const pokPlayers = activePlayers.filter(p => p.hasPok);
+            const pokPlayers = currentPlayers.filter(p => p.hasPok);
             if (pokPlayers.length > 0) {
                 aiPlayers.forEach(bot => {
                     if (bot.hasPok) return;
@@ -238,7 +264,7 @@ export function useOnlineEmoji() {
                 });
             }
 
-            const currentBot = activePlayers[activePlayerIndex];
+            const currentBot = currentPlayers[activePlayerIndex];
             if (currentBot && !currentBot.isHuman && !currentBot.hasActed) {
                 const ctx: EmojiContext = currentBot.score <= 5 ? 'drawing' : 'staying';
                 const emoji = tryBotEmoji(currentBot.id, ctx);
@@ -258,21 +284,34 @@ export function useOnlineEmoji() {
                 if (emoji) schedule(bot.id, emoji, delay);
             });
         }
-    }, [gamePhase, activePlayers, activePlayerIndex]);
+    }, [gamePhase, activePlayerIndex, scheduleTimeout]);
 
     return { emojiEvents, showEmojiPicker, setShowEmojiPicker, handleSendEmoji };
 }
 
 export default function OnlineGameTable({ emojiEvents }: { emojiEvents: FloatingEmojiEvent[] }) {
-    const { players, gamePhase, activePlayerIndex, showCards, localPlayerId, config } = useOnlineStore();
+    const players = useOnlineStore(s => s.players);
+    const gamePhase = useOnlineStore(s => s.gamePhase);
+    const activePlayerIndex = useOnlineStore(s => s.activePlayerIndex);
+    const showCards = useOnlineStore(s => s.showCards);
+    const localPlayerId = useOnlineStore(s => s.localPlayerId);
+    const config = useOnlineStore(s => s.config);
 
-    const activePlayers = players.filter(p => !p.isSpectating);
+    const activePlayers = useMemo(() => players.filter(p => !p.isSpectating), [players]);
     const activeHumanIndex = activePlayers.findIndex(p => p.id === localPlayerId);
     const activeDealerIndex = activePlayers.findIndex(p => p.isDealer);
 
-    const seatPositions = activePlayers.length > 0
-        ? computeSeatPositions(activePlayers.length, activeDealerIndex >= 0 ? activeDealerIndex : 0, activeHumanIndex >= 0 ? activeHumanIndex : -1)
-        : [];
+    const seatPositions = useMemo(
+        () =>
+            activePlayers.length > 0
+                ? computeSeatPositions(activePlayers.length, activeDealerIndex >= 0 ? activeDealerIndex : 0, activeHumanIndex >= 0 ? activeHumanIndex : -1)
+                : [],
+        [activePlayers.length, activeDealerIndex, activeHumanIndex],
+    );
+    const totalCardsDealt = useMemo(
+        () => players.reduce((sum, p) => sum + p.cards.length, 0),
+        [players],
+    );
 
 
 
@@ -357,8 +396,8 @@ export default function OnlineGameTable({ emojiEvents }: { emojiEvents: Floating
                                         avatarUrl={player.avatarUrl}
                                         chips={player.chips}
                                         isDealer={player.isDealer}
-                                        dealerAction={player.isDealer && !player.isHuman ? getDealerAction(gamePhase, players.reduce((sum, p) => sum + p.cards.length, 0), player.result) : undefined}
-                                        dealerCue={players.reduce((sum, p) => sum + p.cards.length, 0)}
+                                        dealerAction={player.isDealer && !player.isHuman ? getDealerAction(gamePhase, totalCardsDealt, player.result) : undefined}
+                                        dealerCue={totalCardsDealt}
                                         dealerVariant={player.isDealer && !player.isHuman ? config?.dealerVariant : undefined}
                                         isActive={isActive}
                                         result={gamePhase === 'ROUND_END' ? player.result : 'pending'}

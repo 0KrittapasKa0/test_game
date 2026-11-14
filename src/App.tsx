@@ -1,19 +1,20 @@
 import { useGameStore } from './store/useGameStore';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { loadSettings } from './utils/storage';
 import SplashScreen from './screens/SplashScreen';
-import OnboardingScreen from './screens/OnboardingScreen';
-import MainMenuScreen from './screens/MainMenuScreen';
-import GameSetupScreen from './screens/GameSetupScreen';
-import GameScreen from './screens/GameScreen';
-import SettingsScreen from './screens/SettingsScreen';
-import ActivitiesScreen from './screens/ActivitiesScreen';
-import ProfileScreen from './screens/ProfileScreen';
-import OnlineGameScreen from './screens/OnlineGameScreen';
-import OnlineJoinScreen from './screens/OnlineJoinScreen';
-import MailboxScreen from './screens/MailboxScreen';
 import { useOnlineStore } from './store/useOnlineStore';
 import { GameScene } from './components/GameScene';
+
+const OnboardingScreen = lazy(() => import('./screens/OnboardingScreen'));
+const MainMenuScreen = lazy(() => import('./screens/MainMenuScreen'));
+const GameSetupScreen = lazy(() => import('./screens/GameSetupScreen'));
+const GameScreen = lazy(() => import('./screens/GameScreen'));
+const SettingsScreen = lazy(() => import('./screens/SettingsScreen'));
+const ActivitiesScreen = lazy(() => import('./screens/ActivitiesScreen'));
+const ProfileScreen = lazy(() => import('./screens/ProfileScreen'));
+const OnlineGameScreen = lazy(() => import('./screens/OnlineGameScreen'));
+const OnlineJoinScreen = lazy(() => import('./screens/OnlineJoinScreen'));
+const MailboxScreen = lazy(() => import('./screens/MailboxScreen'));
 
 const screenComponents = {
   SPLASH: SplashScreen,
@@ -63,7 +64,9 @@ export default function App() {
             key={key}
             className={`scene-screen absolute inset-0 w-full h-full origin-center transition-all duration-200 ease-out opacity-100 scale-100 pointer-events-auto z-10`}
           >
-            <ScreenComponent />
+            <Suspense fallback={null}>
+              <ScreenComponent />
+            </Suspense>
           </div>
         );
       })}

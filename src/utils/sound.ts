@@ -138,18 +138,29 @@ function playTone(frequency: number, duration: number, type: OscillatorType = 's
     }
 }
 
-function playNoise(duration: number, volume = 0.08) {
-    if (!isSoundEnabled()) return;
-    try {
-        const ctx = getAudioContext();
-        const bufferSize = ctx.sampleRate * duration;
-        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+const noiseBufferCache = new Map<string, AudioBuffer>();
+
+function getNoiseBuffer(ctx: AudioContext, duration: number): AudioBuffer {
+    const key = `${ctx.sampleRate}:${duration}`;
+    let buffer = noiseBufferCache.get(key);
+    if (!buffer) {
+        const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * duration));
+        buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
             data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3);
         }
+        noiseBufferCache.set(key, buffer);
+    }
+    return buffer;
+}
+
+function playNoise(duration: number, volume = 0.08) {
+    if (!isSoundEnabled()) return;
+    try {
+        const ctx = getAudioContext();
         const source = ctx.createBufferSource();
-        source.buffer = buffer;
+        source.buffer = getNoiseBuffer(ctx, duration);
         const gain = ctx.createGain();
         gain.gain.setValueAtTime(volume, ctx.currentTime);
         // Bandpass filter for card-like sound
