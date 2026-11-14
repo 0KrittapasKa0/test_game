@@ -5,7 +5,6 @@ import DealingDeck from './DealingDeck';
 import { getDealerAction } from '../utils/dealerAnimation';
 import { motion } from 'framer-motion';
 import { evaluateHand } from '../utils/deck';
-import { RoomEnvironment } from './RoomEnvironment';
 import ChipStack from './ChipStack';
 import FloatingEmoji, { type FloatingEmojiEvent } from './FloatingEmoji';
 import { tryBotEmoji, trySocialReaction, getContextualEmojiResponse, resetEmojiCooldowns, updateMood } from '../utils/aiEmojiLogic';
@@ -281,11 +280,6 @@ export default function OnlineGameTable({ emojiEvents }: { emojiEvents: Floating
 
     return (
         <div className="absolute inset-0 z-30 pointer-events-none" data-card-table>
-            {/* Center Area (Room Info) */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
-                {config && <RoomEnvironment category={config.room.category} />}
-            </div>
-
             {/* Room Info Display - Mirrored from GameTable.tsx */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10">
                 <div className="flex flex-col items-center opacity-[0.07]">
